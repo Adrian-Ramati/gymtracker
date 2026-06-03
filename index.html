@@ -28,7 +28,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--font);font-size:14px}
 .app{display:flex;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto}
 .hdr{padding:max(env(safe-area-inset-top),14px) 16px 0;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.hdr-logo{width:30px;height:30px;background:var(--blue);border-radius:8px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.hdr-logo{width:34px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}.hdr-logo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
 .hdr-title{font-size:16px;font-weight:600;letter-spacing:-.3px}
 .hdr-right{margin-left:auto;display:flex;gap:6px}
 .ppill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--b1);background:transparent;color:var(--t2);font-family:var(--font);transition:all .2s}
@@ -171,7 +171,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 <body>
 <div class="app">
   <div class="hdr">
-    <div class="hdr-logo">💪</div>
+    <div class="hdr-logo"><img src="icon-192.png" alt="logo"></div>
     <span class="hdr-title">GymTracker</span>
     <div class="hdr-right">
       <button class="ppill a" onclick="setProfile('Adrian')">Adrián</button>
