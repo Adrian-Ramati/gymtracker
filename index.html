@@ -46,7 +46,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .content::-webkit-scrollbar{display:none}
 .scr{display:none;padding:14px 14px 20px}
 .scr.on{display:block}
-.stitle{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;font-family:var(--mono)}
+.stitle{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;font-family:var(--mono)} .stitle-section{font-size:15px;font-weight:600;color:var(--t1);text-align:center;margin-bottom:14px;letter-spacing:-.2px}
 /* CALENDAR */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cal-month{font-size:15px;font-weight:600}
@@ -64,18 +64,18 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .dpanel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;margin-bottom:14px}
 .dpanel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .dpanel-title{font-size:14px;font-weight:600}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0}
-.chip-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);transition:all .2s;font-family:var(--font)}
-.chip:hover{border-color:var(--blue);color:var(--blue)}
-.chip.blank{border-style:dashed;color:var(--t3)}
-.chip-menu-btn{background:none;border:1px solid var(--b1);color:var(--t3);cursor:pointer;padding:5px 8px;border-radius:8px;font-size:14px;line-height:1;transition:all .15s;font-family:var(--font)}
-.chip-menu-btn:hover{color:var(--t1);border-color:var(--b2)}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0}
+.chip-row{position:relative;display:flex;align-items:stretch}
+.chip{flex:1;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);transition:all .2s;font-family:var(--font);text-align:left;padding-right:28px}
+.chip:hover{border-color:var(--blue);color:var(--blue)} .chip.blank{border-style:dashed;color:var(--t3);text-align:center;padding-right:12px;grid-column:1/-1}
+
+.chip-menu-btn{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--t4);cursor:pointer;padding:2px 4px;font-size:11px;line-height:1;z-index:1;letter-spacing:1px}
+.chip-menu-btn:hover{color:var(--t2)}
 /* SESSION */
 .sess-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--b1)}
 .sess-name-inp{flex:1;background:transparent;border:none;color:var(--t1);font-size:16px;font-weight:600;font-family:var(--font);outline:none;min-width:0}
 .sess-timer{font-size:12px;color:var(--t3);font-family:var(--mono);white-space:nowrap}
-.finish-btn{padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.finish-btn{padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap} .cancel-btn{padding:7px 10px;background:transparent;border:1px solid var(--b2);color:var(--t3);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .2s} .cancel-btn:hover{border-color:var(--red);color:var(--red)}
 /* EXERCISE CARD */
 .ec{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:12px;margin-bottom:10px;transition:opacity .2s,border-color .15s}
 .ec.dragging{opacity:.4;border-style:dashed}
@@ -99,7 +99,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .check-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--b1);background:transparent;cursor:pointer;display:grid;place-items:center;font-size:13px;transition:all .15s;color:var(--t3)}
 .check-btn.done{background:var(--green);border-color:var(--green);color:#000}
 .ec-footer{display:flex;gap:6px;margin-top:8px;border-top:1px solid var(--b1);padding-top:8px}
-.add-set-btn{flex:1;padding:7px;background:transparent;border:1px dashed var(--b2);border-radius:8px;color:var(--t3);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .2s}
+.add-set-btn{flex:1;padding:7px;background:transparent;border:1px dashed var(--b2);border-radius:8px;color:var(--t3);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .2s;min-width:0}
 .add-set-btn:hover{border-color:var(--blue);color:var(--blue)}
 /* E1RM badges */
 .e1rm-row{display:flex;gap:8px;margin-top:6px;font-size:10px;font-family:var(--mono)}
@@ -169,7 +169,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .export-btn{width:100%;padding:11px;background:transparent;border:1px solid var(--b1);border-radius:var(--rl);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .export-btn:hover{border-color:var(--teal);color:var(--teal)}
 /* MISC */
-.divider{height:1px;background:var(--b1);margin:14px 0}
+.divider{height:1px;background:var(--b1);margin:14px 0} .divider-lg{height:1px;background:var(--b1);margin:28px 0}
 .empty{text-align:center;padding:40px 20px;color:var(--t3);font-size:13px;line-height:1.6}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--t1);color:var(--bg);padding:10px 20px;border-radius:20px;font-size:12px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -222,6 +222,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
       <div class="sess-hdr">
         <input class="sess-name-inp" id="sess-name" value="Entrenamiento">
         <span class="sess-timer" id="sess-timer">0:00</span>
+        <button class="cancel-btn" onclick="cancelSession()" title="Cancelar">✕</button>
         <button class="finish-btn" onclick="finishSession()">Finalizar</button>
       </div>
       <div id="sess-exs"></div>
@@ -229,15 +230,15 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
     </div>
     <!-- ESTADÍSTICAS -->
     <div id="s-stats" class="scr">
-      <div class="stitle">Progresión e1RM</div>
+      <div class="stitle-section">Progresión e1RM</div>
       <select class="psel" id="prog-sel" onchange="renderProgChart()"></select>
       <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:10px">Epley ajustada por RIR cuando RPE disponible</div>
       <div class="sg" id="prog-stats"></div>
       <div class="cw"><canvas id="progChart" role="img"></canvas></div>
-      <div class="divider"></div>
-      <div class="stitle">Volumen semanal</div>
+      <div class="divider-lg"></div>
+      <div class="stitle-section">Volumen semanal</div>
       <div class="sg" id="vol-stats"></div>
-      <div class="stitle" style="margin-top:4px">Series por músculo — 7 días</div>
+      <div class="stitle" style="margin-top:4px">Series por músculo — Últ 7 días</div>
       <div id="vol-bars"></div>
       <div class="stitle" style="margin-top:16px">Histórico semanal</div>
       <div class="cw" style="height:220px"><canvas id="volChart" role="img"></canvas></div>
@@ -274,6 +275,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
           <div class="mf" id="weight-view-weekly" onclick="setWeightView('weekly')">Semanal</div>
         </div>
         <div class="cw" style="height:180px"><canvas id="weightChart"></canvas></div>
+        <div id="weight-history-list" style="margin-top:8px"></div>
       </div>
       <!-- PERÍMETROS -->
       <div class="profile-section">
@@ -584,6 +586,7 @@ function renderDayPanel(){
         <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ejercicios</span></div>`;
       s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${e.name} — ${ds2} series</div>`;});
       if((s.exercises?.length||0)>3) html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
+      html+=`<button onclick="deleteSession(${s.id})" style="margin-top:6px;background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Eliminar sesión</button>`;
       html+='</div>';
     });
     html+='<div class="divider"></div>';
@@ -591,13 +594,14 @@ function renderDayPanel(){
   html+='<div class="stitle" style="margin-bottom:8px">Iniciar entrenamiento</div><div class="chips">';
   (db.templates||[]).forEach(t=>{
     html+=`<div class="chip-row">
-      <div class="chip" onclick="startFromTmpl('${t.id}')">${t.name}</div>
-      <div class="tmpl-dropdown" id="dd_${t.id}">
-        <button class="chip-menu-btn" onclick="toggleTmplDropdown('${t.id}',event)">⋯</button>
-        <div class="tmpl-dropdown-menu" id="ddm_${t.id}">
-          <button class="tmpl-dropdown-item" onclick="openEditTmpl('${t.id}');closeTmplDropdown()">Editar rutina</button>
-          <button class="tmpl-dropdown-item" onclick="duplicateTmpl('${t.id}');closeTmplDropdown()">Duplicar rutina</button>
-          <button class="tmpl-dropdown-item danger" onclick="deleteTmpl('${t.id}');closeTmplDropdown()">Eliminar rutina</button>
+      <div class="chip" onclick="startFromTmpl('${t.id}')">${t.name}
+        <div class="tmpl-dropdown" id="dd_${t.id}" style="position:absolute;top:6px;right:6px">
+          <button class="chip-menu-btn" onclick="toggleTmplDropdown('${t.id}',event)">⋮</button>
+          <div class="tmpl-dropdown-menu" id="ddm_${t.id}">
+            <button class="tmpl-dropdown-item" onclick="openEditTmpl('${t.id}');closeTmplDropdown()">Editar rutina</button>
+            <button class="tmpl-dropdown-item" onclick="duplicateTmpl('${t.id}');closeTmplDropdown()">Duplicar rutina</button>
+            <button class="tmpl-dropdown-item danger" onclick="deleteTmpl('${t.id}');closeTmplDropdown()">Eliminar rutina</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -618,6 +622,12 @@ function toggleTmplDropdown(tid,e){
 function closeTmplDropdown(){document.querySelectorAll('.tmpl-dropdown-menu').forEach(m=>m.classList.remove('on'));}
 document.addEventListener('click',()=>closeTmplDropdown());
 
+function deleteSession(id){
+  if(!confirm('¿Eliminar esta sesión?')) return;
+  db.sessions=db.sessions.filter(s=>s.id!==id);
+  saveDB(); renderCal(); renderDayPanel();
+  toast('Sesión eliminada');
+}
 function duplicateTmpl(tid){
   const t=(db.templates||[]).find(t=>t.id===tid);
   if(!t) return;
@@ -774,6 +784,13 @@ function collectInputs(){
     if(notesEl) ex.notes=notesEl.value;
   });
 }
+function cancelSession(){
+  if(!confirm('¿Cancelar el entrenamiento? No se guardará nada.')) return;
+  clearInterval(timerIv); activeSess=null;
+  const trainBtn=document.querySelector('.bn');
+  showScr('train',trainBtn); renderCal(); renderDayPanel();
+  toast('Entrenamiento cancelado');
+}
 function finishSession(){
   if(!activeSess) return;
   collectInputs();clearInterval(timerIv);
@@ -816,8 +833,7 @@ function openCtx(ei){
   document.getElementById('ctx-menu').innerHTML=`
     <button class="ctx-item" onclick="ctxReplace(${ei})">
       <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Reemplazar ejercicio</button>
-    <button class="ctx-item" onclick="addSet(${ei});closeCtx()">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Añadir serie</button>
+
     <button class="ctx-item danger" onclick="removeEx(${ei})">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>Eliminar ejercicio</button>`;
   document.getElementById('ov-ctx').classList.add('on');
@@ -991,6 +1007,35 @@ function renderWeightChart(){
   }
   if(wChart){wChart.destroy();wChart=null;}
   wChart=new Chart(document.getElementById('weightChart'),{type:'line',data:{labels,datasets:[{label:'kg',data,borderColor:'#34d399',backgroundColor:'rgba(52,211,153,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#34d399',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
+  // Render editable history list
+  const histDiv=document.getElementById('weight-history-list');
+  if(histDiv){
+    const recent=(db.weights||[]).slice(-10).reverse();
+    if(recent.length){
+      histDiv.innerHTML='<div class="stitle" style="margin-top:4px">Últimas entradas</div>'+
+        recent.map(w=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1)">
+          <span style="font-size:12px;color:var(--t3);font-family:var(--mono);flex:1">${w.date}</span>
+          <span style="font-size:13px;font-weight:500;font-family:var(--mono)">${w.kg} kg</span>
+          <button onclick="editWeightEntry('${w.date}')" style="background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;font-family:var(--font);padding:2px 6px">Editar</button>
+          <button onclick="deleteWeightEntry('${w.date}')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:var(--font);padding:2px 6px">×</button>
+        </div>`).join('');
+    } else { histDiv.innerHTML=''; }
+  }
+}
+function editWeightEntry(date){
+  const entry=(db.weights||[]).find(w=>w.date===date);
+  if(!entry) return;
+  const newKg=prompt(`Editar peso para ${date}:`,entry.kg);
+  if(newKg===null) return;
+  const val=parseFloat(newKg);
+  if(isNaN(val)||val<=0){toast('Valor no válido');return;}
+  entry.kg=val;
+  saveDB();renderWeightChart();toast('Peso actualizado ✓');
+}
+function deleteWeightEntry(date){
+  if(!confirm(`¿Eliminar entrada del ${date}?`)) return;
+  db.weights=(db.weights||[]).filter(w=>w.date!==date);
+  saveDB();renderWeightChart();toast('Entrada eliminada');
 }
 // MEASURES
 function getWeekLabel(){
