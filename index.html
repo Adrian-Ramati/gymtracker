@@ -234,6 +234,7 @@ input[type=date]{color-scheme:dark}
       <div class="cal-nav">
         <button class="cal-arrow" onclick="moveMonth(-1)">&#8249;</button>
         <span class="cal-month" id="cal-month-label"></span>
+        <button class="cal-arrow" onclick="goToday()" style="font-size:11px;font-weight:600;width:auto;padding:0 10px;font-family:var(--font)">Hoy</button>
         <button class="cal-arrow" onclick="moveMonth(1)">&#8250;</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
@@ -417,15 +418,56 @@ input[type=date]{color-scheme:dark}
         </button>
       </div>
     </div>
+    <!-- ACTIVIDAD -->
+    <div id="s-activity" class="scr">
+      <!-- NEAT -->
+      <div class="profile-card">
+        <div class="profile-card-title">NEAT — Pasos diarios</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px">
+          <div style="flex:1"><div class="measure-label" style="margin-bottom:4px">Pasos</div>
+            <input class="measure-inp" id="neat-steps" type="number" min="0" step="100" placeholder="8000">
+          </div>
+          <div style="flex:1"><div class="measure-label" style="margin-bottom:4px">Fecha</div>
+            <input class="measure-inp" id="neat-date" type="date">
+          </div>
+          <button class="save-measure-btn" style="flex:0 0 auto;width:auto;padding:8px 14px;margin-top:0" onclick="saveSteps()">Guardar</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <div class="mf on" id="neat-view-daily" onclick="setNeatView('daily')">Diario</div>
+          <div class="mf" id="neat-view-weekly" onclick="setNeatView('weekly')">Semanal</div>
+        </div>
+        <div class="cw" style="height:180px"><canvas id="neatChart"></canvas></div>
+      </div>
+      <!-- GET -->
+      <div class="profile-card">
+        <div class="profile-card-title">GET — Gasto Energético Total</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <div class="mf on" id="get-view-daily" onclick="setGetView('daily')">Días</div>
+          <div class="mf" id="get-view-weekly" onclick="setGetView('weekly')">Semanal</div>
+        </div>
+        <div class="cw" style="height:240px"><canvas id="getChart"></canvas></div>
+        <div class="sg" id="get-stats" style="margin-top:12px"></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;font-size:11px;font-family:var(--mono)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#4f8ef7;display:inline-block"></span>TMB</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#34d399;display:inline-block"></span>NEAT</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#f472b6;display:inline-block"></span>Gym</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#fbbf24;display:inline-block"></span>Otros (ETA)</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="bnav">
     <button class="bn on" onclick="showScr('train',this)">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Entreno
+      Historial
     </button>
     <button class="bn" onclick="showScr('stats',this)">
-      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Estadísticas
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><polyline points="12 12 15 14"/></svg>
+      Rendimiento
+    </button>
+    <button class="bn" onclick="showScr('activity',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 3 7 3 11c0 4.4 3.3 7.4 7 7.9V21h4v-2.1c3.7-.5 7-3.5 7-7.9C21 7 17.5 2 12 2z" stroke-width="0" fill="currentColor" opacity=".4"/><path d="M12 2c0 0-2 3-2 6 0 2 1.5 3.5 2 4 .5-.5 2-2 2-4 0-3-2-6-2-6z"/></svg>
+      Actividad
     </button>
     <button class="bn" onclick="showScr('profile',this)">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -619,6 +661,7 @@ function loadDB(){
   if(!db.weights)db.weights=[];
   if(!db.measures)db.measures=[];
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
+  if(!db.steps)db.steps=[];
   if(profile==='Adrian'&&db.sessions.length===0){db.sessions=JSON.parse(JSON.stringify(SEED_DATA));saveDB();}
 }
 function saveDB(){try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){}}
@@ -651,10 +694,12 @@ function renderCurrentScr(n){
   if(a==='train'||a==='sess'){renderCal();renderDayPanel();}
   else if(a==='stats'){renderProg();renderVol();}
   else if(a==='profile'){renderProfileScr();}
+  else if(a==='activity'){renderActivityScr();}
 }
 
 // ═══ CALENDAR ═══
 function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];}
+function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];renderCal();renderDayPanel();}
 function moveMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;}renderCal();}
 function renderCal(){
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1267,6 +1312,227 @@ function exportXLSX(){
   const exMap={};sessions.forEach(s=>{(s.exercises||[]).forEach(ex=>{if(!exMap[ex.name])exMap[ex.name]={name:ex.name,muscle:ex.muscle,count:0,maxRM:0};exMap[ex.name].count++;if(ex.best_e1rm)exMap[ex.name].maxRM=Math.max(exMap[ex.name].maxRM,ex.best_e1rm);});});
   XLSX.utils.book_append_sheet(wb,'Resumen',XLSX.utils.aoa_to_sheet([['Ejercicio','Músculo','Sesiones','Mejor e1RM (kg)'],...Object.values(exMap).map(e=>[e.name,e.muscle,e.count,e.maxRM||''])]));
   XLSX.writeFile(wb,`GymTracker_${profile}_${new Date().toISOString().split('T')[0]}.xlsx`);toast('Descargando Excel…');
+}
+
+// ═══ ACTIVITY ═══
+let neatView='daily', getView='daily';
+let neatChart=null, getChart2=null;
+
+function saveSteps(){
+  const steps=parseInt(document.getElementById('neat-steps').value);
+  const date=document.getElementById('neat-date').value;
+  if(!steps||!date){toast('Introduce pasos y fecha');return;}
+  db.steps=db.steps||[];
+  const idx=db.steps.findIndex(s=>s.date===date);
+  if(idx>=0)db.steps[idx].steps=steps;else db.steps.push({date,steps});
+  db.steps.sort((a,b)=>a.date.localeCompare(b.date));
+  saveDB();renderNeatChart();toast('Pasos guardados ✓');
+  document.getElementById('neat-steps').value='';
+}
+
+function setNeatView(v){
+  neatView=v;
+  document.getElementById('neat-view-daily').className='mf'+(v==='daily'?' on':'');
+  document.getElementById('neat-view-weekly').className='mf'+(v==='weekly'?' on':'');
+  renderNeatChart();
+}
+function setGetView(v){
+  getView=v;
+  document.getElementById('get-view-daily').className='mf'+(v==='daily'?' on':'');
+  document.getElementById('get-view-weekly').className='mf'+(v==='weekly'?' on':'');
+  renderGetChart();
+}
+
+// Get weight closest to (and not after) a date
+function getWeightForDate(dateStr){
+  const weights=(db.weights||[]).filter(w=>w.date<=dateStr);
+  if(!weights.length) return db.profile?.height?(db.profile.height-100):70; // fallback
+  return weights[weights.length-1].kg;
+}
+
+// kcal burned walking: use Pandolf formula simplified
+// kcal ≈ steps × (0.04 × weight_kg) / 1000 × ... 
+// Simpler: 4km/h, ~0.8 * weight_kg * distance_km
+// steps × 0.75m/step ≈ distance_km
+function stepsToKcal(steps, weightKg, heightCm){
+  const distKm = steps * 0.00075; // avg stride ~0.75m
+  // MET for 4km/h ≈ 3.0 for average person; scale by weight
+  const kcal = 3.0 * weightKg * (distKm / 4); // time_h = dist/speed
+  return Math.round(kcal);
+}
+
+// Harris-Benedict TMB
+function calcTMB(dateStr){
+  const sex=db.profile?.sex||'male';
+  const age=db.profile?.age||30;
+  const height=db.profile?.height||175;
+  const weight=getWeightForDate(dateStr);
+  let tmb;
+  if(sex==='male') tmb=88.362+(13.397*weight)+(4.799*height)-(5.677*age);
+  else tmb=447.593+(9.247*weight)+(3.098*height)-(4.330*age);
+  return Math.round(tmb);
+}
+
+// Gym kcal: MET × weight × duration_h
+// Upper: MET 5, Lower: MET 6, other: MET 5
+// Lambert et al. (JSCR, R²=0.773):
+// Net kcal = 0.874*height - 0.596*age - 1.016*fatMass + 1.638*leanMass + 2.461*(TV/1000) - 110.742
+// TV = sets × reps × kg (total volume load of session)
+// RPE corrector: if mean RPE > 7, multiply by 1 + 0.03*(meanRPE - 7) to capture anaerobic contribution
+function gymKcalForDate(dateStr){
+  const sessions=(db.sessions||[]).filter(s=>s.date===dateStr);
+  if(!sessions.length) return 0;
+  const height=db.profile?.height||175;
+  const age=db.profile?.age||30;
+  const weight=getWeightForDate(dateStr);
+  // Body composition: use last JP bodyfat if available, else estimate 20%
+  const lastBFEntry=(db.measures||[]).filter(m=>m.bf!=null&&(m.date||'9999')<=dateStr).pop();
+  const bfPct=lastBFEntry?lastBFEntry.bf/100:0.20;
+  const fatMass=weight*bfPct;
+  const leanMass=weight*(1-bfPct);
+  let total=0;
+  sessions.forEach(s=>{
+    // Calculate TV = Σ(kg × reps) for all completed sets
+    let TV=0, rpeSum=0, rpeCount=0;
+    (s.exercises||[]).forEach(ex=>{
+      (ex.sets||[]).filter(st=>st.kg&&st.reps).forEach(st=>{
+        TV+=st.kg*st.reps;
+        if(st.rpe){rpeSum+=st.rpe;rpeCount++;}
+      });
+    });
+    if(TV===0) return; // no data, skip
+    const meanRPE=rpeCount?rpeSum/rpeCount:7;
+    const rpeFactor=meanRPE>7?1+0.03*(meanRPE-7):1;
+    const rawKcal=0.874*height - 0.596*age - 1.016*fatMass + 1.638*leanMass + 2.461*(TV/1000) - 110.742;
+    // Lambert equation can return negative for very low TV — floor at 0
+    total+=Math.max(0, Math.round(rawKcal*rpeFactor));
+  });
+  return total;
+}
+
+function renderActivityScr(){
+  const nd=document.getElementById('neat-date');
+  if(!nd.value)nd.value=new Date().toISOString().split('T')[0];
+  renderNeatChart();
+  renderGetChart();
+}
+
+function renderNeatChart(){
+  const steps=db.steps||[];
+  if(!steps.length){if(neatChart){neatChart.destroy();neatChart=null;}return;}
+  let labels,data,kcalData;
+  if(neatView==='daily'){
+    // Last 7 days
+    const days=[];
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+    labels=days.map(d=>fmtDate(d));
+    data=days.map(d=>{const s=steps.find(s=>s.date===d);return s?s.steps:0;});
+    kcalData=days.map((d,i)=>{
+      const w=getWeightForDate(d);const h2=db.profile?.height||175;
+      return data[i]?stepsToKcal(data[i],w,h2):0;
+    });
+  } else {
+    // Last 4 weeks avg steps/day
+    const weeks=[];
+    for(let i=3;i>=0;i--){
+      const end=new Date();end.setDate(end.getDate()-i*7);
+      const start=new Date(end);start.setDate(start.getDate()-6);
+      const wLabel='S'+getWk(end);
+      const weekSteps=steps.filter(s=>s.date>=start.toISOString().split('T')[0]&&s.date<=end.toISOString().split('T')[0]);
+      const avg=weekSteps.length?Math.round(weekSteps.reduce((a,b)=>a+b.steps,0)/weekSteps.length):0;
+      weeks.push({label:wLabel,avg});
+    }
+    labels=weeks.map(w=>w.label);
+    data=weeks.map(w=>w.avg);
+    kcalData=weeks.map((w,i)=>{
+      const refDate=new Date();refDate.setDate(refDate.getDate()-i*7);
+      const ds=refDate.toISOString().split('T')[0];
+      const wt=getWeightForDate(ds);const h2=db.profile?.height||175;
+      return w.avg?stepsToKcal(w.avg,wt,h2):0;
+    });
+  }
+  if(neatChart){neatChart.destroy();neatChart=null;}
+  neatChart=new Chart(document.getElementById('neatChart'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Pasos',data,backgroundColor:'rgba(52,211,153,0.7)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(20,20,20,.95)',titleColor:'#f0f0f0',bodyColor:'#888',
+        borderColor:'#2a2a2a',borderWidth:1,padding:10,
+        callbacks:{
+          label:(item)=>{
+            const idx=item.dataIndex;
+            const s=data[idx];const k=kcalData[idx];
+            return[`Pasos: ${s.toLocaleString()}`,k?`Kcal: ~${k}`:''];
+          }
+        }
+      }},
+      scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},
+              x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}
+  });
+}
+
+function renderGetChart(){
+  // Build day or week data
+  const today=new Date();
+  let dateRange=[];
+  if(getView==='daily'){
+    for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);dateRange.push(d.toISOString().split('T')[0]);}
+  } else {
+    for(let i=3;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i*7);dateRange.push(d.toISOString().split('T')[0]);}
+  }
+
+  const tmbArr=[], neatArr=[], gymArr=[], othersArr=[], labels=[];
+  dateRange.forEach(dateStr=>{
+    const tmb=calcTMB(dateStr);
+    const stepRec=(db.steps||[]).find(s=>s.date===dateStr);
+    const wt=getWeightForDate(dateStr);const h2=db.profile?.height||175;
+    const neatKcal=stepRec?stepsToKcal(stepRec.steps,wt,h2):0;
+    const gymKcal=gymKcalForDate(dateStr);
+    const others=Math.round(tmb*0.10); // ETA ~10% TMB
+    tmbArr.push(tmb);
+    neatArr.push(neatKcal);
+    gymArr.push(gymKcal);
+    othersArr.push(others);
+    labels.push(getView==='daily'?fmtDate(dateStr):'S'+getWk(new Date(dateStr)));
+  });
+
+  // If weekly, average each component
+  const finalTMB=tmbArr, finalNEAT=neatArr, finalGym=gymArr, finalOthers=othersArr;
+
+  if(getChart2){getChart2.destroy();getChart2=null;}
+  getChart2=new Chart(document.getElementById('getChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'TMB',data:finalTMB,backgroundColor:'rgba(79,142,247,0.85)',borderRadius:0},
+      {label:'NEAT',data:finalNEAT,backgroundColor:'rgba(52,211,153,0.85)',borderRadius:0},
+      {label:'Gym',data:finalGym,backgroundColor:'rgba(244,114,182,0.85)',borderRadius:0},
+      {label:'Otros (ETA)',data:finalOthers,backgroundColor:'rgba(251,191,36,0.85)',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        mode:'index',intersect:false,
+        backgroundColor:'rgba(20,20,20,.95)',titleColor:'#f0f0f0',bodyColor:'#888',
+        borderColor:'#2a2a2a',borderWidth:1,padding:10,
+        callbacks:{
+          afterBody:(items)=>{
+            const total=items.reduce((a,i)=>a+i.raw,0);
+            return[`─────────`,`Total GET: ${total.toLocaleString()} kcal`];
+          }
+        }
+      }},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'},callback:v=>v>=1000?Math.round(v/100)/10+'k':v}}
+      }}
+  });
+
+  // Summary stats
+  const avgGet=Math.round((finalTMB.reduce((a,b)=>a+b,0)+finalNEAT.reduce((a,b)=>a+b,0)+finalGym.reduce((a,b)=>a+b,0)+finalOthers.reduce((a,b)=>a+b,0))/dateRange.length);
+  const avgTMB=Math.round(finalTMB.reduce((a,b)=>a+b,0)/finalTMB.length);
+  document.getElementById('get-stats').innerHTML=`
+    <div class="sc"><div class="sc-label">GET MEDIO</div><div class="sc-val">${avgGet}</div><div class="sc-sub">kcal/día</div></div>
+    <div class="sc"><div class="sc-label">TMB MEDIO</div><div class="sc-val">${avgTMB}</div><div class="sc-sub">kcal/día</div></div>`;
 }
 
 // ═══ UTILS ═══
