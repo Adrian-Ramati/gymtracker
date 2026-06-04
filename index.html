@@ -168,6 +168,17 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 /* EXPORT */
 .export-btn{width:100%;padding:11px;background:transparent;border:1px solid var(--b1);border-radius:var(--rl);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .export-btn:hover{border-color:var(--teal);color:var(--teal)}
+/* SESSION DETAIL */
+.detail-stat{text-align:center}
+.detail-stat-val{font-size:20px;font-weight:600;letter-spacing:-.5px}
+.detail-stat-lbl{font-size:10px;color:var(--t3);font-family:var(--mono)}
+.detail-ex-row{padding:12px 0;border-bottom:1px solid var(--b1)}
+.detail-ex-name{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.detail-set-row{display:grid;grid-template-columns:28px 1fr;gap:6px;align-items:center;margin-bottom:4px}
+.detail-set-num{width:26px;height:26px;background:var(--s2);border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:600;font-family:var(--mono)}
+.detail-set-info{font-size:12px;color:var(--t2);font-family:var(--mono)}
+.muscle-pct-bar{height:8px;border-radius:4px;background:var(--s2);margin-bottom:10px;overflow:hidden}
+.muscle-pct-fill{height:100%;border-radius:4px;background:var(--blue)}
 /* MISC */
 .divider{height:1px;background:var(--b1);margin:14px 0} .divider-lg{height:1px;background:var(--b1);margin:28px 0}
 .empty{text-align:center;padding:40px 20px;color:var(--t3);font-size:13px;line-height:1.6}
@@ -358,6 +369,19 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 
 <div class="toast" id="toast"></div>
 
+<!-- SESSION DETAIL MODAL -->
+<div class="overlay" id="ov-detail" onclick="closeDetail(event)">
+  <div class="modal" style="max-height:92vh;border-radius:20px 20px 0 0">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <button onclick="closeDetail()" style="background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;line-height:1">←</button>
+      <span style="font-size:15px;font-weight:600;flex:1">Detalle de entrenamiento</span>
+      <button id="detail-edit-btn" style="background:none;border:none;color:var(--blue);font-size:13px;cursor:pointer;font-family:var(--font)">Editar</button>
+    </div>
+    <div class="mscroll" id="detail-body"></div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════
 // STATIC DATA
@@ -458,6 +482,8 @@ const DEFAULT_TEMPLATES = [
 ];
 const SEED_DATA = [{"id":101,"date":"2026-01-06","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":20.0,"reps":13,"rpe":8.0,"done":true},{"kg":25.0,"reps":7,"rpe":8.0,"done":true},{"kg":20.0,"reps":8,"rpe":7.0,"done":true}],"best_e1rm":30.8,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":55.0,"reps":16,"rpe":6.0,"done":true},{"kg":70.0,"reps":15,"rpe":8.0,"done":true},{"kg":80.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":112.0,"notes":""},{"name":"Aperturas en polea baja","muscle":"Pectoral","sets":[{"kg":5.0,"reps":20,"rpe":8.0,"done":true},{"kg":7.5,"reps":10,"rpe":8.0,"done":true},{"kg":7.5,"reps":14,"rpe":10.0,"done":true}],"best_e1rm":11.0,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":10.0,"reps":14,"rpe":8.0,"done":true},{"kg":10.0,"reps":13,"rpe":10.0,"done":true},{"kg":10.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":14.7,"notes":""},{"name":"Kaz Press","muscle":"Tríceps","sets":[{"kg":10.0,"reps":12,"rpe":8.0,"done":true},{"kg":10.0,"reps":8,"rpe":9.0,"done":true},{"kg":10.0,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":14.0,"notes":""},{"name":"Crucifix Curl","muscle":"Bíceps","sets":[{"kg":7.5,"reps":24,"rpe":8.0,"done":true},{"kg":10.0,"reps":11,"rpe":9.0,"done":true},{"kg":10.0,"reps":9,"rpe":9.0,"done":true}],"best_e1rm":13.7,"notes":""}]},{"id":102,"date":"2026-01-08","day":1,"dayName":"Lower","name":"Lower","exercises":[{"name":"Hip-thrust en máquina","muscle":"Glúteos","sets":[{"kg":30.0,"reps":14,"rpe":7.0,"done":true},{"kg":40.0,"reps":13,"rpe":8.0,"done":true},{"kg":40.0,"reps":12,"rpe":8.0,"done":true},{"kg":30.0,"reps":12,"rpe":7.0,"done":true}],"best_e1rm":57.3,"notes":""},{"name":"PM Rumano con mancuernas","muscle":"Isquiotibiales","sets":[{"kg":40.0,"reps":12,"rpe":7.0,"done":true},{"kg":40.0,"reps":12,"rpe":7.0,"done":true}],"best_e1rm":56.0,"notes":""},{"name":"Curl femoral sentado","muscle":"Isquiotibiales","sets":[{"kg":60.0,"reps":10,"rpe":8.0,"done":true},{"kg":55.0,"reps":12,"rpe":8.0,"done":true},{"kg":55.0,"reps":12,"rpe":8.0,"done":true}],"best_e1rm":80.0,"notes":""},{"name":"Prensa 45º","muscle":"Cuádriceps","sets":[{"kg":60.0,"reps":14,"rpe":6.0,"done":true},{"kg":80.0,"reps":12,"rpe":8.0,"done":true},{"kg":80.0,"reps":10,"rpe":8.0,"done":true}],"best_e1rm":112.0,"notes":""},{"name":"Gemelo de pie","muscle":"Gemelos","sets":[{"kg":80.0,"reps":17,"rpe":5.0,"done":true},{"kg":80.0,"reps":27,"rpe":10.0,"done":true},{"kg":100.0,"reps":23,"rpe":10.0,"done":true}],"best_e1rm":176.7,"notes":""}]},{"id":103,"date":"2026-01-10","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":8,"rpe":10.0,"done":true},{"kg":30.0,"reps":7,"rpe":10.0,"done":true},{"kg":20.0,"reps":13,"rpe":7.0,"done":true}],"best_e1rm":50.7,"notes":""},{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":7.5,"reps":12,"rpe":8.0,"done":true},{"kg":7.5,"reps":10,"rpe":7.0,"done":true},{"kg":7.5,"reps":10,"rpe":7.0,"done":true}],"best_e1rm":10.5,"notes":""},{"name":"Jalón en polea agarre ancho","muscle":"Espalda","sets":[{"kg":50.0,"reps":11,"rpe":8.0,"done":true},{"kg":50.0,"reps":12,"rpe":9.0,"done":true},{"kg":50.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":70.0,"notes":""},{"name":"Remo en polea baja supino","muscle":"Espalda","sets":[{"kg":60.0,"reps":11,"rpe":8.0,"done":true},{"kg":60.0,"reps":10,"rpe":8.0,"done":true},{"kg":50.0,"reps":12,"rpe":8.0,"done":true}],"best_e1rm":82.0,"notes":""},{"name":"Curl Bayesian","muscle":"Bíceps","sets":[{"kg":7.5,"reps":14,"rpe":9.0,"done":true},{"kg":7.5,"reps":12,"rpe":10.0,"done":true},{"kg":7.5,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":11.0,"notes":""}]},{"id":104,"date":"2026-01-12","day":3,"dayName":"Día 4","name":"Día 4","exercises":[{"name":"Sentadilla hack","muscle":"Cuádriceps","sets":[{"kg":40.0,"reps":12,"rpe":6.0,"done":true},{"kg":60.0,"reps":12,"rpe":8.0,"done":true}],"best_e1rm":84.0,"notes":""}]},{"id":201,"date":"2026-01-13","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":25.0,"reps":10,"rpe":8.0,"done":true},{"kg":25.0,"reps":8,"rpe":8.0,"done":true},{"kg":20.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":33.3,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":80.0,"reps":12,"rpe":8.0,"done":true},{"kg":80.0,"reps":10,"rpe":9.0,"done":true},{"kg":70.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":112.0,"notes":""},{"name":"Aperturas en polea baja","muscle":"Pectoral","sets":[{"kg":17.5,"reps":16,"rpe":8.0,"done":true},{"kg":20.0,"reps":8,"rpe":9.0,"done":true},{"kg":20.0,"reps":8,"rpe":9.0,"done":true}],"best_e1rm":26.8,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":10.0,"reps":10,"rpe":8.0,"done":true},{"kg":10.0,"reps":12,"rpe":10.0,"done":true},{"kg":10.0,"reps":7,"rpe":9.0,"done":true}],"best_e1rm":14.0,"notes":""}]},{"id":203,"date":"2026-01-17","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":11,"rpe":9.0,"done":true},{"kg":35.0,"reps":9,"rpe":9.0,"done":true},{"kg":35.0,"reps":7,"rpe":9.0,"done":true}],"best_e1rm":54.7,"notes":""},{"name":"Jalón en máquina","muscle":"Espalda","sets":[{"kg":50.0,"reps":12,"rpe":8.0,"done":true},{"kg":50.0,"reps":10,"rpe":8.0,"done":true},{"kg":40.0,"reps":14,"rpe":9.0,"done":true}],"best_e1rm":70.0,"notes":""},{"name":"Curl alterno mancuernas","muscle":"Bíceps","sets":[{"kg":15.0,"reps":10,"rpe":9.0,"done":true},{"kg":12.5,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":20.0,"notes":""},{"name":"Extensiones Katana","muscle":"Tríceps","sets":[{"kg":7.5,"reps":11,"rpe":9.0,"done":true},{"kg":5.0,"reps":17,"rpe":8.0,"done":true},{"kg":7.5,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":10.2,"notes":""}]},{"id":301,"date":"2026-01-20","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":25.0,"reps":11,"rpe":9.0,"done":true},{"kg":25.0,"reps":7,"rpe":9.0,"done":true},{"kg":20.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":34.2,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":80.0,"reps":13,"rpe":8.0,"done":true},{"kg":85.0,"reps":11,"rpe":8.0,"done":true},{"kg":85.0,"reps":9,"rpe":9.0,"done":true}],"best_e1rm":116.2,"notes":""},{"name":"Kaz Press","muscle":"Tríceps","sets":[{"kg":20.0,"reps":12,"rpe":9.0,"done":true},{"kg":25.0,"reps":8,"rpe":10.0,"done":true},{"kg":20.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":31.7,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":50.0,"reps":10,"rpe":8.0,"done":true},{"kg":50.0,"reps":10,"rpe":9.0,"done":true},{"kg":40.0,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":66.7,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":10.0,"reps":12,"rpe":8.0,"done":true},{"kg":10.0,"reps":10,"rpe":9.0,"done":true},{"kg":10.0,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":14.0,"notes":""}]},{"id":302,"date":"2026-01-22","day":1,"dayName":"Lower","name":"Lower","exercises":[{"name":"Hip-thrust en máquina","muscle":"Glúteos","sets":[{"kg":40.0,"reps":15,"rpe":8.0,"done":true},{"kg":50.0,"reps":11,"rpe":8.0,"done":true},{"kg":50.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":68.3,"notes":""},{"name":"Prensa 45º","muscle":"Cuádriceps","sets":[{"kg":12.0,"reps":80,"rpe":7.0,"done":true},{"kg":80.0,"reps":12,"rpe":9.0,"done":true},{"kg":80.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":112.0,"notes":""},{"name":"Curl femoral sentado","muscle":"Isquiotibiales","sets":[{"kg":45.0,"reps":8,"rpe":8.0,"done":true},{"kg":40.0,"reps":12,"rpe":10.0,"done":true},{"kg":40.0,"reps":8,"rpe":8.0,"done":true}],"best_e1rm":57.0,"notes":""},{"name":"Extensión de cuádriceps","muscle":"Cuádriceps","sets":[{"kg":45.0,"reps":12,"rpe":9.0,"done":true},{"kg":45.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":63.0,"notes":""}]},{"id":401,"date":"2026-01-27","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":20.0,"reps":14,"rpe":8.0,"done":true},{"kg":25.0,"reps":9,"rpe":10.0,"done":true},{"kg":22.5,"reps":9,"rpe":10.0,"done":true}],"best_e1rm":32.5,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":85.0,"reps":13,"rpe":8.0,"done":true},{"kg":70.0,"reps":18,"rpe":7.0,"done":true},{"kg":90.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":126.0,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":45.0,"reps":18,"rpe":9.0,"done":true},{"kg":50.0,"reps":7,"rpe":10.0,"done":true},{"kg":45.0,"reps":13,"rpe":10.0,"done":true}],"best_e1rm":72.0,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":10.0,"reps":14,"rpe":9.0,"done":true},{"kg":10.0,"reps":14,"rpe":9.0,"done":true},{"kg":12.5,"reps":9,"rpe":10.0,"done":true}],"best_e1rm":16.2,"notes":""},{"name":"Kaz Press","muscle":"Tríceps","sets":[{"kg":15.0,"reps":15,"rpe":9.0,"done":true},{"kg":15.0,"reps":12,"rpe":9.0,"done":true},{"kg":15.0,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":22.5,"notes":""},{"name":"Crucifix Curl","muscle":"Bíceps","sets":[{"kg":10.0,"reps":20,"rpe":9.0,"done":true},{"kg":12.5,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":17.1,"notes":""}]},{"id":403,"date":"2026-01-31","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":10,"rpe":8.0,"done":true},{"kg":40.0,"reps":9,"rpe":9.0,"done":true},{"kg":35.0,"reps":8,"rpe":9.0,"done":true}],"best_e1rm":53.3,"notes":""},{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":10.0,"reps":15,"rpe":8.0,"done":true},{"kg":12.0,"reps":13,"rpe":8.0,"done":true},{"kg":12.0,"reps":14,"rpe":9.0,"done":true},{"kg":15.0,"reps":11,"rpe":9.0,"done":true}],"best_e1rm":20.5,"notes":""},{"name":"Jalón en polea agarre ancho","muscle":"Espalda","sets":[{"kg":70.0,"reps":11,"rpe":8.0,"done":true},{"kg":70.0,"reps":11,"rpe":9.0,"done":true},{"kg":60.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":95.7,"notes":""},{"name":"Reverse cable cross","muscle":"Hombro posterior","sets":[{"kg":25.0,"reps":18,"rpe":7.0,"done":true},{"kg":30.0,"reps":15,"rpe":8.0,"done":true},{"kg":30.0,"reps":14,"rpe":9.0,"done":true}],"best_e1rm":45.0,"notes":""},{"name":"Curl Bayesian","muscle":"Bíceps","sets":[{"kg":10.0,"reps":11,"rpe":9.0,"done":true},{"kg":10.0,"reps":8,"rpe":10.0,"done":true},{"kg":7.5,"reps":15,"rpe":10.0,"done":true}],"best_e1rm":13.7,"notes":""},{"name":"Extensiones Katana","muscle":"Tríceps","sets":[{"kg":20.0,"reps":18,"rpe":8.0,"done":true},{"kg":25.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":35.0,"notes":""}]},{"id":404,"date":"2026-02-02","day":3,"dayName":"Día 4","name":"Día 4","exercises":[{"name":"Prensa horizontal","muscle":"Cuádriceps","sets":[{"kg":120.0,"reps":12,"rpe":7.0,"done":true},{"kg":120.0,"reps":12,"rpe":8.0,"done":true},{"kg":120.0,"reps":8,"rpe":6.0,"done":true}],"best_e1rm":168.0,"notes":""},{"name":"Aductor en máquina","muscle":"Aductores","sets":[{"kg":35.0,"reps":12,"rpe":8.0,"done":true},{"kg":30.0,"reps":16,"rpe":7.0,"done":true}],"best_e1rm":49.0,"notes":""},{"name":"Extensión de cuádriceps","muscle":"Cuádriceps","sets":[{"kg":80.0,"reps":15,"rpe":6.0,"done":true},{"kg":120.0,"reps":12,"rpe":8.0,"done":true},{"kg":120.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":168.0,"notes":""},{"name":"Curl femoral sentado","muscle":"Isquiotibiales","sets":[{"kg":30.0,"reps":10,"rpe":10.0,"done":true},{"kg":25.0,"reps":11,"rpe":9.0,"done":true}],"best_e1rm":40.0,"notes":""},{"name":"Gemelo sentado","muscle":"Sóleo","sets":[{"kg":60.0,"reps":6,"rpe":9.0,"done":true},{"kg":50.0,"reps":10,"rpe":9.0,"done":true},{"kg":50.0,"reps":9,"rpe":10.0,"done":true}],"best_e1rm":72.0,"notes":""},{"name":"Extensiones Katana","muscle":"Tríceps","sets":[{"kg":10.0,"reps":20,"rpe":7.0,"done":true},{"kg":15.0,"reps":15,"rpe":9.0,"done":true},{"kg":15.0,"reps":15,"rpe":9.0,"done":true}],"best_e1rm":22.5,"notes":""}]},{"id":501,"date":"2026-02-03","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":25.0,"reps":11,"rpe":9.0,"done":true},{"kg":25.0,"reps":9,"rpe":10.0,"done":true},{"kg":22.5,"reps":13,"rpe":10.0,"done":true}],"best_e1rm":34.2,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":50.0,"reps":15,"rpe":9.0,"done":true},{"kg":50.0,"reps":10,"rpe":9.0,"done":true},{"kg":40.0,"reps":14,"rpe":10.0,"done":true}],"best_e1rm":75.0,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":20.0,"reps":13,"rpe":8.0,"done":true},{"kg":20.0,"reps":14,"rpe":10.0,"done":true},{"kg":15.0,"reps":15,"rpe":8.0,"done":true}],"best_e1rm":29.3,"notes":""}]},{"id":502,"date":"2026-02-05","day":1,"dayName":"Lower","name":"Lower","exercises":[{"name":"Hip-thrust en máquina","muscle":"Glúteos","sets":[{"kg":40.0,"reps":14,"rpe":7.0,"done":true},{"kg":50.0,"reps":14,"rpe":8.0,"done":true},{"kg":50.0,"reps":14,"rpe":9.0,"done":true}],"best_e1rm":73.3,"notes":""},{"name":"Extensión de cuádriceps","muscle":"Cuádriceps","sets":[{"kg":60.0,"reps":14,"rpe":8.0,"done":true},{"kg":60.0,"reps":13,"rpe":9.0,"done":true},{"kg":60.0,"reps":13,"rpe":9.0,"done":true}],"best_e1rm":88.0,"notes":""}]},{"id":503,"date":"2026-02-07","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":13,"rpe":9.0,"done":true},{"kg":40.0,"reps":9,"rpe":9.0,"done":true},{"kg":35.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":57.3,"notes":""},{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":15.0,"reps":11,"rpe":7.0,"done":true},{"kg":15.0,"reps":13,"rpe":9.0,"done":true},{"kg":15.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":21.5,"notes":""},{"name":"Jalón en polea agarre ancho","muscle":"Espalda","sets":[{"kg":70.0,"reps":12,"rpe":8.0,"done":true},{"kg":70.0,"reps":11,"rpe":8.0,"done":true},{"kg":60.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":98.0,"notes":""},{"name":"Reverse cable cross","muscle":"Hombro posterior","sets":[{"kg":30.0,"reps":18,"rpe":6.0,"done":true},{"kg":35.0,"reps":13,"rpe":8.0,"done":true},{"kg":30.0,"reps":14,"rpe":9.0,"done":true}],"best_e1rm":50.2,"notes":""},{"name":"Curl Bayesian","muscle":"Bíceps","sets":[{"kg":7.5,"reps":14,"rpe":8.0,"done":true},{"kg":10.0,"reps":11,"rpe":9.0,"done":true},{"kg":10.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":13.7,"notes":""},{"name":"Extensiones Katana","muscle":"Tríceps","sets":[{"kg":20.0,"reps":16,"rpe":8.0,"done":true},{"kg":22.5,"reps":11,"rpe":9.0,"done":true},{"kg":22.5,"reps":11,"rpe":9.0,"done":true}],"best_e1rm":30.8,"notes":""}]},{"id":504,"date":"2026-02-09","day":3,"dayName":"Día 4","name":"Día 4","exercises":[{"name":"Prensa 45º","muscle":"Cuádriceps","sets":[{"kg":80.0,"reps":12,"rpe":7.0,"done":true},{"kg":80.0,"reps":12,"rpe":7.0,"done":true},{"kg":80.0,"reps":14,"rpe":8.0,"done":true}],"best_e1rm":117.3,"notes":""},{"name":"Extensión de cuádriceps","muscle":"Cuádriceps","sets":[{"kg":120.0,"reps":12,"rpe":7.0,"done":true},{"kg":130.0,"reps":10,"rpe":8.0,"done":true},{"kg":130.0,"reps":9,"rpe":9.0,"done":true}],"best_e1rm":173.3,"notes":""},{"name":"Curl femoral tumbado","muscle":"Isquiotibiales","sets":[{"kg":40.0,"reps":12,"rpe":8.0,"done":true},{"kg":40.0,"reps":10,"rpe":9.0,"done":true},{"kg":35.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":56.0,"notes":""},{"name":"Gemelo sentado","muscle":"Sóleo","sets":[{"kg":140.0,"reps":17,"rpe":9.0,"done":true},{"kg":150.0,"reps":15,"rpe":9.0,"done":true},{"kg":160.0,"reps":14,"rpe":9.0,"done":true}],"best_e1rm":234.7,"notes":""},{"name":"Aductor en máquina","muscle":"Aductores","sets":[{"kg":30.0,"reps":13,"rpe":7.0,"done":true},{"kg":20.0,"reps":18,"rpe":9.0,"done":true},{"kg":30.0,"reps":15,"rpe":9.0,"done":true}],"best_e1rm":45.0,"notes":""}]},{"id":601,"date":"2026-02-10","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":25.0,"reps":12,"rpe":9.0,"done":true},{"kg":25.0,"reps":9,"rpe":9.0,"done":true},{"kg":22.5,"reps":11,"rpe":8.0,"done":true}],"best_e1rm":35.0,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":90.0,"reps":12,"rpe":8.0,"done":true},{"kg":95.0,"reps":12,"rpe":9.0,"done":true},{"kg":95.0,"reps":9,"rpe":9.0,"done":true}],"best_e1rm":133.0,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":55.0,"reps":17,"rpe":9.0,"done":true},{"kg":60.0,"reps":8,"rpe":9.0,"done":true},{"kg":55.0,"reps":9,"rpe":10.0,"done":true}],"best_e1rm":86.2,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":20.0,"reps":13,"rpe":8.0,"done":true},{"kg":20.0,"reps":13,"rpe":9.0,"done":true},{"kg":20.0,"reps":13,"rpe":9.0,"done":true}],"best_e1rm":28.7,"notes":""},{"name":"Kaz Press","muscle":"Tríceps","sets":[{"kg":20.0,"reps":13,"rpe":9.0,"done":true},{"kg":20.0,"reps":14,"rpe":9.0,"done":true},{"kg":22.5,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":30.8,"notes":""},{"name":"Curl predicador","muscle":"Bíceps","sets":[{"kg":7.5,"reps":10,"rpe":9.0,"done":true},{"kg":5.0,"reps":20,"rpe":9.0,"done":true},{"kg":6.25,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":10.0,"notes":""}]},{"id":603,"date":"2026-02-14","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":9,"rpe":9.0,"done":true},{"kg":40.0,"reps":8,"rpe":10.0,"done":true},{"kg":35.0,"reps":7,"rpe":9.0,"done":true}],"best_e1rm":52.0,"notes":""},{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":15.0,"reps":15,"rpe":8.0,"done":true},{"kg":16.0,"reps":12,"rpe":9.0,"done":true},{"kg":16.0,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":22.5,"notes":""},{"name":"Jalón en polea agarre ancho","muscle":"Espalda","sets":[{"kg":70.0,"reps":13,"rpe":8.0,"done":true},{"kg":75.0,"reps":9,"rpe":8.0,"done":true},{"kg":75.0,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":102.5,"notes":""},{"name":"Remo en polea baja supino","muscle":"Espalda","sets":[{"kg":50.0,"reps":18,"rpe":8.0,"done":true},{"kg":60.0,"reps":10,"rpe":8.0,"done":true},{"kg":60.0,"reps":11,"rpe":9.0,"done":true}],"best_e1rm":82.0,"notes":""}]},{"id":701,"date":"2026-02-17","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Press inclinado en máquina convergente","muscle":"Pectoral","sets":[{"kg":25.0,"reps":13,"rpe":8.0,"done":true},{"kg":25.0,"reps":10,"rpe":9.0,"done":true},{"kg":25.0,"reps":10,"rpe":9.0,"done":true}],"best_e1rm":35.8,"notes":""},{"name":"Remo en máquina","muscle":"Espalda","sets":[{"kg":95.0,"reps":13,"rpe":9.0,"done":true},{"kg":95.0,"reps":9,"rpe":8.0,"done":true},{"kg":95.0,"reps":9,"rpe":9.0,"done":true}],"best_e1rm":136.2,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":60.0,"reps":13,"rpe":9.0,"done":true},{"kg":60.0,"reps":7,"rpe":9.0,"done":true},{"kg":55.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":86.0,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":20.0,"reps":14,"rpe":8.0,"done":true},{"kg":20.0,"reps":11,"rpe":8.0,"done":true},{"kg":20.0,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":29.3,"notes":""},{"name":"Kaz Press","muscle":"Tríceps","sets":[{"kg":22.5,"reps":14,"rpe":9.0,"done":true},{"kg":22.5,"reps":12,"rpe":9.0,"done":true},{"kg":22.5,"reps":12,"rpe":10.0,"done":true}],"best_e1rm":33.0,"notes":""},{"name":"Curl predicador","muscle":"Bíceps","sets":[{"kg":6.25,"reps":16,"rpe":8.0,"done":true},{"kg":7.5,"reps":10,"rpe":10.0,"done":true},{"kg":7.5,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":10.0,"notes":""}]},{"id":702,"date":"2026-02-19","day":1,"dayName":"Lower","name":"Lower","exercises":[{"name":"Hip-thrust en máquina","muscle":"Glúteos","sets":[{"kg":30.0,"reps":14,"rpe":7.0,"done":true},{"kg":30.0,"reps":14,"rpe":8.0,"done":true},{"kg":40.0,"reps":12,"rpe":9.0,"done":true}],"best_e1rm":56.0,"notes":""},{"name":"PM Rumano con mancuernas","muscle":"Isquiotibiales","sets":[{"kg":20.0,"reps":13,"rpe":8.0,"done":true},{"kg":20.0,"reps":13,"rpe":9.0,"done":true},{"kg":20.0,"reps":13,"rpe":9.0,"done":true}],"best_e1rm":28.7,"notes":""},{"name":"Curl femoral sentado","muscle":"Isquiotibiales","sets":[{"kg":60.0,"reps":14,"rpe":8.0,"done":true},{"kg":60.0,"reps":14,"rpe":8.0,"done":true},{"kg":60.0,"reps":15,"rpe":9.0,"done":true}],"best_e1rm":90.0,"notes":""},{"name":"Gemelo de pie","muscle":"Gemelos","sets":[{"kg":130.0,"reps":16,"rpe":8.0,"done":true},{"kg":130.0,"reps":15,"rpe":9.0,"done":true},{"kg":130.0,"reps":15,"rpe":9.0,"done":true}],"best_e1rm":199.3,"notes":""}]},{"id":703,"date":"2026-02-21","day":2,"dayName":"Upper B","name":"Upper B","exercises":[{"name":"Press de hombro en máquina","muscle":"Hombro","sets":[{"kg":40.0,"reps":9,"rpe":9.0,"done":true},{"kg":40.0,"reps":9,"rpe":10.0,"done":true},{"kg":40.0,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":52.0,"notes":""},{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":15.0,"reps":18,"rpe":8.0,"done":true},{"kg":17.0,"reps":15,"rpe":9.0,"done":true},{"kg":17.0,"reps":15,"rpe":10.0,"done":true}],"best_e1rm":25.5,"notes":""},{"name":"Jalón en polea agarre ancho","muscle":"Espalda","sets":[{"kg":70.0,"reps":14,"rpe":8.0,"done":true},{"kg":75.0,"reps":10,"rpe":10.0,"done":true},{"kg":75.0,"reps":9,"rpe":10.0,"done":true}],"best_e1rm":102.7,"notes":""},{"name":"Remo en polea baja supino","muscle":"Espalda","sets":[{"kg":60.0,"reps":13,"rpe":8.0,"done":true},{"kg":60.0,"reps":12,"rpe":9.0,"done":true},{"kg":60.0,"reps":6,"rpe":6.0,"done":true}],"best_e1rm":86.0,"notes":""},{"name":"Press francés polea alta","muscle":"Otro","sets":[{"kg":25.0,"reps":17,"rpe":8.0,"done":true},{"kg":30.0,"reps":11,"rpe":10.0,"done":true},{"kg":30.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":41.0,"notes":""},{"name":"Curl con mancuernas sentado","muscle":"Bíceps","sets":[{"kg":12.5,"reps":11,"rpe":9.0,"done":true},{"kg":12.5,"reps":11,"rpe":10.0,"done":true},{"kg":12.5,"reps":11,"rpe":10.0,"done":true}],"best_e1rm":17.1,"notes":""},{"name":"Curl barra Z","muscle":"Bíceps","sets":[{"kg":25.0,"reps":15,"rpe":9.0,"done":true},{"kg":25.0,"reps":15,"rpe":9.0,"done":true}],"best_e1rm":37.5,"notes":""}]},{"id":801,"date":"2026-02-24","day":0,"dayName":"Upper A","name":"Upper A","exercises":[{"name":"Elevaciones laterales en polea baja","muscle":"Hombro lateral","sets":[{"kg":17.0,"reps":16,"rpe":9.0,"done":true},{"kg":17.0,"reps":13,"rpe":8.5,"done":true},{"kg":17.0,"reps":12,"rpe":8.0,"done":true}],"best_e1rm":26.1,"notes":""},{"name":"Press inclinado en MP","muscle":"Pectoral","sets":[{"kg":25.0,"reps":8,"rpe":9.0,"done":true},{"kg":20.0,"reps":10,"rpe":9.0,"done":true},{"kg":20.0,"reps":8,"rpe":9.0,"done":true}],"best_e1rm":31.7,"notes":""},{"name":"Chest press en máquina","muscle":"Pectoral","sets":[{"kg":60.0,"reps":12,"rpe":9.0,"done":true},{"kg":60.0,"reps":9,"rpe":9.0,"done":true},{"kg":55.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":84.0,"notes":""},{"name":"Pullover en polea alta","muscle":"Espalda","sets":[{"kg":22.0,"reps":14,"rpe":8.0,"done":true},{"kg":22.0,"reps":12,"rpe":9.0,"done":true},{"kg":22.0,"reps":11,"rpe":9.0,"done":true}],"best_e1rm":32.3,"notes":""},{"name":"Tríceps en polea alta","muscle":"Tríceps","sets":[{"kg":25.0,"reps":14,"rpe":8.0,"done":true},{"kg":25.0,"reps":13,"rpe":9.0,"done":true},{"kg":25.0,"reps":10,"rpe":10.0,"done":true}],"best_e1rm":36.7,"notes":""},{"name":"Curl predicador","muscle":"Bíceps","sets":[{"kg":7.5,"reps":15,"rpe":9.0,"done":true},{"kg":7.5,"reps":12,"rpe":9.0,"done":true},{"kg":7.5,"reps":8,"rpe":10.0,"done":true}],"best_e1rm":11.2,"notes":""}]}];
 
+const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function fmtDate(ds){const[y,m,d]=ds.split('-');return d+'-'+MONTH_ABBR[parseInt(m)-1];}
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
@@ -581,12 +607,19 @@ function renderDayPanel(){
   let html=`<div class="dpanel"><div class="dpanel-head"><span class="dpanel-title">${dateLabel}</span></div>`;
   if(sessions.length){
     sessions.forEach(s=>{
-      html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:13px;font-weight:600">${s.name}</span>
-        <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ejercicios</span></div>`;
+      const hasPR=sessionHasPR(s);
+      html+=`<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--blue)" onclick="openSessionDetail(${s.id})">${s.name}${hasPR?' 🏆':''}</span>
+          <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ej.</span>
+        </div>`;
       s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${e.name} — ${ds2} series</div>`;});
       if((s.exercises?.length||0)>3) html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
-      html+=`<button onclick="deleteSession(${s.id})" style="margin-top:6px;background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Eliminar sesión</button>`;
+      html+=`<div style="display:flex;gap:12px;margin-top:6px">
+        <button onclick="openSessionDetail(${s.id})" style="background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Ver detalle</button>
+        <button onclick="editSession(${s.id})" style="background:none;border:none;color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Editar</button>
+        <button onclick="deleteSession(${s.id})" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Eliminar</button>
+      </div>`;
       html+='</div>';
     });
     html+='<div class="divider"></div>';
@@ -621,6 +654,123 @@ function toggleTmplDropdown(tid,e){
 }
 function closeTmplDropdown(){document.querySelectorAll('.tmpl-dropdown-menu').forEach(m=>m.classList.remove('on'));}
 document.addEventListener('click',()=>closeTmplDropdown());
+
+// ════════════════════════════════════════
+// PR DETECTION
+// ════════════════════════════════════════
+function getPRsForSession(sess){
+  // Returns set of exercise names that hit a new all-time e1RM in this session
+  const prs=new Set();
+  const sessIdx=(db.sessions||[]).findIndex(s=>s.id===sess.id);
+  (sess.exercises||[]).forEach(ex=>{
+    const sessionBest=ex.best_e1rm||0;
+    // Check if any previous session had a higher e1RM for this exercise
+    let prevMax=0;
+    for(let i=0;i<sessIdx;i++){
+      const prevEx=(db.sessions[i].exercises||[]).find(e=>e.name===ex.name);
+      if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax) prevMax=prevEx.best_e1rm;
+    }
+    if(sessionBest>0&&sessionBest>prevMax) prs.add(ex.name);
+  });
+  return prs;
+}
+function sessionHasPR(sess){return getPRsForSession(sess).size>0;}
+
+// ════════════════════════════════════════
+// SESSION DETAIL
+// ════════════════════════════════════════
+function openSessionDetail(id){
+  const sess=(db.sessions||[]).find(s=>s.id===id);
+  if(!sess) return;
+  const prs=getPRsForSession(sess);
+  // Stats
+  const totalSets=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets?.filter(s=>s.kg||s.reps).length||0),0);
+  const totalVol=Math.round((sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+((s.kg||0)*(s.reps||0)),0),0));
+  const hasPR=prs.size>0;
+  // Muscle distribution by reps
+  const muscleReps={};
+  let totalReps=0;
+  (sess.exercises||[]).forEach(ex=>{
+    const reps=(ex.sets||[]).filter(s=>s.reps).reduce((a,s)=>a+(s.reps||0),0);
+    muscleReps[ex.muscle]=(muscleReps[ex.muscle]||0)+reps;
+    totalReps+=reps;
+  });
+  // Muscle colors for bars
+  const muscleBarColors={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6',
+    'Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa',
+    'Hombro':'#fbbf24','Hombro lateral':'#fb923c','Hombro posterior':'#9ca3af'};
+  let html=`
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${sess.date}</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:12px">${sess.name}${hasPR?' 🏆':''}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+        <div class="detail-stat"><div class="detail-stat-val">${totalSets}</div><div class="detail-stat-lbl">Series</div></div>
+        <div class="detail-stat"><div class="detail-stat-val">${totalVol}</div><div class="detail-stat-lbl">Vol kg</div></div>
+        <div class="detail-stat"><div class="detail-stat-val">${totalReps}</div><div class="detail-stat-lbl">Reps</div></div>
+        <div class="detail-stat"><div class="detail-stat-val" style="color:var(--amber)">${hasPR?'🏆':'-'}</div><div class="detail-stat-lbl">PR</div></div>
+      </div>
+    </div>`;
+  // Muscle distribution
+  if(totalReps>0){
+    html+=`<div style="margin-bottom:16px"><div class="stitle">Distribución muscular</div>`;
+    Object.entries(muscleReps).sort((a,b)=>b[1]-a[1]).forEach(([m,r])=>{
+      const pct=Math.round(r/totalReps*100);
+      const color=muscleBarColors[m]||'#4f8ef7';
+      html+=`<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:500;margin-bottom:4px">
+          <span>${m}</span><span style="color:var(--t3);font-family:var(--mono)">${pct}%</span>
+        </div>
+        <div class="muscle-pct-bar"><div class="muscle-pct-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  // Exercises
+  html+=`<div class="stitle">Ejercicios</div>`;
+  (sess.exercises||[]).forEach(ex=>{
+    const isPR=prs.has(ex.name);
+    html+=`<div class="detail-ex-row">
+      <div class="detail-ex-name">${ex.name}${isPR?' <span style="color:var(--amber);font-size:11px">🏆 PR</span>':''}</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--t3);width:60px;font-family:var(--mono)">Serie</span>
+        <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">Peso / Reps / RPE</span>
+      </div>`;
+    (ex.sets||[]).filter(s=>s.kg||s.reps).forEach((s,si)=>{
+      const rm=calcE1RM(s.kg,s.reps,s.rpe);
+      html+=`<div class="detail-set-row">
+        <div class="detail-set-num">${si+1}</div>
+        <div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${s.rpe?' @ RPE '+s.rpe:''}${rm?' <span style="color:var(--blue);font-size:10px">e1RM '+rm+'</span>':''}</div>
+      </div>`;
+    });
+    if(ex.notes) html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${ex.notes}</div>`;
+    html+='</div>';
+  });
+  document.getElementById('detail-body').innerHTML=html;
+  document.getElementById('detail-edit-btn').onclick=()=>{closeDetail();editSession(id);};
+  document.getElementById('ov-detail').classList.add('on');
+}
+function closeDetail(e){
+  if(!e||e.target===document.getElementById('ov-detail'))
+    document.getElementById('ov-detail').classList.remove('on');
+}
+
+// ════════════════════════════════════════
+// EDIT SESSION (load into active session editor)
+// ════════════════════════════════════════
+function editSession(id){
+  const sess=(db.sessions||[]).find(s=>s.id===id);
+  if(!sess) return;
+  // Remove from DB, load into active session editor
+  db.sessions=db.sessions.filter(s=>s.id!==id);
+  saveDB();
+  activeSess={...JSON.parse(JSON.stringify(sess)), editing:true, originalId:id};
+  timerSecs=0; clearInterval(timerIv);
+  timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
+  document.getElementById('sess-name').value=sess.name;
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  showScr('sess',null); renderSessExs();
+  toast('Editando sesión — pulsa Finalizar para guardar');
+}
 
 function deleteSession(id){
   if(!confirm('¿Eliminar esta sesión?')) return;
@@ -713,9 +863,12 @@ function renderExCard(ex,ei){
       <button class="check-btn${s.done?' done':''}" onclick="toggleDone(${ei},${si})">${s.done?'✓':'○'}</button>
     </div>`;
   });
+  // Check if this exercise has ever been beaten (for new session PR display)
+  const prevMaxRM=getMaxE1RM(ex.name);
   const e1rmRow=`<div class="e1rm-row" id="e1rm_${ei}">
     <span class="e1rm-curr" id="e1rm-curr_${ei}">e1RM: —</span>
-    ${maxRM?`<span class="e1rm-max">máx: ${maxRM} kg</span>`:''}
+    ${prevMaxRM?`<span class="e1rm-max">máx: ${prevMaxRM} kg</span>`:''}
+    <span id="pr-flag_${ei}" style="display:none;color:var(--amber);font-size:11px">🏆 ¡Nuevo PR!</span>
   </div>`;
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
@@ -747,6 +900,13 @@ function onSetInput(ei,si){
   const bestCurr=allRMs.length?Math.max(...allRMs):null;
   const currEl=document.getElementById(`e1rm-curr_${ei}`);
   if(currEl) currEl.textContent=bestCurr?`e1RM: ${bestCurr} kg`:'e1RM: —';
+  // Show PR flag if current beats all-time max
+  const prFlag=document.getElementById(`pr-flag_${ei}`);
+  const exName=activeSess?.exercises[ei]?.name;
+  if(prFlag&&bestCurr&&exName){
+    const histMax=getMaxE1RM(exName);
+    prFlag.style.display=(histMax&&bestCurr>histMax)?'':'none';
+  }
 }
 function toggleDone(ei,si){
   if(!activeSess) return;
@@ -916,7 +1076,12 @@ function renderProgChart(){
   const pts=[];
   (db.sessions||[]).forEach((s,i)=>{
     const ex=s.exercises?.find(e=>e.name===name);
-    if(ex?.best_e1rm) pts.push({val:ex.best_e1rm,date:s.date});
+    if(ex?.best_e1rm){
+      // Find the set that produced the best e1RM
+      let bestSet=null,bestRM=0;
+      (ex.sets||[]).forEach(s=>{const rm=calcE1RM(s.kg,s.reps,s.rpe);if(rm&&rm>bestRM){bestRM=rm;bestSet=s;}});
+      pts.push({val:ex.best_e1rm,date:s.date,bestSet});
+    }
   });
   const sd=document.getElementById('prog-stats');
   if(!pts.length){sd.innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos</div>';return;}
@@ -927,7 +1092,25 @@ function renderProgChart(){
     <div class="sc"><div class="sc-label">ÚLTIMO</div><div class="sc-val">${last}</div><div class="sc-sub">kg e1RM</div></div>
     <div class="sc"><div class="sc-label">SESIONES</div><div class="sc-val">${pts.length}</div><div class="sc-sub">registradas</div></div>`;
   if(pChart){pChart.destroy();pChart=null;}
-  pChart=new Chart(document.getElementById('progChart'),{type:'line',data:{labels:pts.map(p=>p.date.slice(5)),datasets:[{label:'e1RM',data:pts.map(p=>p.val),borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4f8ef7',fill:true,tension:.35}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
+  pChart=new Chart(document.getElementById('progChart'),{type:'line',data:{labels:pts.map(p=>fmtDate(p.date)),datasets:[{label:'e1RM',data:pts.map(p=>p.val),borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4f8ef7',fill:true,tension:.35}]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'rgba(20,20,20,.95)',titleColor:'#f0f0f0',bodyColor:'#888',
+      borderColor:'#2a2a2a',borderWidth:1,padding:10,
+      callbacks:{
+        title:(items)=>{
+          const idx=items[0].dataIndex;
+          return pts[idx].date ? fmtDate(pts[idx].date) : '';
+        },
+        label:(item)=>{
+          const idx=item.dataIndex;
+          const p=pts[idx];
+          const lines=[`e1RM: ${p.val} kg`];
+          if(p.bestSet) lines.push(`${p.bestSet.kg}kg × ${p.bestSet.reps}rep${p.bestSet.rpe?' ^RPE'+p.bestSet.rpe:''}`);
+          return lines;
+        }
+      }
+    }},
+    scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
 }
 
 // ════════════════════════════════════════
