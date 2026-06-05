@@ -335,16 +335,11 @@ input[type=date]{color-scheme:dark}
         </div>
         <div class="cw" style="height:180px"><canvas id="weightChart"></canvas></div>
       </div>
-      <!-- MEDIDAS + PLIEGUES -->
+      <!-- PERÍMETROS -->
       <div class="profile-card">
         <div class="profile-card-title">
-          <span>Perímetros y composición</span>
+          <span>Perímetros (cm)</span>
           <input class="measure-inp" id="measure-date" type="date" style="width:auto;padding:4px 8px;font-size:11px">
-        </div>
-        <div class="method-tabs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-          <div class="method-tab" id="tab-jp3" onclick="setMeasureTab('jp3')">3 pliegues</div>
-          <div class="method-tab" id="tab-jp4" onclick="setMeasureTab('jp4')">4 pliegues</div>
-          <div class="method-tab" id="tab-jp7" onclick="setMeasureTab('jp7')">7 pliegues</div>
         </div>
         <!-- Perímetros -->
         <div id="panel-perimetros" style="display:block">
@@ -358,8 +353,37 @@ input[type=date]{color-scheme:dark}
             <div class="measure-inp-wrap" style="grid-column:1/-1"><span class="measure-label">Cuádriceps</span><input class="measure-inp" id="m-cuadriceps" type="number" step="0.5" placeholder="—"></div>
           </div>
         </div>
-        <!-- JP 3 pliegues (hombre: pecho, abd, muslo / mujer: triceps, suprailiaco, muslo) -->
-        <div id="panel-jp3" style="display:none">
+
+        <button class="save-measure-btn" onclick="saveMeasures()">Guardar medidas</button>
+        <button onclick="openMeasuresEdit()" style="width:100%;margin-top:8px;background:none;border:1px solid var(--b1);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;cursor:pointer;font-family:var(--font)">Editar registros</button>
+        <div class="measure-history" id="measures-history" style="display:none"></div>
+        <!-- Perímetros history chart -->
+        <div style="margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
+          <div class="stitle" style="margin-bottom:8px">Evolución perímetros</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="peri-filter-btns">
+            <div class="mf on" onclick="setPeriFilter('brazo')" id="pf-brazo">Brazo</div>
+            <div class="mf" onclick="setPeriFilter('cintura')" id="pf-cintura">Cintura</div>
+            <div class="mf" onclick="setPeriFilter('pectoral-p')" id="pf-pectoral-p">Pectoral</div>
+            <div class="mf" onclick="setPeriFilter('cadera')" id="pf-cadera">Cadera</div>
+            <div class="mf" onclick="setPeriFilter('cuadriceps')" id="pf-cuadriceps">Cuádriceps</div>
+            <div class="mf" onclick="setPeriFilter('ombligo')" id="pf-ombligo">Ombligo</div>
+            <div class="mf" onclick="setPeriFilter('cuello')" id="pf-cuello">Cuello</div>
+          </div>
+          <div class="cw" style="height:180px"><canvas id="periChart"></canvas></div>
+        </div>
+      </div>
+      <!-- COMPOSICIÓN CORPORAL -->
+      <div class="profile-card">
+        <div class="profile-card-title">
+          <span>Composición corporal</span>
+        </div>
+        <div class="method-tabs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <div class="method-tab" id="tab-jp3" onclick="setMeasureTab('jp3')">3 pliegues</div>
+          <div class="method-tab" id="tab-jp4" onclick="setMeasureTab('jp4')">4 pliegues</div>
+          <div class="method-tab" id="tab-jp7" onclick="setMeasureTab('jp7')">7 pliegues</div>
+        </div>
+        <!-- JP panels moved here -->
+        <div id="panel-jp3-comp" style="display:none">
           <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:8px">Hombre: pecho, abd, muslo · Mujer: tríceps, suprailiaco, muslo</div>
           <div class="measure-grid">
             <div class="measure-inp-wrap"><span class="measure-label" id="jp3-l1">Pecho (mm)</span><input class="measure-inp" id="jp3-p1" type="number" step="0.5" placeholder="—"></div>
@@ -368,8 +392,7 @@ input[type=date]{color-scheme:dark}
           </div>
           <div id="jp3-result" style="font-size:12px;color:var(--teal);font-family:var(--mono);margin-bottom:8px"></div>
         </div>
-        <!-- JP 4 pliegues (Durnin: tríceps, bíceps, subescapular, suprailiaco) -->
-        <div id="panel-jp4" style="display:none">
+        <div id="panel-jp4-comp" style="display:none">
           <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:8px">Durnin & Womersley: tríceps, bíceps, subescapular, suprailiaco</div>
           <div class="measure-grid">
             <div class="measure-inp-wrap"><span class="measure-label">Tríceps (mm)</span><input class="measure-inp" id="jp4-p1" type="number" step="0.5" placeholder="—"></div>
@@ -379,8 +402,7 @@ input[type=date]{color-scheme:dark}
           </div>
           <div id="jp4-result" style="font-size:12px;color:var(--teal);font-family:var(--mono);margin-bottom:8px"></div>
         </div>
-        <!-- JP 7 pliegues -->
-        <div id="panel-jp7" style="display:none">
+        <div id="panel-jp7-comp" style="display:none">
           <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:8px">Jackson-Pollock 7: pecho, axilar media, tríceps, subescapular, abdominal, suprailiaco, muslo</div>
           <div class="measure-grid">
             <div class="measure-inp-wrap"><span class="measure-label">Pecho (mm)</span><input class="measure-inp" id="jp7-p1" type="number" step="0.5" placeholder="—" oninput="calcJP7()"></div>
@@ -393,14 +415,12 @@ input[type=date]{color-scheme:dark}
           </div>
           <div id="jp7-result" style="font-size:12px;color:var(--teal);font-family:var(--mono);margin-bottom:8px"></div>
         </div>
-        <button class="save-measure-btn" onclick="saveMeasures()">Guardar medidas</button>
-        <button onclick="openMeasuresEdit()" style="width:100%;margin-top:8px;background:none;border:1px solid var(--b1);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;cursor:pointer;font-family:var(--font)">Editar registros</button>
-        <div class="measure-history" id="measures-history" style="display:none"></div>
-      </div>
-      <!-- % GRASO EVOLUTION -->
-      <div class="profile-card">
-        <div class="profile-card-title">Evolución % graso</div>
-        <div class="cw" style="height:180px"><canvas id="bfChart"></canvas></div>
+        <button class="save-measure-btn" onclick="saveBFMeasures()" style="margin-top:8px">Guardar composición</button>
+        <!-- BF Evolution chart -->
+        <div style="margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
+          <div class="stitle" style="margin-bottom:8px">Evolución % graso</div>
+          <div class="cw" style="height:180px"><canvas id="bfChart"></canvas></div>
+        </div>
       </div>
       <!-- DATOS + PERFILES (merged) -->
       <div class="profile-card">
@@ -639,8 +659,8 @@ const MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
 const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0f3028','#34d399'],'Tríceps':['#3d2a00','#fbbf24'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#3a1a0a','#fb923c'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Hombro':['#3d2a00','#fbbf24'],'Hombro lateral':['#3d2000','#fb923c'],'Hombro posterior':['#1e1e1e','#9ca3af'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
 const VC={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Hombro':'#fbbf24','Hombro lateral':'#fb923c','Hombro posterior':'#9ca3af'};
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return d+'-'+MONTH_ABBR[parseInt(m)-1];}
-function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}-${MONTH_ABBR[parseInt(m)-1]}-${y}`;}
+function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
+function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 const DEFAULT_TEMPLATES=[
   {id:'ua',name:'Upper A',exercises:[{name:'Press inclinado en máquina convergente',muscle:'Pectoral',sets:3},{name:'Remo en máquina',muscle:'Espalda',sets:3},{name:'Aperturas en polea baja',muscle:'Pectoral',sets:3},{name:'Pullover en polea alta',muscle:'Espalda',sets:3},{name:'Kaz Press',muscle:'Tríceps',sets:3},{name:'Crucifix Curl',muscle:'Bíceps',sets:3}]},
   {id:'lo',name:'Lower',exercises:[{name:'Hip-thrust en máquina',muscle:'Glúteos',sets:3},{name:'PM Rumano con mancuernas',muscle:'Isquiotibiales',sets:3},{name:'Curl femoral sentado',muscle:'Isquiotibiales',sets:3},{name:'Prensa 45º',muscle:'Cuádriceps',sets:3},{name:'Extensión de cuádriceps',muscle:'Cuádriceps',sets:3},{name:'Gemelo de pie',muscle:'Gemelos',sets:3}]},
@@ -729,7 +749,7 @@ function calcJP7(){
 
 // ═══ SUPABASE CONFIG ═══
 // Replace these with your actual Supabase project values
-const SUPABASE_URL = 'https://yltxrtuebbpckehsfhex.sbClient.co';
+const SUPABASE_URL = 'https://yltxrtuebbpckehsfhex.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdHhydHVlYmJwY2tlaHNmaGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1ODMzMjQsImV4cCI6MjA5NjE1OTMyNH0.WN-JcA96x6r7r6UxWb9pksxpCfjvMySNv4rbs1toDSo';
 let sbClient = null;
 let supabaseUser = null;
@@ -1022,7 +1042,7 @@ function renderDayPanel(){
       </div>
     </div></div>`;
   });
-  html+=`<div class="chip blank" onclick="startBlank()">+ En blanco</div></div></div>`;
+  html+=`<div class="chip blank" onclick="startBlank()">+ En blanco</div><div class="chip blank" onclick="createNewRoutine()" style="border-color:var(--blue);color:var(--blue)">+ Nueva rutina</div></div></div>`;
   panel.innerHTML=html;
 }
 
@@ -1363,6 +1383,7 @@ function renderProgChart(){
     labels:pts.map(p=>fmtDate(p.date)),
     datasets:[{label:'e1RM',data:pts.map(p=>p.val),borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4f8ef7',fill:true,tension:.35}]
   },options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'nearest',intersect:false,axis:'x'},
     plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(20,20,20,.95)',titleColor:'#f0f0f0',bodyColor:'#888',borderColor:'#2a2a2a',borderWidth:1,padding:10,
       callbacks:{
         title:(items)=>fmtDate(pts[items[0].dataIndex].date),
@@ -1450,7 +1471,7 @@ function renderProfileScr(){
   const ageEl=document.getElementById('profile-age');
   if(sexEl&&db.profile?.sex)sexEl.value=db.profile.sex;
   if(ageEl&&db.profile?.age)ageEl.value=db.profile.age;
-  renderWeightChart();renderMeasuresHistory();renderBFChart();
+  renderWeightChart();renderMeasuresHistory();renderBFChart();renderPeriChart();
 }
 function saveProfileMeta(){
   if(!db.profile)db.profile={};
@@ -1502,9 +1523,9 @@ function renderWeightChart(){
 // ═══ MEASURES & SKINFOLDS ═══
 function setMeasureTab(tab){
   measureTab=tab;
-  // perímetros panel is always visible; only toggle JP panels
   ['jp3','jp4','jp7'].forEach(t=>{
-    document.getElementById('panel-'+t).style.display=t===tab?'block':'none';
+    const panel=document.getElementById('panel-'+t+'-comp');
+    if(panel) panel.style.display=t===tab?'block':'none';
     const el=document.getElementById('tab-'+t);
     if(el) el.className='method-tab'+(t===tab?' on':'');
   });
@@ -1583,13 +1604,28 @@ function openQuickStart(){
     html+=`<div onclick="startFromTmpl('${t.id}');closeQuickStart()" style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;cursor:pointer;font-size:13px;font-weight:500;transition:border-color .15s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--b1)'">${t.name}</div>`;
   });
   html+='</div>';
-  html+=`<button onclick="startBlank();closeQuickStart()" style="width:100%;padding:12px;background:transparent;border:1px dashed var(--b2);border-radius:var(--r);color:var(--t3);font-size:13px;cursor:pointer;font-family:var(--font);transition:all .2s" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t3)'">+ En blanco</button>`;
+  html+=`<div style="display:flex;gap:8px;margin-top:4px">
+    <button onclick="startBlank();closeQuickStart()" style="flex:1;padding:12px;background:transparent;border:1px dashed var(--b2);border-radius:var(--r);color:var(--t3);font-size:13px;cursor:pointer;font-family:var(--font)">+ En blanco</button>
+    <button onclick="createNewRoutine();closeQuickStart()" style="flex:1;padding:12px;background:transparent;border:1px solid var(--blue);border-radius:var(--r);color:var(--blue);font-size:13px;cursor:pointer;font-family:var(--font)">+ Nueva rutina</button>
+  </div>`;
   list.innerHTML=html;
   document.getElementById('ov-quickstart').classList.add('on');
 }
 function closeQuickStart(e){
   if(!e||e.target===document.getElementById('ov-quickstart'))
     document.getElementById('ov-quickstart').classList.remove('on');
+}
+function createNewRoutine(){
+  const name=prompt('Nombre de la nueva rutina:','Mi rutina');
+  if(!name||!name.trim()) return;
+  const newTmpl={id:'tmpl_'+Date.now(),name:name.trim(),exercises:[]};
+  db.templates=db.templates||[];
+  db.templates.push(newTmpl);
+  saveDB();
+  // Open the edit modal for the new template
+  openEditTmpl(newTmpl.id);
+  renderDayPanel();
+  toast('Rutina creada — añade ejercicios');
 }
 
 // ═══ ACTIVITY ═══
@@ -1897,6 +1933,59 @@ function deleteMeasureEntry(week){
   if(!confirm('¿Eliminar este registro de medidas?'))return;
   db.measures=(db.measures||[]).filter(m=>m.week!==week);
   saveDB();openMeasuresEdit();renderMeasuresHistory();renderBFChart();renderProfileScr();toast('Eliminado');
+}
+
+// ═══ PERÍMETROS CHART ═══
+let periChart=null, periFilter='brazo';
+function setPeriFilter(field){
+  periFilter=field;
+  document.querySelectorAll('[id^="pf-"]').forEach(el=>{
+    el.className='mf'+(el.id==='pf-'+field?' on':'');
+  });
+  renderPeriChart();
+}
+function renderPeriChart(){
+  const measures=(db.measures||[]).filter(m=>m[periFilter]!=null);
+  const canvasEl=document.getElementById('periChart');
+  if(!canvasEl) return;
+  if(!measures.length){if(periChart){periChart.destroy();periChart=null;}return;}
+  const labels=measures.map(m=>m.date?fmtFull(m.date):m.week);
+  const data=measures.map(m=>m[periFilter]);
+  const colors={'brazo':'#4f8ef7','cintura':'#f87171','pectoral-p':'#34d399','cadera':'#fb923c','cuadriceps':'#4ade80','ombligo':'#fbbf24','cuello':'#a78bfa'};
+  const color=colors[periFilter]||'#4f8ef7';
+  if(periChart){periChart.destroy();periChart=null;}
+  periChart=new Chart(canvasEl,{type:'line',data:{labels,datasets:[{
+    label:PERI_LABELS[periFilter]||periFilter,data,
+    borderColor:color,backgroundColor:color.replace(')',',0.1)').replace('rgb','rgba')||'rgba(79,142,247,0.08)',
+    borderWidth:2,pointRadius:4,pointBackgroundColor:color,fill:true,tension:.3
+  }]},options:{responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'nearest',intersect:false},
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'rgba(20,20,20,.95)',titleColor:'#f0f0f0',bodyColor:'#888',
+      borderColor:'#2a2a2a',borderWidth:1,padding:10
+    }},
+    scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'},callback:v=>v+' cm'}},
+            x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:6}}}
+  }});
+}
+
+// Separate save for BF/composition (doesn't touch perimeter inputs)
+async function saveBFMeasures(){
+  const dateStr=document.getElementById('measure-date')?.value||new Date().toISOString().split('T')[0];
+  const wk=getWeekLabel(dateStr);
+  let entry=(db.measures||[]).find(m=>m.week===wk)||{week:wk,date:dateStr};
+  let bf=null;
+  if(measureTab==='jp3'){const v=calcJP3();if(v){entry.jp3=[1,2,3].map(i=>+document.getElementById('jp3-p'+i).value);entry.bf=v;bf=v;}}
+  else if(measureTab==='jp4'){const v=calcJP4();if(v){entry.jp4=[1,2,3,4].map(i=>+document.getElementById('jp4-p'+i).value);entry.bf=v;bf=v;}}
+  else if(measureTab==='jp7'){const v=calcJP7();if(v){entry.jp7=[1,2,3,4,5,6,7].map(i=>+document.getElementById('jp7-p'+i).value);entry.bf=v;bf=v;}}
+  if(!bf){toast('Introduce los pliegues para calcular');return;}
+  db.measures=db.measures||[];
+  const idx=db.measures.findIndex(m=>m.week===wk);
+  if(idx>=0)db.measures[idx]={...db.measures[idx],...entry};else db.measures.push(entry);
+  db.measures.sort((a,b)=>a.week.localeCompare(b.week));
+  await saveMeasureRemote(entry);renderBFChart();
+  document.getElementById('stat-bodyfat').textContent=bf+'%';
+  toast('Composición guardada ✓');
 }
 
 // ═══ UTILS ═══
