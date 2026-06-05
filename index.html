@@ -729,15 +729,15 @@ function calcJP7(){
 
 // ═══ SUPABASE CONFIG ═══
 // Replace these with your actual Supabase project values
-const SUPABASE_URL = 'https://yltxrtuebbpckehsfhex.supabase.co';
+const SUPABASE_URL = 'https://yltxrtuebbpckehsfhex.sbClient.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdHhydHVlYmJwY2tlaHNmaGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1ODMzMjQsImV4cCI6MjA5NjE1OTMyNH0.WN-JcA96x6r7r6UxWb9pksxpCfjvMySNv4rbs1toDSo';
-let supabase = null;
+let sbClient = null;
 let supabaseUser = null;
 let useSupabase = false;
 
 function initSupabase(){
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     return true;
   } catch(e) {
     console.warn('Supabase init failed, running in local mode:', e);
@@ -753,7 +753,7 @@ async function doLogin(){
   errEl.style.display = 'none';
   if(!email||!pw){errEl.textContent='Rellena email y contraseña';errEl.style.display='block';return;}
   try {
-    const {data, error} = await supabase.auth.signInWithPassword({email, password:pw});
+    const {data, error} = await sbClient.auth.signInWithPassword({email, password:pw});
     if(error) throw error;
     await afterLogin(data.user);
   } catch(e) {
@@ -769,7 +769,7 @@ async function doSignup(){
   if(!email||!pw){errEl.textContent='Rellena email y contraseña';errEl.style.display='block';return;}
   if(pw.length<6){errEl.textContent='La contraseña debe tener al menos 6 caracteres';errEl.style.display='block';return;}
   try {
-    const {data, error} = await supabase.auth.signUp({email, password:pw});
+    const {data, error} = await sbClient.auth.signUp({email, password:pw});
     if(error) throw error;
     if(data.user) await afterLogin(data.user);
     else {errEl.style.color='var(--teal)';errEl.textContent='Revisa tu email para confirmar la cuenta';errEl.style.display='block';}
@@ -794,7 +794,7 @@ function skipLogin(){
 }
 async function doLogout(){
   if(!confirm('¿Cerrar sesión?')) return;
-  if(supabase) await supabase.auth.signOut();
+  if(sbClient) await sbClient.auth.signOut();
   supabaseUser = null; useSupabase = false;
   document.getElementById('logout-btn').style.display='none';
   document.getElementById('login-overlay').style.display='flex';
@@ -830,16 +830,16 @@ function loadDB(){
 }
 
 async function loadDBFromSupabase(){
-  if(!supabase||!supabaseUser){loadDB();return;}
+  if(!sbClient||!supabaseUser){loadDB();return;}
   try {
     const uid = supabaseUser.id;
     // Load all tables in parallel
     const [sessRes, wRes, stRes, mRes, pRes] = await Promise.all([
-      supabase.from('sessions').select('*').eq('user_id',uid).order('date',{ascending:false}),
-      supabase.from('weights').select('*').eq('user_id',uid).order('date'),
-      supabase.from('steps').select('*').eq('user_id',uid).order('date'),
-      supabase.from('measures').select('*').eq('user_id',uid).order('week'),
-      supabase.from('profiles').select('*').eq('id',uid).single(),
+      sbClient.from('sessions').select('*').eq('user_id',uid).order('date',{ascending:false}),
+      sbClient.from('weights').select('*').eq('user_id',uid).order('date'),
+      sbClient.from('steps').select('*').eq('user_id',uid).order('date'),
+      sbClient.from('measures').select('*').eq('user_id',uid).order('week'),
+      sbClient.from('profiles').select('*').eq('id',uid).single(),
     ]);
     // Initialise db
     db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
@@ -868,11 +868,11 @@ async function saveDB(){
   // Always save to localStorage first (fast, offline-safe)
   try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){}
   // Then sync to Supabase if connected
-  if(!useSupabase||!supabase||!supabaseUser) return;
+  if(!useSupabase||!sbClient||!supabaseUser) return;
   const uid = supabaseUser.id;
   try {
     // Sync profile + templates
-    await supabase.from('profiles').upsert({
+    await sbClient.from('profiles').upsert({
       id:uid, height:db.profile?.height, sex:db.profile?.sex||'male',
       age:db.profile?.age||30, templates:db.templates, updated_at:new Date().toISOString()
     });
@@ -882,9 +882,9 @@ async function saveDB(){
 // Granular saves for individual records (faster than full sync)
 async function saveSession(sess){
   saveDB();
-  if(!useSupabase||!supabase||!supabaseUser) return;
+  if(!useSupabase||!sbClient||!supabaseUser) return;
   try {
-    await supabase.from('sessions').upsert({
+    await sbClient.from('sessions').upsert({
       id:sess.id, user_id:supabaseUser.id, date:sess.date,
       name:sess.name, day_name:sess.dayName, exercises:sess.exercises
     });
@@ -892,34 +892,34 @@ async function saveSession(sess){
 }
 async function deleteSessionRemote(id){
   saveDB();
-  if(!useSupabase||!supabase||!supabaseUser) return;
-  try { await supabase.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id); }
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  try { await sbClient.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id); }
   catch(e){ console.warn('Session delete error:', e); }
 }
 async function saveWeightRemote(kg, date){
-  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
   try {
-    await supabase.from('weights').upsert({user_id:supabaseUser.id,date,kg});
+    await sbClient.from('weights').upsert({user_id:supabaseUser.id,date,kg});
     saveDB();
   } catch(e){ saveDB(); console.warn('Weight save error:', e); }
 }
 async function deleteWeightRemote(date){
   saveDB();
-  if(!useSupabase||!supabase||!supabaseUser) return;
-  try { await supabase.from('weights').delete().eq('user_id',supabaseUser.id).eq('date',date); }
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  try { await sbClient.from('weights').delete().eq('user_id',supabaseUser.id).eq('date',date); }
   catch(e){ console.warn('Weight delete error:', e); }
 }
 async function saveStepsRemote(date, steps){
-  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
   try {
-    await supabase.from('steps').upsert({user_id:supabaseUser.id,date,steps});
+    await sbClient.from('steps').upsert({user_id:supabaseUser.id,date,steps});
     saveDB();
   } catch(e){ saveDB(); console.warn('Steps save error:', e); }
 }
 async function saveMeasureRemote(entry){
-  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
   try {
-    await supabase.from('measures').upsert({user_id:supabaseUser.id,week:entry.week,date:entry.date,data:entry});
+    await sbClient.from('measures').upsert({user_id:supabaseUser.id,week:entry.week,date:entry.date,data:entry});
     saveDB();
   } catch(e){ saveDB(); console.warn('Measure save error:', e); }
 }
@@ -1915,7 +1915,7 @@ document.getElementById('login-password').addEventListener('keydown', e=>{if(e.k
 initCal();
 // Init Supabase and check for existing session
 if(initSupabase()){
-  supabase.auth.getSession().then(async ({data:{session}})=>{
+  sbClient.auth.getSession().then(async ({data:{session}})=>{
     if(session){
       await afterLogin(session.user);
     } else {
