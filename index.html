@@ -236,10 +236,10 @@ input[type=date]{color-scheme:dark}
   <div class="content">
     <!-- ENTRENO -->
     <div id="s-train" class="scr on">
-      <div class="cal-nav">
+      <div class="cal-nav" style="position:relative;display:flex;align-items:center">
         <button class="cal-arrow" onclick="moveMonth(-1)">&#8249;</button>
-        <span class="cal-month" id="cal-month-label"></span>
-        <div style="display:flex;gap:4px">
+        <span class="cal-month" id="cal-month-label" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none"></span>
+        <div style="display:flex;gap:4px;margin-left:auto">
           <button class="cal-arrow" onclick="goToday()" style="font-size:11px;font-weight:600;width:auto;padding:0 10px;font-family:var(--font)">Hoy</button>
           <button class="cal-arrow" onclick="moveMonth(1)">&#8250;</button>
         </div>
@@ -284,7 +284,7 @@ input[type=date]{color-scheme:dark}
       <!-- PROFILE CARD -->
       <div class="profile-card">
         <div class="profile-card-title">
-          <span id="profile-name-display">Adrián</span>
+          <span id="profile-name-display" onclick="editUsername()" style="cursor:pointer" title="Editar nombre">Nombre</span>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <div style="flex:1"><div class="measure-label" style="margin-bottom:4px">Sexo</div>
@@ -804,11 +804,20 @@ async function afterLogin(user){
   document.getElementById('logout-btn').style.display = 'block';
   document.getElementById('logout-btn').textContent = user.email.split('@')[0];
   await loadDBFromSupabase();
+  // Set default username from email if not set
+  if(!db.profile?.username && supabaseUser?.email){
+    if(!db.profile) db.profile={};
+    db.profile.username = supabaseUser.email.split('@')[0];
+    saveDB();
+  }
   showAppScreens();
 }
 function skipLogin(){
   useSupabase = false;
   supabaseUser = null;
+  // Local mode: always start with clean DB (no seed data)
+  const lk = lsKey();
+  try{ localStorage.removeItem(lk); }catch(e){}
   loadDB();
   showAppScreens();
 }
@@ -844,9 +853,7 @@ function loadDB(){
   if(!db.measures)db.measures=[];
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
-  if(!useSupabase&&!supabaseUser&&db.sessions.length===0){
-    db.sessions=JSON.parse(JSON.stringify(SEED_DATA));saveDB();
-  }
+  // No seed data — start clean for new users
 }
 
 async function loadDBFromSupabase(){
@@ -871,11 +878,7 @@ async function loadDBFromSupabase(){
       db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30};
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
-    // Seed data for first login if no sessions
-    if(db.sessions.length===0){
-      db.sessions=JSON.parse(JSON.stringify(SEED_DATA));
-      await saveDB();
-    }
+    // No seed data — new users start clean
     // Cache locally
     localStorage.setItem(lsKey(), JSON.stringify(db));
   } catch(e) {
@@ -1042,7 +1045,7 @@ function renderDayPanel(){
       </div>
     </div></div>`;
   });
-  html+=`<div class="chip blank" onclick="startBlank()">+ En blanco</div><div class="chip blank" onclick="createNewRoutine()" style="border-color:var(--blue);color:var(--blue)">+ Nueva rutina</div></div></div>`;
+  html+=`<div class="chip blank" onclick="createNewRoutine()" style="border-color:var(--blue);color:var(--blue)">+ Nueva rutina</div></div></div>`;
   panel.innerHTML=html;
 }
 
@@ -1466,12 +1469,23 @@ function renderProfileScr(){
   // Compute body fat from most recent measure with JP data
   const lastBF=getLastBodyFat();
   document.getElementById('stat-bodyfat').textContent=lastBF!=null?lastBF+'%':'—';
-  document.getElementById('profile-name-display').textContent=profile;
+  const uname=db.profile?.username||'Sin nombre';
+  document.getElementById('profile-name-display').textContent=uname;
   const sexEl=document.getElementById('profile-sex');
   const ageEl=document.getElementById('profile-age');
   if(sexEl&&db.profile?.sex)sexEl.value=db.profile.sex;
   if(ageEl&&db.profile?.age)ageEl.value=db.profile.age;
   renderWeightChart();renderMeasuresHistory();renderBFChart();renderPeriChart();
+}
+function editUsername(){
+  const cur=db.profile?.username||'';
+  const v=prompt('Nombre de perfil:',cur);
+  if(v===null) return;
+  if(!db.profile) db.profile={};
+  db.profile.username=v.trim()||'Sin nombre';
+  saveDB();
+  document.getElementById('profile-name-display').textContent=db.profile.username;
+  toast('Nombre actualizado ✓');
 }
 function saveProfileMeta(){
   if(!db.profile)db.profile={};
