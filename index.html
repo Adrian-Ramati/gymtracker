@@ -787,6 +787,7 @@ async function afterLogin(user){
 }
 function skipLogin(){
   useSupabase = false;
+  supabaseUser = null;
   loadDB();
   showAppScreens();
 }
@@ -1905,13 +1906,11 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // Hide nav and hdr initially
 document.querySelector('.bnav').style.display='none';
 // Wire login buttons properly (avoids timing issues with onclick)
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('btn-login')?.addEventListener('click', doLogin);
-  document.getElementById('btn-signup')?.addEventListener('click', doSignup);
-  document.getElementById('btn-local')?.addEventListener('click', skipLogin);
-  // Allow Enter key on password field
-  document.getElementById('login-password')?.addEventListener('keydown', e=>{if(e.key==='Enter')doLogin();});
-});
+// Script is at end of body so DOM is ready — wire directly
+document.getElementById('btn-login').onclick = doLogin;
+document.getElementById('btn-signup').onclick = doSignup;
+document.getElementById('btn-local').onclick = skipLogin;
+document.getElementById('login-password').addEventListener('keydown', e=>{if(e.key==='Enter')doLogin();});
 initCal();
 // Init Supabase and check for existing session
 if(initSupabase()){
