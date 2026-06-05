@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -223,12 +224,33 @@ input[type=date]{color-scheme:dark}
   <div class="hdr">
     <div class="hdr-logo"><img src="icon-192.png" alt="logo"></div>
     <span class="hdr-title">Peak Physique</span>
+    <div style="position:absolute;left:16px">
+      <button id="logout-btn" onclick="doLogout()" style="display:none;background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--font)">Salir</button>
+    </div>
     <div class="hdr-right" id="profile-pills" style="display:none">
       <button class="ppill a" onclick="setProfile('Adrian')">Adrián</button>
       <button class="ppill" id="pill-pareja" onclick="setProfile('Pareja')">Pareja</button>
     </div>
   </div>
   <div class="content">
+    <!-- LOGIN -->
+    <div id="s-login" class="scr" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px">
+      <div style="text-align:center;margin-bottom:8px">
+        <img src="icon-192.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:12px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.5px">Peak Physique</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:4px">Inicia sesión para sincronizar tus datos</div>
+      </div>
+      <div style="width:100%;max-width:320px">
+        <div class="measure-label" style="margin-bottom:4px">Email</div>
+        <input class="measure-inp" id="login-email" type="email" placeholder="tu@email.com" style="width:100%;margin-bottom:10px">
+        <div class="measure-label" style="margin-bottom:4px">Contraseña</div>
+        <input class="measure-inp" id="login-password" type="password" placeholder="••••••••" style="width:100%;margin-bottom:14px">
+        <button onclick="doLogin()" style="width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-bottom:8px">Iniciar sesión</button>
+        <button onclick="doSignup()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--b1);color:var(--t2);border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);margin-bottom:16px">Crear cuenta</button>
+        <button onclick="skipLogin()" style="width:100%;padding:10px;background:transparent;border:none;color:var(--t3);font-size:12px;cursor:pointer;font-family:var(--font)">Continuar sin cuenta (solo local)</button>
+      </div>
+      <div id="login-error" style="color:var(--red);font-size:12px;text-align:center;display:none"></div>
+    </div>
     <!-- ENTRENO -->
     <div id="s-train" class="scr on">
       <div class="cal-nav">
@@ -703,8 +725,92 @@ function calcJP7(){
   return bf;
 }
 
+// ═══ SUPABASE CONFIG ═══
+// Replace these with your actual Supabase project values
+const SUPABASE_URL = 'https://yltxrtuebbpckehsfhex.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdHhydHVlYmJwY2tlaHNmaGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1ODMzMjQsImV4cCI6MjA5NjE1OTMyNH0.WN-JcA96x6r7r6UxWb9pksxpCfjvMySNv4rbs1toDSo';
+let supabase = null;
+let supabaseUser = null;
+let useSupabase = false;
+
+function initSupabase(){
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch(e) {
+    console.warn('Supabase init failed, running in local mode:', e);
+    return false;
+  }
+}
+
+// ═══ AUTH ═══
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!email||!pw){errEl.textContent='Rellena email y contraseña';errEl.style.display='block';return;}
+  try {
+    const {data, error} = await supabase.auth.signInWithPassword({email, password:pw});
+    if(error) throw error;
+    await afterLogin(data.user);
+  } catch(e) {
+    errEl.textContent = e.message||'Error al iniciar sesión';
+    errEl.style.display = 'block';
+  }
+}
+async function doSignup(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!email||!pw){errEl.textContent='Rellena email y contraseña';errEl.style.display='block';return;}
+  if(pw.length<6){errEl.textContent='La contraseña debe tener al menos 6 caracteres';errEl.style.display='block';return;}
+  try {
+    const {data, error} = await supabase.auth.signUp({email, password:pw});
+    if(error) throw error;
+    if(data.user) await afterLogin(data.user);
+    else {errEl.style.color='var(--teal)';errEl.textContent='Revisa tu email para confirmar la cuenta';errEl.style.display='block';}
+  } catch(e) {
+    errEl.textContent = e.message||'Error al crear cuenta';
+    errEl.style.display = 'block';
+  }
+}
+async function afterLogin(user){
+  supabaseUser = user;
+  useSupabase = true;
+  document.getElementById('logout-btn').style.display = 'block';
+  document.getElementById('logout-btn').textContent = user.email.split('@')[0];
+  await loadDBFromSupabase();
+  showAppScreens();
+}
+function skipLogin(){
+  useSupabase = false;
+  loadDB();
+  showAppScreens();
+}
+async function doLogout(){
+  if(!confirm('¿Cerrar sesión?')) return;
+  if(supabase) await supabase.auth.signOut();
+  supabaseUser = null; useSupabase = false;
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('s-login').style.display = 'flex';
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-login').classList.add('on');
+  document.querySelector('.bnav').style.display = 'none';
+}
+function showAppScreens(){
+  document.getElementById('s-login').style.display = 'none';
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-train').classList.add('on');
+  document.querySelector('.bnav').style.display = 'flex';
+  document.querySelector('.bn').classList.add('on');
+  renderCal(); renderDayPanel();
+}
+
 // ═══ STORAGE ═══
-function lsKey(){return 'gtv6_'+profile;}
+function lsKey(){return 'gtv6_'+(supabaseUser?.id||'local');}
+
 function loadDB(){
   try{const d=localStorage.getItem(lsKey());db=d?JSON.parse(d):{};}catch(e){db={};}
   if(!db.sessions)db.sessions=[];
@@ -713,9 +819,105 @@ function loadDB(){
   if(!db.measures)db.measures=[];
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
-  if(profile==='Adrian'&&db.sessions.length===0){db.sessions=JSON.parse(JSON.stringify(SEED_DATA));saveDB();}
+  if(!useSupabase&&!supabaseUser&&db.sessions.length===0){
+    db.sessions=JSON.parse(JSON.stringify(SEED_DATA));saveDB();
+  }
 }
-function saveDB(){try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){}}
+
+async function loadDBFromSupabase(){
+  if(!supabase||!supabaseUser){loadDB();return;}
+  try {
+    const uid = supabaseUser.id;
+    // Load all tables in parallel
+    const [sessRes, wRes, stRes, mRes, pRes] = await Promise.all([
+      supabase.from('sessions').select('*').eq('user_id',uid).order('date',{ascending:false}),
+      supabase.from('weights').select('*').eq('user_id',uid).order('date'),
+      supabase.from('steps').select('*').eq('user_id',uid).order('date'),
+      supabase.from('measures').select('*').eq('user_id',uid).order('week'),
+      supabase.from('profiles').select('*').eq('id',uid).single(),
+    ]);
+    // Initialise db
+    db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
+    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({...r.exercises?{...JSON.parse(typeof r.exercises==='string'?r.exercises:JSON.stringify(r.exercises))}:{}, id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:r.exercises}));
+    if(!wRes.error) db.weights = (wRes.data||[]).map(r=>({date:r.date,kg:parseFloat(r.kg)}));
+    if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
+    if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
+    if(!pRes.error&&pRes.data){
+      db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30};
+      if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
+    }
+    // Seed data for first login if no sessions
+    if(db.sessions.length===0){
+      db.sessions=JSON.parse(JSON.stringify(SEED_DATA));
+      await saveDB();
+    }
+    // Cache locally
+    localStorage.setItem(lsKey(), JSON.stringify(db));
+  } catch(e) {
+    console.warn('Supabase load failed, using localStorage:', e);
+    loadDB();
+  }
+}
+
+async function saveDB(){
+  // Always save to localStorage first (fast, offline-safe)
+  try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){}
+  // Then sync to Supabase if connected
+  if(!useSupabase||!supabase||!supabaseUser) return;
+  const uid = supabaseUser.id;
+  try {
+    // Sync profile + templates
+    await supabase.from('profiles').upsert({
+      id:uid, height:db.profile?.height, sex:db.profile?.sex||'male',
+      age:db.profile?.age||30, templates:db.templates, updated_at:new Date().toISOString()
+    });
+  } catch(e){ console.warn('Profile sync error:', e); }
+}
+
+// Granular saves for individual records (faster than full sync)
+async function saveSession(sess){
+  saveDB();
+  if(!useSupabase||!supabase||!supabaseUser) return;
+  try {
+    await supabase.from('sessions').upsert({
+      id:sess.id, user_id:supabaseUser.id, date:sess.date,
+      name:sess.name, day_name:sess.dayName, exercises:sess.exercises
+    });
+  } catch(e){ console.warn('Session save error:', e); }
+}
+async function deleteSessionRemote(id){
+  saveDB();
+  if(!useSupabase||!supabase||!supabaseUser) return;
+  try { await supabase.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id); }
+  catch(e){ console.warn('Session delete error:', e); }
+}
+async function saveWeightRemote(kg, date){
+  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  try {
+    await supabase.from('weights').upsert({user_id:supabaseUser.id,date,kg});
+    saveDB();
+  } catch(e){ saveDB(); console.warn('Weight save error:', e); }
+}
+async function deleteWeightRemote(date){
+  saveDB();
+  if(!useSupabase||!supabase||!supabaseUser) return;
+  try { await supabase.from('weights').delete().eq('user_id',supabaseUser.id).eq('date',date); }
+  catch(e){ console.warn('Weight delete error:', e); }
+}
+async function saveStepsRemote(date, steps){
+  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  try {
+    await supabase.from('steps').upsert({user_id:supabaseUser.id,date,steps});
+    saveDB();
+  } catch(e){ saveDB(); console.warn('Steps save error:', e); }
+}
+async function saveMeasureRemote(entry){
+  if(!useSupabase||!supabase||!supabaseUser){saveDB();return;}
+  try {
+    await supabase.from('measures').upsert({user_id:supabaseUser.id,week:entry.week,date:entry.date,data:entry});
+    saveDB();
+  } catch(e){ saveDB(); console.warn('Measure save error:', e); }
+}
 
 // ═══ PROFILE ═══
 function setProfile(n){
@@ -915,10 +1117,11 @@ function editSession(id){
   showScr('sess',null);renderSessExs();
   toast('Editando sesión — Finalizar para guardar');
 }
-function deleteSession(id){
+async function deleteSession(id){
   if(!confirm('¿Eliminar esta sesión?'))return;
   db.sessions=db.sessions.filter(s=>s.id!==id);
-  saveDB();renderCal();renderDayPanel();toast('Sesión eliminada');
+  await deleteSessionRemote(id);
+  renderCal();renderDayPanel();toast('Sesión eliminada');
 }
 
 // ═══ SESSION ═══
@@ -1062,7 +1265,7 @@ function collectInputs(){
     if(notesEl)ex.notes=notesEl.value;
   });
 }
-function finishSession(){
+async function finishSession(){
   if(!activeSess)return;
   collectInputs();clearInterval(timerIv);
   activeSess.exercises.forEach(ex=>{const rms=ex.sets.filter(s=>s.kg&&s.reps).map(s=>calcE1RM(s.kg,s.reps,s.rpe));ex.best_e1rm=rms.length?Math.max(...rms):null;});
@@ -1070,8 +1273,9 @@ function finishSession(){
   const valid=activeSess.exercises.filter(ex=>ex.sets.some(s=>s.kg||s.reps));
   if(!valid.length){toast('Añade al menos una serie');return;}
   activeSess.exercises=valid;
-  db.sessions.push({...activeSess,id:Date.now()});
-  saveDB();activeSess=null;
+  const newSess={...activeSess,id:Date.now()};
+  db.sessions.push(newSess);
+  await saveSession(newSess);activeSess=null;
   toast('Sesión guardada ✓');
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();
@@ -1321,7 +1525,7 @@ function saveMeasures(){
   const idx=db.measures.findIndex(m=>m.week===wk);
   if(idx>=0)db.measures[idx]={...db.measures[idx],...entry};else db.measures.push(entry);
   db.measures.sort((a,b)=>a.week.localeCompare(b.week));
-  saveDB();renderMeasuresHistory();renderBFChart();
+  await saveMeasureRemote(entry);renderMeasuresHistory();renderBFChart();
   if(bf)document.getElementById('stat-bodyfat').textContent=bf+'%';
   toast('Medidas guardadas ✓');
   PERI_FIELDS.forEach(f=>{const el=document.getElementById('m-'+f);if(el)el.value='';});
@@ -1395,7 +1599,7 @@ function saveSteps(){
   const idx=db.steps.findIndex(s=>s.date===date);
   if(idx>=0)db.steps[idx].steps=steps;else db.steps.push({date,steps});
   db.steps.sort((a,b)=>a.date.localeCompare(b.date));
-  saveDB();renderNeatChart();toast('Pasos guardados ✓');
+  await saveStepsRemote(date,steps);renderNeatChart();toast('Pasos guardados ✓');
   document.getElementById('neat-steps').value='';
 }
 
@@ -1648,12 +1852,12 @@ function openWeightEdit(){
 function closeWeightEdit(e){if(!e||e.target===document.getElementById('ov-weight-edit'))document.getElementById('ov-weight-edit').classList.remove('on');}
 
 // Override existing editWeightEntry to also refresh modal
-function editWeightEntry(date){
+async function editWeightEntry(date){
   const e=(db.weights||[]).find(w=>w.date===date);if(!e)return;
   const v=prompt(`Editar peso (${fmtFull(date)}):`,e.kg);
   if(v===null)return;const n=parseFloat(v);
   if(isNaN(n)||n<=0){toast('Valor no válido');return;}
-  e.kg=n;saveDB();
+  e.kg=n;await saveWeightRemote(n,date);
   if(document.getElementById('ov-weight-edit').classList.contains('on'))openWeightEdit();
   renderWeightChart();renderProfileScr();toast('Actualizado ✓');
 }
@@ -1695,7 +1899,25 @@ function getLastEx(name){for(let i=(db.sessions||[]).length-1;i>=0;i--){const ex
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 // ═══ INIT ═══
-initCal();loadDB();renderCal();renderDayPanel();
+// Hide nav initially until logged in
+document.querySelector('.bnav').style.display='none';
+initCal();
+// Init Supabase and check for existing session
+if(initSupabase()){
+  supabase.auth.getSession().then(async ({data:{session}})=>{
+    if(session){
+      await afterLogin(session.user);
+    } else {
+      // Show login screen
+      document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+      document.getElementById('s-login').classList.add('on');
+      document.getElementById('s-login').style.display='flex';
+    }
+  });
+} else {
+  // No Supabase (config not set), go straight to local mode
+  loadDB();showAppScreens();
+}
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
