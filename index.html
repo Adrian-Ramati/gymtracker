@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Peak Physique">
 <title>Peak Physique</title>
@@ -1474,7 +1475,7 @@ function getLastBodyFat(){
 
 // ═══ WEIGHT ═══
 function setWeightView(v){weightView=v;document.getElementById('weight-view-daily').className='mf'+(v==='daily'?' on':'');document.getElementById('weight-view-weekly').className='mf'+(v==='weekly'?' on':'');renderWeightChart();}
-function saveWeight(){
+async function saveWeight(){
   const kg=parseFloat(document.getElementById('weight-inp').value);
   const date=document.getElementById('weight-date').value;
   if(!kg||!date){toast('Introduce kg y fecha');return;}
@@ -1512,7 +1513,7 @@ function getWeekLabel(dateStr){
   const d=dateStr?new Date(dateStr):new Date();
   return `${d.getFullYear()}-W${String(getWk(d)).padStart(2,'0')}`;
 }
-function saveMeasures(){
+async function saveMeasures(){
   const dateStr=document.getElementById('measure-date')?.value||new Date().toISOString().split('T')[0];
   const wk=getWeekLabel(dateStr);
   const entry={week:wk,date:dateStr};
@@ -1595,7 +1596,7 @@ function closeQuickStart(e){
 let neatView='daily', getView='daily';
 let neatChart=null, getChart2=null;
 
-function saveSteps(){
+async function saveSteps(){
   const steps=parseInt(document.getElementById('neat-steps').value);
   const date=document.getElementById('neat-date').value;
   if(!steps||!date){toast('Introduce pasos y fecha');return;}
