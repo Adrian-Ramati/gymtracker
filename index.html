@@ -516,6 +516,10 @@ input[type=date]{color-scheme:dark}
   <div class="modal">
     <div class="mhandle"></div>
     <div class="mtitle" id="picker-title">Añadir ejercicio</div>
+    <div style="position:relative;margin-bottom:10px">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px">🔍</span>
+      <input id="picker-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderPickerList()">
+    </div>
     <div class="mf-row" id="muscle-filters"></div>
     <div class="mscroll" id="picker-list"></div>
   </div>
@@ -613,6 +617,27 @@ input[type=date]{color-scheme:dark}
     <div class="mscroll" id="measures-edit-list"></div>
   </div>
 </div>
+<!-- CUSTOM DIALOG (replaces browser confirm/prompt) -->
+<div id="dlg-overlay" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);width:100%;max-width:320px;padding:20px;animation:slideUp .2s ease">
+    <div id="dlg-msg" style="font-size:14px;color:var(--t1);margin-bottom:20px;line-height:1.5"></div>
+    <input id="dlg-input" type="text" style="display:none;width:100%;padding:10px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;margin-bottom:12px;outline:none">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="dlg-ok" style="width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">Aceptar</button>
+      <button id="dlg-cancel" style="display:none;width:100%;padding:12px;background:var(--s2);color:var(--t2);border:1px solid var(--b1);border-radius:var(--r);font-size:14px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SET TYPE MODAL -->
+<div id="ov-settype" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center" onclick="closeSetType(event)">
+  <div style="background:var(--s1);border-radius:var(--rxl) var(--rxl) 0 0;width:100%;max-width:430px;padding:20px 16px max(env(safe-area-inset-bottom),20px);animation:slideUp .25s ease">
+    <div style="width:36px;height:4px;background:var(--b2);border-radius:2px;margin:0 auto 16px"></div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:14px">Tipo de serie</div>
+    <div id="settype-list"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 // ═══ STATIC DATA ═══
@@ -822,7 +847,7 @@ function skipLogin(){
   showAppScreens();
 }
 async function doLogout(){
-  if(!confirm('¿Cerrar sesión?')) return;
+  if(!await dlgConfirm('¿Cerrar sesión?')) return;
   if(sbClient) await sbClient.auth.signOut();
   supabaseUser = null; useSupabase = false;
   document.getElementById('logout-btn').style.display='none';
@@ -954,7 +979,7 @@ function setProfile(n){
   if(activeSess){clearInterval(timerIv);activeSess=null;}
   loadDB();renderCurrentScr();renderCal();
 }
-function togglePareja(){
+async function togglePareja(){
   parejaEnabled=!parejaEnabled;
   document.getElementById('toggle-pareja').className='toggle'+(parejaEnabled?' on':'');
   document.getElementById('pareja-profile-name').style.display=parejaEnabled?'block':'none';
@@ -1054,7 +1079,7 @@ function toggleTmplDropdown(tid,e){e.stopPropagation();closeTmplDropdown();const
 function closeTmplDropdown(){document.querySelectorAll('.tmpl-dropdown-menu').forEach(m=>m.classList.remove('on'));}
 document.addEventListener('click',()=>closeTmplDropdown());
 function duplicateTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;db.templates.push({...JSON.parse(JSON.stringify(t)),id:'tmpl_'+Date.now(),name:t.name+' (copia)'});saveDB();renderDayPanel();toast('Rutina duplicada');}
-function deleteTmpl(tid){if(!confirm('¿Eliminar esta rutina?'))return;db.templates=db.templates.filter(t=>t.id!==tid);saveDB();renderDayPanel();}
+async function deleteTmpl(tid){if(!await dlgConfirm('¿Eliminar esta rutina?'))return;db.templates=db.templates.filter(t=>t.id!==tid);saveDB();renderDayPanel();}
 function openEditTmpl(tid){editTmplId=tid;const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;document.getElementById('edit-tmpl-title').textContent='Editar: '+t.name;renderEditTmplBody();document.getElementById('ov-edittmpl').classList.add('on');}
 function renderEditTmplBody(){
   const t=(db.templates||[]).find(t=>t.id===editTmplId);if(!t)return;
@@ -1146,7 +1171,7 @@ function editSession(id){
   toast('Editando sesión — Finalizar para guardar');
 }
 async function deleteSession(id){
-  if(!confirm('¿Eliminar esta sesión?'))return;
+  if(!await dlgConfirm('¿Eliminar esta sesión?'))return;
   db.sessions=db.sessions.filter(s=>s.id!==id);
   await deleteSessionRemote(id);
   renderCal();renderDayPanel();toast('Sesión eliminada');
@@ -1162,15 +1187,15 @@ function startSess(name,exercises){
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
 }
-function deleteCurrentSession(){
+async function deleteCurrentSession(){
   if(!activeSess?.editing){cancelSession();return;}
-  if(!confirm('¿Borrar este entrenamiento definitivamente? No se puede deshacer.'))return;
+  if(!await dlgConfirm('¿Borrar este entrenamiento definitivamente?'))return;
   clearInterval(timerIv);activeSess=null;
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento eliminado');
 }
-function cancelSession(){
-  if(!confirm('¿Cancelar el entrenamiento? No se guardará nada.'))return;
+async function cancelSession(){
+  if(!await dlgConfirm('¿Cancelar el entrenamiento? No se guardará nada.'))return;
   clearInterval(timerIv);activeSess=null;
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento cancelado');
@@ -1188,8 +1213,12 @@ function renderExCard(ex,ei){
   ex.sets.forEach((s,si)=>{
     const lv=last?.sets?.[si];
     const prevText=lv?`${lv.kg||'—'}×${lv.reps||'—'}`:'—';
-    sets+=`<div class="set-row" id="sr_${ei}_${si}">
-      <span class="set-num${s.done?' done':''}" id="sn_${ei}_${si}">${si+1}</span>
+    const stype=s.type||'normal';
+    const stypeColors={normal:'var(--t3)',warmup:'#fbbf24',dropset:'#f472b6',failure:'#f87171',preex:'#34d399',restpause:'#a78bfa',superset:'#4f8ef7'};
+    const stypeAbbr={normal:'',warmup:'W',dropset:'D',failure:'F',preex:'P',restpause:'R',superset:'S'};
+    const stypeBg={normal:'transparent',warmup:'rgba(251,191,36,.1)',dropset:'rgba(244,114,182,.1)',failure:'rgba(248,113,113,.1)',preex:'rgba(52,211,153,.1)',restpause:'rgba(167,139,250,.1)',superset:'rgba(79,142,247,.1)'};
+    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${stypeBg[stype]};border-radius:8px;padding:2px 0">
+      <button class="set-num${s.done?' done':''}" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${s.done?'var(--green)':stypeBg[stype]};border:1px solid ${s.done?'var(--green)':stypeColors[stype]};border-radius:6px;cursor:pointer;color:${s.done?'#000':stypeColors[stype]};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${s.done?'✓':(stypeAbbr[stype]||si+1)}</button>
       <div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar con valores anteriores">${prevText}</div>
       <input type="number" id="kg_${ei}_${si}" value="${s.kg||''}" placeholder="${lv?lv.kg:'kg'}" min="0" step="0.5" oninput="onSetInput(${ei},${si})">
       <input type="number" id="rp_${ei}_${si}" value="${s.reps||''}" placeholder="${lv?lv.reps:'reps'}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})">
@@ -1334,6 +1363,7 @@ function removeEx(ei){closeCtx();if(!activeSess)return;collectInputs();activeSes
 function openPicker(targetOrMode){
   if(targetOrMode&&typeof targetOrMode==='string'&&targetOrMode!=='replace'&&targetOrMode!=='tmpl')pickerTarget=targetOrMode;
   mFilter='all';
+  const searchInp=document.getElementById('picker-search');if(searchInp)searchInp.value='';
   const isReplace=pickerTarget?.type==='replace'||pickerTarget==='replace';
   document.getElementById('picker-title').textContent=isReplace?'Reemplazar ejercicio':'Añadir ejercicio';
   const mf=document.getElementById('muscle-filters');
@@ -1341,7 +1371,18 @@ function openPicker(targetOrMode){
   renderPickerList();document.getElementById('ov-picker').classList.add('on');
 }
 function setMFilter(m){mFilter=m;document.querySelectorAll('.mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));renderPickerList();}
-function renderPickerList(){document.getElementById('picker-list').innerHTML=ALL_EX.filter(e=>mFilter==='all'||e.muscle===mFilter).map(e=>`<div class="ex-item" onclick="selectEx('${e.name.replace(/'/g,"\\'")}','${e.muscle}')"><div><div class="ex-item-name">${e.name}</div><div class="ex-item-muscle">${e.muscle}</div></div></div>`).join('');}
+function renderPickerList(){
+  const search=(document.getElementById('picker-search')?.value||'').toLowerCase().trim();
+  const list=ALL_EX.filter(e=>{
+    const muscleOk=mFilter==='all'||e.muscle===mFilter;
+    const searchOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
+    return muscleOk&&searchOk;
+  });
+  const safe=n=>n.replace(/'/g,"\'");
+  document.getElementById('picker-list').innerHTML=list.length
+    ?list.map(e=>`<div class="ex-item" onclick="selectEx('${safe(e.name)}','${e.muscle}')"><div><div class="ex-item-name">${e.name}</div><div class="ex-item-muscle">${e.muscle}</div></div></div>`).join('')
+    :'<div class="empty">Sin resultados</div>';
+}
 function closePicker(e){if(!e||e.target===document.getElementById('ov-picker'))document.getElementById('ov-picker').classList.remove('on');}
 function selectEx(name,muscle){
   const target=pickerTarget;
@@ -1477,9 +1518,9 @@ function renderProfileScr(){
   if(ageEl&&db.profile?.age)ageEl.value=db.profile.age;
   renderWeightChart();renderMeasuresHistory();renderBFChart();renderPeriChart();
 }
-function editUsername(){
+async function editUsername(){
   const cur=db.profile?.username||'';
-  const v=prompt('Nombre de perfil:',cur);
+  const v=await dlgPrompt('Nombre de perfil:',cur);
   if(v===null) return;
   if(!db.profile) db.profile={};
   db.profile.username=v.trim()||'Sin nombre';
@@ -1495,8 +1536,9 @@ function saveProfileMeta(){
   if(!isNaN(age)&&age>0)db.profile.age=age;
   saveDB();
 }
-function editHeight(){
-  const h=prompt('Altura (cm):',db.profile?.height||'');
+async function editHeight(){
+  const hv=await dlgPrompt('Altura (cm):',db.profile?.height||'');
+  const h=hv;
   if(h===null)return;
   const v=parseInt(h);
   if(isNaN(v)||v<100||v>250){toast('Altura no válida');return;}
@@ -1595,7 +1637,7 @@ function renderBFChart(){
 // ═══ BACKUP / RESTORE ═══
 function exportJSON(){const data={profile,db,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`GymTracker_${profile}_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);toast('Backup descargado ✓');}
 function triggerImportJSON(){document.getElementById('import-json-input').value='';document.getElementById('import-json-input').click();}
-function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>{try{const data=JSON.parse(e.target.result);if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}if(!confirm(`¿Restaurar backup de ${data.profile||'?'} con ${data.db.sessions.length} sesiones?`))return;db=data.db;saveDB();renderCal();renderDayPanel();renderProfileScr();toast(`Restaurado: ${db.sessions.length} sesiones ✓`);}catch(err){toast('Error al leer el archivo');}};reader.readAsText(file);}
+async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>{try{const data=JSON.parse(e.target.result);if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}if(!await dlgConfirm(`¿Restaurar backup de ${data.profile||'?'} con ${data.db.sessions.length} sesiones?`))return;db=data.db;saveDB();renderCal();renderDayPanel();renderProfileScr();toast(`Restaurado: ${db.sessions.length} sesiones ✓`);}catch(err){toast('Error al leer el archivo');}};reader.readAsText(file);}
 
 // ═══ EXPORT XLSX ═══
 function exportXLSX(){
@@ -1629,8 +1671,8 @@ function closeQuickStart(e){
   if(!e||e.target===document.getElementById('ov-quickstart'))
     document.getElementById('ov-quickstart').classList.remove('on');
 }
-function createNewRoutine(){
-  const name=prompt('Nombre de la nueva rutina:','Mi rutina');
+async function createNewRoutine(){
+  const name=await dlgPrompt('Nombre de la nueva rutina:','Mi rutina');
   if(!name||!name.trim()) return;
   const newTmpl={id:'tmpl_'+Date.now(),name:name.trim(),exercises:[]};
   db.templates=db.templates||[];
@@ -1878,15 +1920,15 @@ function openNeatEdit(){
   document.getElementById('ov-neat-edit').classList.add('on');
 }
 function closeNeatEdit(e){if(!e||e.target===document.getElementById('ov-neat-edit'))document.getElementById('ov-neat-edit').classList.remove('on');}
-function editNeatEntry(date){
+async function editNeatEntry(date){
   const entry=(db.steps||[]).find(s=>s.date===date);if(!entry)return;
-  const v=prompt(`Editar pasos (${fmtFull(date)}):`,entry.steps);
+  const v=await dlgPrompt(`Editar pasos (${fmtFull(date)}):`,String(entry.steps));
   if(v===null)return;const n=parseInt(v);
   if(isNaN(n)||n<0){toast('Valor no válido');return;}
   entry.steps=n;saveDB();openNeatEdit();renderNeatChart();toast('Actualizado ✓');
 }
-function deleteNeatEntry(date){
-  if(!confirm(`¿Eliminar registro del ${fmtFull(date)}?`))return;
+async function deleteNeatEntry(date){
+  if(!await dlgConfirm(`¿Eliminar registro del ${fmtFull(date)}?`))return;
   db.steps=(db.steps||[]).filter(s=>s.date!==date);
   saveDB();openNeatEdit();renderNeatChart();toast('Eliminado');
 }
@@ -1909,7 +1951,7 @@ function closeWeightEdit(e){if(!e||e.target===document.getElementById('ov-weight
 // Override existing editWeightEntry to also refresh modal
 async function editWeightEntry(date){
   const e=(db.weights||[]).find(w=>w.date===date);if(!e)return;
-  const v=prompt(`Editar peso (${fmtFull(date)}):`,e.kg);
+  const v=await dlgPrompt(`Editar peso (${fmtFull(date)}):`,String(e.kg));
   if(v===null)return;const n=parseFloat(v);
   if(isNaN(n)||n<=0){toast('Valor no válido');return;}
   e.kg=n;await saveWeightRemote(n,date);
@@ -1917,7 +1959,7 @@ async function editWeightEntry(date){
   renderWeightChart();renderProfileScr();toast('Actualizado ✓');
 }
 function deleteWeightEntry(date){
-  if(!confirm(`¿Eliminar entrada del ${fmtFull(date)}?`))return;
+  if(!await dlgConfirm(`¿Eliminar entrada del ${fmtFull(date)}?`))return;
   db.weights=(db.weights||[]).filter(w=>w.date!==date);
   saveDB();
   if(document.getElementById('ov-weight-edit').classList.contains('on'))openWeightEdit();
@@ -1943,8 +1985,8 @@ function openMeasuresEdit(){
   document.getElementById('ov-measures-edit').classList.add('on');
 }
 function closeMeasuresEdit(e){if(!e||e.target===document.getElementById('ov-measures-edit'))document.getElementById('ov-measures-edit').classList.remove('on');}
-function deleteMeasureEntry(week){
-  if(!confirm('¿Eliminar este registro de medidas?'))return;
+async function deleteMeasureEntry(week){
+  if(!await dlgConfirm('¿Eliminar este registro de medidas?'))return;
   db.measures=(db.measures||[]).filter(m=>m.week!==week);
   saveDB();openMeasuresEdit();renderMeasuresHistory();renderBFChart();renderProfileScr();toast('Eliminado');
 }
@@ -2000,6 +2042,87 @@ async function saveBFMeasures(){
   await saveMeasureRemote(entry);renderBFChart();
   document.getElementById('stat-bodyfat').textContent=bf+'%';
   toast('Composición guardada ✓');
+}
+
+// ═══ CUSTOM DIALOGS (no browser chrome) ═══
+function dlgConfirm(msg){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('dlg-overlay');
+    document.getElementById('dlg-msg').textContent=msg;
+    document.getElementById('dlg-input').style.display='none';
+    document.getElementById('dlg-cancel').style.display='block';
+    document.getElementById('dlg-ok').textContent='Aceptar';
+    document.getElementById('dlg-ok').style.background='var(--blue)';
+    ov.style.display='flex';
+    const ok=document.getElementById('dlg-ok');
+    const cancel=document.getElementById('dlg-cancel');
+    function cleanup(){ov.style.display='none';ok.onclick=null;cancel.onclick=null;}
+    ok.onclick=()=>{cleanup();resolve(true);};
+    cancel.onclick=()=>{cleanup();resolve(false);};
+  });
+}
+function dlgPrompt(msg, defaultVal=''){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('dlg-overlay');
+    document.getElementById('dlg-msg').textContent=msg;
+    const inp=document.getElementById('dlg-input');
+    inp.value=defaultVal;inp.style.display='block';
+    document.getElementById('dlg-cancel').style.display='block';
+    document.getElementById('dlg-ok').textContent='Aceptar';
+    document.getElementById('dlg-ok').style.background='var(--blue)';
+    ov.style.display='flex';
+    setTimeout(()=>inp.focus(),100);
+    const ok=document.getElementById('dlg-ok');
+    const cancel=document.getElementById('dlg-cancel');
+    function cleanup(){ov.style.display='none';ok.onclick=null;cancel.onclick=null;inp.onkeydown=null;}
+    ok.onclick=()=>{cleanup();resolve(inp.value);};
+    cancel.onclick=()=>{cleanup();resolve(null);};
+    inp.onkeydown=(e)=>{if(e.key==='Enter'){cleanup();resolve(inp.value);}};
+  });
+}
+
+// ═══ SET TYPE MODAL ═══
+const SET_TYPES=[
+  {id:'normal',   label:'Serie Normal',        color:'var(--t2)',  bg:'var(--s2)'},
+  {id:'warmup',   label:'Serie de Calentamiento', color:'#fbbf24', bg:'rgba(251,191,36,.15)'},
+  {id:'dropset',  label:'Drop Set',             color:'#f472b6',   bg:'rgba(244,114,182,.15)'},
+  {id:'failure',  label:'Serie al Fallo',       color:'#f87171',   bg:'rgba(248,113,113,.15)'},
+  {id:'preex',    label:'Pre-agotamiento',      color:'#34d399',   bg:'rgba(52,211,153,.15)'},
+  {id:'restpause',label:'Rest-Pause',           color:'#a78bfa',   bg:'rgba(167,139,250,.15)'},
+  {id:'superset', label:'Superserie',           color:'#4f8ef7',   bg:'rgba(79,142,247,.15)'},
+];
+const SET_TYPE_ABBR={normal:'',warmup:'W',dropset:'D',failure:'F',preex:'P',restpause:'R',superset:'S'};
+let setTypeTarget=null; // {ei, si}
+
+function openSetType(ei,si){
+  setTypeTarget={ei,si};
+  const current=activeSess?.exercises[ei]?.sets[si]?.type||'normal';
+  document.getElementById('settype-list').innerHTML=SET_TYPES.map(t=>`
+    <div onclick="selectSetType('${t.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:var(--r);cursor:pointer;margin-bottom:4px;background:${t.id===current?t.bg:'transparent'}">
+      <div style="width:32px;height:32px;border-radius:8px;background:${t.bg};display:grid;place-items:center;font-size:11px;font-weight:700;color:${t.color};font-family:var(--mono)">${SET_TYPE_ABBR[t.id]||'N'}</div>
+      <span style="font-size:13px;font-weight:500;color:${t.id===current?t.color:'var(--t1)'}">${t.label}</span>
+      ${t.id===current?'<span style="margin-left:auto;color:'+t.color+'">✓</span>':''}
+    </div>`).join('')+
+    `<div onclick="selectSetType('delete')" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-top:1px solid var(--b1);color:var(--red);cursor:pointer;margin-top:4px">
+      <span style="font-size:13px">✕ Eliminar serie</span>
+    </div>`;
+  document.getElementById('ov-settype').style.display='flex';
+}
+function closeSetType(e){if(!e||e.target===document.getElementById('ov-settype'))document.getElementById('ov-settype').style.display='none';}
+function selectSetType(typeId){
+  document.getElementById('ov-settype').style.display='none';
+  if(!setTypeTarget||!activeSess)return;
+  const{ei,si}=setTypeTarget;
+  if(typeId==='delete'){removeSet(ei,si);return;}
+  activeSess.exercises[ei].sets[si].type=typeId;
+  renderSessExs();
+}
+function removeSet(ei,si){
+  if(!activeSess)return;
+  collectInputs();
+  activeSess.exercises[ei].sets.splice(si,1);
+  if(activeSess.exercises[ei].sets.length===0)activeSess.exercises[ei].sets.push({kg:null,reps:null,rpe:null,done:false});
+  renderSessExs();
 }
 
 // ═══ UTILS ═══
