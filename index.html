@@ -228,10 +228,7 @@ input[type=date]{color-scheme:dark}
     <div style="position:absolute;left:16px">
       <button id="logout-btn" onclick="doLogout()" style="display:none;background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--font)">Salir</button>
     </div>
-    <div class="hdr-right" id="profile-pills" style="display:none">
-      <button class="ppill a" onclick="setProfile('Adrian')">Adrián</button>
-      <button class="ppill" id="pill-pareja" onclick="setProfile('Pareja')">Pareja</button>
-    </div>
+    <div class="hdr-right" id="profile-pills" style="display:none"></div>
   </div>
   <div class="content">
     <!-- ENTRENO -->
@@ -424,16 +421,8 @@ input[type=date]{color-scheme:dark}
       </div>
       <!-- DATOS + PERFILES (merged) -->
       <div class="profile-card">
-        <div class="profile-card-title">Perfiles y datos</div>
-        <div class="toggle-row">
-          <span class="toggle-label">Habilitar 2º perfil (Pareja)</span>
-          <button class="toggle" id="toggle-pareja" onclick="togglePareja()"></button>
-        </div>
-        <div id="pareja-profile-name" style="display:none;margin-top:8px;margin-bottom:12px">
-          <input class="measure-inp" id="pareja-name-inp" placeholder="Nombre del 2º perfil" style="width:100%">
-        </div>
-        <div class="divider" style="margin:12px 0"></div>
-        <button class="export-btn" onclick="exportJSON()">
+        <div class="profile-card-title">Datos y backup</div>
+<button class="export-btn" onclick="exportJSON()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Hacer backup (JSON)
         </button>
@@ -701,7 +690,7 @@ let profile='Adrian',db={},calYear,calMonth,selDate=null;
 let activeSess=null,timerSecs=0,timerIv=null;
 let pickerTarget=null,mFilter='all';
 let pChart=null,vChart=null,wChart=null,bfChart=null;
-let dragSrcIdx=null,parejaEnabled=false,weightView='daily';
+let dragSrcIdx=null,weightView='daily';
 let editTmplId=null,measureTab='perimetros';
 
 // ═══ E1RM ═══
@@ -973,19 +962,8 @@ async function saveMeasureRemote(entry){
 }
 
 // ═══ PROFILE ═══
-function setProfile(n){
-  profile=n;
-  document.querySelectorAll('.ppill').forEach(p=>{p.className='ppill';if(p.textContent.trim()===n)p.className='ppill '+(n==='Adrian'?'a':'b');});
-  if(activeSess){clearInterval(timerIv);activeSess=null;}
-  loadDB();renderCurrentScr();renderCal();
-}
-async function togglePareja(){
-  parejaEnabled=!parejaEnabled;
-  document.getElementById('toggle-pareja').className='toggle'+(parejaEnabled?' on':'');
-  document.getElementById('pareja-profile-name').style.display=parejaEnabled?'block':'none';
-  document.getElementById('profile-pills').style.display=parejaEnabled?'flex':'none';
-  if(!parejaEnabled&&profile==='Pareja')setProfile('Adrian');
-}
+// setProfile removed — single profile per account
+// togglePareja removed
 
 // ═══ NAV ═══
 function showScr(n,el){
@@ -1639,10 +1617,65 @@ function renderBFChart(){
   },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'},callback:v=>v.toFixed(1)+'%'}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
 }
 
+// ═══ FULL SUPABASE SYNC (used after backup restore) ═══
+async function syncAllToSupabase(){
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  const uid=supabaseUser.id;
+  try{
+    // 1. Profile + templates
+    await sbClient.from('profiles').upsert({
+      id:uid,height:db.profile?.height,sex:db.profile?.sex||'male',
+      age:db.profile?.age||30,templates:db.templates,updated_at:new Date().toISOString()
+    });
+
+    // 2. Sessions — upsert all
+    const sessRows=(db.sessions||[]).map(s=>({
+      id:s.id,user_id:uid,date:s.date,name:s.name,day_name:s.dayName,exercises:s.exercises
+    }));
+    if(sessRows.length){
+      // Upsert in batches of 50 to avoid request size limits
+      for(let i=0;i<sessRows.length;i+=50){
+        await sbClient.from('sessions').upsert(sessRows.slice(i,i+50));
+      }
+    }
+
+    // 3. Weights
+    const wRows=(db.weights||[]).map(w=>({user_id:uid,date:w.date,kg:w.kg}));
+    if(wRows.length) await sbClient.from('weights').upsert(wRows);
+
+    // 4. Steps
+    const sRows=(db.steps||[]).map(s=>({user_id:uid,date:s.date,steps:s.steps}));
+    if(sRows.length) await sbClient.from('steps').upsert(sRows);
+
+    // 5. Measures
+    const mRows=(db.measures||[]).map(m=>({user_id:uid,week:m.week,date:m.date,data:m}));
+    if(mRows.length) await sbClient.from('measures').upsert(mRows);
+
+    console.log('Full sync to Supabase complete');
+  }catch(err){
+    console.error('Sync error:',err);
+    toast('Error al sincronizar — datos guardados localmente');
+  }
+}
+
 // ═══ BACKUP / RESTORE ═══
 function exportJSON(){const data={profile,db,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`GymTracker_${profile}_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);toast('Backup descargado ✓');}
 function triggerImportJSON(){document.getElementById('import-json-input').value='';document.getElementById('import-json-input').click();}
-async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=async(e)=>{try{const data=JSON.parse(e.target.result);if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}if(!await dlgConfirm(`¿Restaurar backup de ${data.profile||'?'} con ${data.db.sessions.length} sesiones?`))return;db=data.db;saveDB();renderCal();renderDayPanel();renderProfileScr();toast(`Restaurado: ${db.sessions.length} sesiones ✓`);}catch(err){toast('Error al leer el archivo');}};reader.readAsText(file);}
+async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=async(e)=>{
+  try{
+    const data=JSON.parse(e.target.result);
+    if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}
+    if(!await dlgConfirm(`¿Restaurar backup con ${data.db.sessions.length} sesiones? Se sobreescribirán los datos actuales.`))return;
+    db=data.db;
+    saveDB();
+    if(useSupabase&&sbClient&&supabaseUser){
+      toast('Sincronizando…');
+      await syncAllToSupabase();
+    }
+    renderCal();renderDayPanel();renderProfileScr();
+    toast(`Restaurado: ${data.db.sessions.length} sesiones ✓`);
+  }catch(err){console.error(err);toast('Error al leer el archivo');}
+};reader.readAsText(file);}
 
 // ═══ EXPORT XLSX ═══
 function exportXLSX(){
