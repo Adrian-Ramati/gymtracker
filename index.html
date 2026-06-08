@@ -1214,12 +1214,17 @@ function renderExCard(ex,ei){
     const lv=last?.sets?.[si];
     const prevText=lv?`${lv.kg||'—'}×${lv.reps||'—'}`:'—';
     const stype=s.type||'normal';
-    const stypeColors={normal:'var(--t3)',warmup:'#fbbf24',dropset:'#f472b6',failure:'#f87171',preex:'#34d399',restpause:'#a78bfa',superset:'#4f8ef7'};
-    const stypeAbbr={normal:'',warmup:'W',dropset:'D',failure:'F',preex:'P',restpause:'R',superset:'S'};
-    const stypeBg={normal:'transparent',warmup:'rgba(251,191,36,.1)',dropset:'rgba(244,114,182,.1)',failure:'rgba(248,113,113,.1)',preex:'rgba(52,211,153,.1)',restpause:'rgba(167,139,250,.1)',superset:'rgba(79,142,247,.1)'};
-    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${stypeBg[stype]};border-radius:8px;padding:2px 0">
-      <button class="set-num${s.done?' done':''}" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${s.done?'var(--green)':stypeBg[stype]};border:1px solid ${s.done?'var(--green)':stypeColors[stype]};border-radius:6px;cursor:pointer;color:${s.done?'#000':stypeColors[stype]};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${s.done?'✓':(stypeAbbr[stype]||si+1)}</button>
-      <div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar con valores anteriores">${prevText}</div>
+    const sColors={normal:'var(--t3)',warmup:'#fbbf24',dropset:'#f472b6',failure:'#f87171',preex:'#34d399',restpause:'#a78bfa',superset:'#4f8ef7'};
+    const sAbbr={normal:'',warmup:'W',dropset:'D',failure:'F',preex:'P',restpause:'R',superset:'S'};
+    const sBg={normal:'',warmup:'rgba(251,191,36,.1)',dropset:'rgba(244,114,182,.1)',failure:'rgba(248,113,113,.1)',preex:'rgba(52,211,153,.1)',restpause:'rgba(167,139,250,.1)',superset:'rgba(79,142,247,.1)'};
+    const rowBg=sBg[stype];
+    const btnBg=s.done?'var(--green)':(sBg[stype]||'transparent');
+    const btnBorder=s.done?'var(--green)':sColors[stype];
+    const btnColor=s.done?'#000':sColors[stype];
+    const btnLabel=s.done?'✓':(sAbbr[stype]||(si+1));
+    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px">
+      <button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button>
+
       <input type="number" id="kg_${ei}_${si}" value="${s.kg||''}" placeholder="${lv?lv.kg:'kg'}" min="0" step="0.5" oninput="onSetInput(${ei},${si})">
       <input type="number" id="rp_${ei}_${si}" value="${s.reps||''}" placeholder="${lv?lv.reps:'reps'}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})">
       <input type="number" id="rpe_${ei}_${si}" value="${s.rpe||''}" placeholder="${lv?lv.rpe:'rpe'}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})">
@@ -1637,7 +1642,7 @@ function renderBFChart(){
 // ═══ BACKUP / RESTORE ═══
 function exportJSON(){const data={profile,db,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`GymTracker_${profile}_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);toast('Backup descargado ✓');}
 function triggerImportJSON(){document.getElementById('import-json-input').value='';document.getElementById('import-json-input').click();}
-async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>{try{const data=JSON.parse(e.target.result);if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}if(!await dlgConfirm(`¿Restaurar backup de ${data.profile||'?'} con ${data.db.sessions.length} sesiones?`))return;db=data.db;saveDB();renderCal();renderDayPanel();renderProfileScr();toast(`Restaurado: ${db.sessions.length} sesiones ✓`);}catch(err){toast('Error al leer el archivo');}};reader.readAsText(file);}
+async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=async(e)=>{try{const data=JSON.parse(e.target.result);if(!data.db||!data.db.sessions){toast('Archivo no válido');return;}if(!await dlgConfirm(`¿Restaurar backup de ${data.profile||'?'} con ${data.db.sessions.length} sesiones?`))return;db=data.db;saveDB();renderCal();renderDayPanel();renderProfileScr();toast(`Restaurado: ${db.sessions.length} sesiones ✓`);}catch(err){toast('Error al leer el archivo');}};reader.readAsText(file);}
 
 // ═══ EXPORT XLSX ═══
 function exportXLSX(){
@@ -1958,7 +1963,7 @@ async function editWeightEntry(date){
   if(document.getElementById('ov-weight-edit').classList.contains('on'))openWeightEdit();
   renderWeightChart();renderProfileScr();toast('Actualizado ✓');
 }
-function deleteWeightEntry(date){
+async function deleteWeightEntry(date){
   if(!await dlgConfirm(`¿Eliminar entrada del ${fmtFull(date)}?`))return;
   db.weights=(db.weights||[]).filter(w=>w.date!==date);
   saveDB();
