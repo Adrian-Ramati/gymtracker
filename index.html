@@ -1462,11 +1462,15 @@ function renderVol(){
   const week8Labels=[];
   for(let i=7;i>=0;i--){const d=new Date(now8);d.setDate(d.getDate()-i*7);week8Labels.push('S'+getWk(d));}
   // Deduplicate but keep order
+  // Map week numbers to readable dates (Monday of that week)
+  const week8Dates={};
+  for(let i=7;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i*7);const wk='S'+getWk(d);if(!week8Dates[wk])week8Dates[wk]=d.toISOString().split('T')[0];}
   const weeks=[...new Set(week8Labels)];
+  const weekLabels=weeks.map(wk=>week8Dates[wk]?fmtDate(week8Dates[wk]):wk);
   const muscles=muscleFilter==='all'?[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))].slice(0,5):[muscleFilter];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
-    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'99',borderRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
+    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weekLabels,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'99',borderRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
   }
 }
 function getWk(d){const s=new Date(d.getFullYear(),0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);}
@@ -1553,7 +1557,11 @@ function renderWeightChart(){
   if(!weights.length){if(wChart){wChart.destroy();wChart=null;}if(histDiv)histDiv.innerHTML='';return;}
   let labels,data;
   if(weightView==='daily'){const last60=weights.slice(-60);labels=last60.map(w=>fmtDate(w.date));data=last60.map(w=>w.kg);}
-  else{const byWeek={};weights.forEach(w=>{const wk='S'+getWk(new Date(w.date));if(!byWeek[wk])byWeek[wk]=[];byWeek[wk].push(w.kg);});const wks=Object.keys(byWeek).slice(-12);labels=wks;data=wks.map(wk=>Math.round(byWeek[wk].reduce((a,b)=>a+b,0)/byWeek[wk].length*10)/10);}
+  else{const byWeek={},byWeekDate={};
+    weights.forEach(w=>{const wk='S'+getWk(new Date(w.date));if(!byWeek[wk])byWeek[wk]=[];byWeek[wk].push(w.kg);if(!byWeekDate[wk])byWeekDate[wk]=w.date;});
+    const wks=Object.keys(byWeek).sort().slice(-12);
+    labels=wks.map(wk=>fmtDate(byWeekDate[wk]));
+    data=wks.map(wk=>Math.round(byWeek[wk].reduce((a,b)=>a+b,0)/byWeek[wk].length*10)/10);}
   if(wChart){wChart.destroy();wChart=null;}
   wChart=new Chart(document.getElementById('weightChart'),{type:'line',data:{labels,datasets:[{label:'kg',data,borderColor:'#34d399',backgroundColor:'rgba(52,211,153,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#34d399',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
   // weight history list removed — use openWeightEdit() modal instead
@@ -1612,7 +1620,7 @@ function renderBFChart(){
   if(!bfData.length){if(bfChart){bfChart.destroy();bfChart=null;}return;}
   if(bfChart){bfChart.destroy();bfChart=null;}
   bfChart=new Chart(document.getElementById('bfChart'),{type:'line',data:{
-    labels:bfData.map(m=>m.week),
+    labels:bfData.map(m=>m.date?fmtDate(m.date):m.week),
     datasets:[{label:'% graso',data:bfData.map(m=>m.bf),borderColor:'#fb923c',backgroundColor:'rgba(251,146,60,0.08)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#fb923c',fill:true,tension:.3}]
   },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'},callback:v=>v.toFixed(1)+'%'}},x:{grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'},maxRotation:45,autoSkip:true,maxTicksLimit:8}}}}});
 }
@@ -1845,7 +1853,7 @@ function renderNeatChart(){
     for(let i=3;i>=0;i--){
       const end=new Date();end.setDate(end.getDate()-i*7);
       const start=new Date(end);start.setDate(start.getDate()-6);
-      const wLabel='S'+getWk(end);
+      const wLabel=fmtDate(start.toISOString().split('T')[0]);
       const weekSteps=steps.filter(s=>s.date>=start.toISOString().split('T')[0]&&s.date<=end.toISOString().split('T')[0]);
       const avg=weekSteps.length?Math.round(weekSteps.reduce((a,b)=>a+b.steps,0)/weekSteps.length):0;
       weeks.push({label:wLabel,avg});
@@ -1902,7 +1910,7 @@ function renderGetChart(){
     neatArr.push(neatKcal);
     gymArr.push(gymKcal);
     othersArr.push(others);
-    labels.push(getView==='daily'?fmtDate(dateStr):'S'+getWk(new Date(dateStr)));
+    labels.push(fmtDate(dateStr));
   });
 
   // If weekly, average each component
