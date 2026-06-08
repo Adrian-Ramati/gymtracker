@@ -1389,7 +1389,9 @@ function renderProg(){
 function renderProgChart(){
   const name=document.getElementById('prog-sel').value;
   pts=[];
-  (db.sessions||[]).forEach(s=>{
+  // Sort sessions by date ascending before building pts
+  const sortedSessions=[...(db.sessions||[])].sort((a,b)=>a.date.localeCompare(b.date));
+  sortedSessions.forEach(s=>{
     const ex=s.exercises?.find(e=>e.name===name);
     if(ex?.best_e1rm){
       let bestSet=null,bestRM=0;
@@ -1397,6 +1399,7 @@ function renderProgChart(){
       pts.push({val:ex.best_e1rm,date:s.date,bestSet});
     }
   });
+  pts.sort((a,b)=>a.date.localeCompare(b.date));
   const sd=document.getElementById('prog-stats');
   if(!pts.length){sd.innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos</div>';return;}
   const best=Math.max(...pts.map(p=>p.val)),last=pts[pts.length-1].val,diff=Math.round((last-pts[0].val)*10)/10;
