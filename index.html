@@ -209,6 +209,14 @@ input[type=date]{color-scheme:dark}
 .tmpl-del-btn:hover{color:var(--red)}
 .tmpl-add-btn{width:100%;padding:7px;background:transparent;border:1px dashed var(--b2);border-radius:8px;color:var(--t3);font-size:12px;cursor:pointer;font-family:var(--font);margin-top:8px;transition:all .2s}
 .tmpl-add-btn:hover{border-color:var(--blue);color:var(--blue)}
+/* FLOATING SESSION BAR */
+.sess-float{position:fixed;bottom:calc(max(env(safe-area-inset-bottom),8px) + 56px);left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:90;padding:0 12px;pointer-events:none}
+.sess-float-inner{background:var(--s1);border:1px solid var(--blue);border-radius:var(--rl) var(--rl) 0 0;padding:10px 14px;display:flex;align-items:center;gap:10px;pointer-events:all;box-shadow:0 -4px 20px rgba(79,142,247,.2);cursor:pointer}
+.sess-float-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.sess-float-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess-float-timer{font-size:12px;color:var(--t3);font-family:var(--mono);white-space:nowrap}
+.sess-float-btn{padding:6px 12px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
 /* MISC */
 .divider{height:1px;background:var(--b1);margin:14px 0}
 .divider-lg{height:1px;background:var(--b1);margin:28px 0}
@@ -478,6 +486,15 @@ input[type=date]{color-scheme:dark}
       </div>
     </div>
   </div>
+  <!-- FLOATING SESSION BAR -->
+  <div class="sess-float" id="sess-float" style="display:none">
+    <div class="sess-float-inner" onclick="returnToSession()">
+      <div class="sess-float-dot"></div>
+      <span class="sess-float-name" id="sess-float-name">Entrenamiento</span>
+      <span class="sess-float-timer" id="sess-float-timer">0:00</span>
+      <button class="sess-float-btn" onclick="event.stopPropagation();returnToSession()">Continuar</button>
+    </div>
+  </div>
   <div class="bnav" style="position:relative">
     <button class="bn on" onclick="showScr('train',this)">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -701,17 +718,7 @@ function calcE1RM(kg,reps,rpe){
 }
 function getMaxE1RM(exName){
   let max=0;
-  (db.sessions||[]).forEach(s=>{
-    const ex=s.exercises?.find(e=>e.name===exName);
-    if(!ex) return;
-    // Use stored best_e1rm if available
-    if(ex.best_e1rm&&ex.best_e1rm>max){max=ex.best_e1rm;return;}
-    // Fallback: calculate from sets (handles backup data without best_e1rm)
-    (ex.sets||[]).filter(st=>st.kg&&st.reps&&st.type!=='failure').forEach(st=>{
-      const rm=calcE1RM(st.kg,st.reps,st.rpe);
-      if(rm&&rm>max)max=rm;
-    });
-  });
+  (db.sessions||[]).forEach(s=>{const ex=s.exercises?.find(e=>e.name===exName);if(ex?.best_e1rm&&ex.best_e1rm>max)max=ex.best_e1rm;});
   return max||null;
 }
 
@@ -869,17 +876,6 @@ function showAppScreens(){
 // ═══ STORAGE ═══
 function lsKey(){return 'gtv6_'+(supabaseUser?.id||'local');}
 
-function ensureBestE1RM(){
-  // Recompute best_e1rm for any session/exercise missing it
-  (db.sessions||[]).forEach(s=>{
-    (s.exercises||[]).forEach(ex=>{
-      if(!ex.best_e1rm){
-        const rms=(ex.sets||[]).filter(st=>st.kg&&st.reps&&st.type!=='failure').map(st=>calcE1RM(st.kg,st.reps,st.rpe)).filter(Boolean);
-        if(rms.length) ex.best_e1rm=Math.max(...rms);
-      }
-    });
-  });
-}
 function loadDB(){
   try{const d=localStorage.getItem(lsKey());db=d?JSON.parse(d):{};}catch(e){db={};}
   if(!db.sessions)db.sessions=[];
@@ -888,7 +884,6 @@ function loadDB(){
   if(!db.measures)db.measures=[];
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
-  ensureBestE1RM();
   // No seed data — start clean for new users
 }
 
@@ -906,11 +901,7 @@ async function loadDBFromSupabase(){
     ]);
     // Initialise db
     db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
-    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>{
-      let exercises=r.exercises;
-      if(typeof exercises==='string'){try{exercises=JSON.parse(exercises);}catch(e){exercises=[];}}
-      return {id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:exercises||[]};
-    });
+    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({...r.exercises?{...JSON.parse(typeof r.exercises==='string'?r.exercises:JSON.stringify(r.exercises))}:{}, id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:r.exercises}));
     if(!wRes.error) db.weights = (wRes.data||[]).map(r=>({date:r.date,kg:parseFloat(r.kg)}));
     if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
@@ -919,7 +910,6 @@ async function loadDBFromSupabase(){
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
     // No seed data — new users start clean
-    ensureBestE1RM();
     // Cache locally
     localStorage.setItem(lsKey(), JSON.stringify(db));
   } catch(e) {
@@ -998,7 +988,26 @@ function showScr(n,el){
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   document.getElementById('s-'+n).classList.add('on');
   if(el)el.classList.add('on');
+  const floatBar=document.getElementById('sess-float');
+  if(floatBar){
+    if(activeSess&&n!=='sess'){floatBar.style.display='block';updateFloatBar();}
+    else{floatBar.style.display='none';}
+  }
   renderCurrentScr(n);
+}
+function returnToSession(){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('s-sess').classList.add('on');
+  const floatBar=document.getElementById('sess-float');
+  if(floatBar)floatBar.style.display='none';
+  renderSessExs();
+}
+function updateFloatBar(){
+  const nameEl=document.getElementById('sess-float-name');
+  const timerEl=document.getElementById('sess-float-timer');
+  if(nameEl&&activeSess)nameEl.textContent=activeSess.name||'Entrenamiento';
+  if(timerEl){const m=Math.floor(timerSecs/60),s=timerSecs%60;timerEl.textContent=m+':'+(s<10?'0':'')+s;}
 }
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
@@ -1106,7 +1115,7 @@ function getPRsForSession(sess){
     const sessionBest=ex.best_e1rm||0;
     let prevMax=0;
     for(let i=0;i<sessIdx;i++){const prevEx=(db.sessions[i].exercises||[]).find(e=>e.name===ex.name);if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax)prevMax=prevEx.best_e1rm;}
-    if(sessionBest>0&&sessionBest>prevMax)prs.add(ex.name);
+    if(sessionBest>0&&prevMax>0&&sessionBest>prevMax)prs.add(ex.name); // PR only if strictly greater AND there's a previous record
   });
   return prs;
 }
@@ -1169,7 +1178,7 @@ function editSession(id){
   db.sessions=db.sessions.filter(s=>s.id!==id);saveDB();
   activeSess={...JSON.parse(JSON.stringify(sess)),editing:true,originalId:id};
   timerSecs=0;clearInterval(timerIv);
-  timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
+  timerIv=setInterval(()=>{timerSecs++;updateTimer();if(document.getElementById('sess-float')?.style.display!=='none')updateFloatBar();},1000);
   document.getElementById('sess-name').value=sess.name;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
@@ -1187,7 +1196,7 @@ function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t
 function startBlank(){startSess('Entrenamiento',[]);}
 function startSess(name,exercises){
   activeSess={name,exercises,date:selDate||new Date().toISOString().split('T')[0]};
-  timerSecs=0;clearInterval(timerIv);timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
+  timerSecs=0;clearInterval(timerIv);timerIv=setInterval(()=>{timerSecs++;updateTimer();if(document.getElementById('sess-float')?.style.display!=='none')updateFloatBar();},1000);
   document.getElementById('sess-name').value=name;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
@@ -1203,7 +1212,7 @@ async function cancelSession(){
   if(!await dlgConfirm('¿Cancelar el entrenamiento? No se guardará nada.'))return;
   clearInterval(timerIv);activeSess=null;
   const trainBtn=document.querySelector('.bn');
-  showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento cancelado');
+  showScr('train',trainBtn);renderCal();renderDayPanel();document.getElementById('sess-float').style.display='none';toast('Entrenamiento cancelado');
 }
 function updateTimer(){const m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('sess-timer').textContent=m+':'+(s<10?'0':'')+s;}
 function renderSessExs(){
@@ -1227,14 +1236,7 @@ function renderExCard(ex,ei){
     const btnBorder=s.done?'var(--green)':sColors[stype];
     const btnColor=s.done?'#000':sColors[stype];
     const btnLabel=s.done?'✓':(sAbbr[stype]||(si+1));
-    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px">
-      <button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button>
-
-      <input type="number" id="kg_${ei}_${si}" value="${s.kg||''}" placeholder="${lv?lv.kg:'kg'}" min="0" step="0.5" oninput="onSetInput(${ei},${si})">
-      <input type="number" id="rp_${ei}_${si}" value="${s.reps||''}" placeholder="${lv?lv.reps:'reps'}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})">
-      <input type="number" id="rpe_${ei}_${si}" value="${s.rpe||''}" placeholder="${lv?lv.rpe:'rpe'}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})">
-      <button class="check-btn${s.done?' done':''}" onclick="toggleDone(${ei},${si})">${s.done?'✓':'○'}</button>
-    </div>`;
+    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+'×'+lv.reps):'—'}</div><input type="number" id="kg_${ei}_${si}" value="${s.kg||''}" placeholder="${lv?lv.kg:'kg'}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" id="rp_${ei}_${si}" value="${s.reps||''}" placeholder="${lv?lv.reps:'reps'}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" id="rpe_${ei}_${si}" value="${s.rpe||''}" placeholder="${lv?lv.rpe:'rpe'}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?' done':''}" onclick="toggleDone(${ei},${si})">${s.done?'✓':'○'}</button></div>`;
   });
   const e1rmRow=`<div class="e1rm-row" id="e1rm_${ei}">
     <span class="e1rm-curr" id="e1rm-curr_${ei}">e1RM: —</span>
@@ -1343,7 +1345,7 @@ async function finishSession(){
   const newSess={...activeSess,id:Date.now()};
   db.sessions.push(newSess);
   await saveSession(newSess);activeSess=null;
-  toast('Sesión guardada ✓');
+  document.getElementById('sess-float').style.display='none';toast('Sesión guardada ✓');
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();
 }
