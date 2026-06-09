@@ -210,8 +210,8 @@ input[type=date]{color-scheme:dark}
 .tmpl-add-btn{width:100%;padding:7px;background:transparent;border:1px dashed var(--b2);border-radius:8px;color:var(--t3);font-size:12px;cursor:pointer;font-family:var(--font);margin-top:8px;transition:all .2s}
 .tmpl-add-btn:hover{border-color:var(--blue);color:var(--blue)}
 /* FLOATING SESSION BAR */
-.sess-float{position:fixed;bottom:calc(max(env(safe-area-inset-bottom),8px) + 56px);left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:90;padding:0 12px;pointer-events:none}
-.sess-float-inner{background:var(--s1);border:1px solid var(--blue);border-radius:var(--rl) var(--rl) 0 0;padding:10px 14px;display:flex;align-items:center;gap:10px;pointer-events:all;box-shadow:0 -4px 20px rgba(79,142,247,.2);cursor:pointer}
+.sess-float{position:fixed;top:max(env(safe-area-inset-top),8px);left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;z-index:200;pointer-events:none}
+.sess-float-inner{background:var(--s1);border:1px solid var(--blue);border-radius:var(--rl);padding:10px 14px;display:flex;align-items:center;gap:8px;pointer-events:all;box-shadow:0 4px 20px rgba(79,142,247,.25);cursor:pointer}
 .sess-float-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 .sess-float-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -490,9 +490,13 @@ input[type=date]{color-scheme:dark}
   <div class="sess-float" id="sess-float" style="display:none">
     <div class="sess-float-inner" onclick="returnToSession()">
       <div class="sess-float-dot"></div>
-      <span class="sess-float-name" id="sess-float-name">Entrenamiento</span>
+      <div style="flex:1;min-width:0">
+        <div class="sess-float-name" id="sess-float-name">Entrenamiento</div>
+        <div id="sess-float-ex" style="font-size:10px;color:var(--t3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
       <span class="sess-float-timer" id="sess-float-timer">0:00</span>
-      <button class="sess-float-btn" onclick="event.stopPropagation();returnToSession()">Continuar</button>
+      <button class="sess-float-btn" onclick="event.stopPropagation();returnToSession()" style="background:var(--blue)">Continuar</button>
+      <button class="sess-float-btn" onclick="event.stopPropagation();floatFinish()" style="background:var(--green);color:#000">Finalizar</button>
     </div>
   </div>
   <div class="bnav" style="position:relative">
@@ -1006,8 +1010,19 @@ function returnToSession(){
 function updateFloatBar(){
   const nameEl=document.getElementById('sess-float-name');
   const timerEl=document.getElementById('sess-float-timer');
+  const exEl=document.getElementById('sess-float-ex');
   if(nameEl&&activeSess)nameEl.textContent=activeSess.name||'Entrenamiento';
   if(timerEl){const m=Math.floor(timerSecs/60),s=timerSecs%60;timerEl.textContent=m+':'+(s<10?'0':'')+s;}
+  if(exEl&&activeSess){
+    const incomp=(activeSess.exercises||[]).find(ex=>ex.sets?.some(s=>!s.done&&(s.kg||s.reps)));
+    const first=(activeSess.exercises||[])[0];
+    const cur=incomp||first;
+    exEl.textContent=cur?cur.name:'';
+  }
+}
+function floatFinish(){
+  returnToSession();
+  setTimeout(()=>finishSession(),100);
 }
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
@@ -1108,14 +1123,23 @@ function tmplDel(tid,ei){const t=db.templates?.find(t=>t.id===tid);if(t){t.exerc
 function tmplSets(tid,ei,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises[ei].sets=Math.max(1,parseInt(v)||3);saveDB();}}
 
 // ═══ PR DETECTION ═══
+function getSortedSessions(){
+  return [...(db.sessions||[])].sort((a,b)=>a.date.localeCompare(b.date)||(a.id-b.id));
+}
 function getPRsForSession(sess){
   const prs=new Set();
-  const sessIdx=(db.sessions||[]).findIndex(s=>s.id===sess.id);
+  const sorted=getSortedSessions();
+  const sessIdx=sorted.findIndex(s=>s.id===sess.id);
+  if(sessIdx<0) return prs;
   (sess.exercises||[]).forEach(ex=>{
     const sessionBest=ex.best_e1rm||0;
+    if(!sessionBest) return;
     let prevMax=0;
-    for(let i=0;i<sessIdx;i++){const prevEx=(db.sessions[i].exercises||[]).find(e=>e.name===ex.name);if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax)prevMax=prevEx.best_e1rm;}
-    if(sessionBest>0&&prevMax>0&&sessionBest>prevMax)prs.add(ex.name); // PR only if strictly greater AND there's a previous record
+    for(let i=0;i<sessIdx;i++){
+      const prevEx=(sorted[i].exercises||[]).find(e=>e.name===ex.name);
+      if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax) prevMax=prevEx.best_e1rm;
+    }
+    if(prevMax>0&&sessionBest>prevMax) prs.add(ex.name);
   });
   return prs;
 }
@@ -1426,6 +1450,7 @@ function renderProgChart(){
       pts.push({val:ex.best_e1rm,date:s.date,bestSet});
     }
   });
+  pts.sort((a,b)=>a.date.localeCompare(b.date));
   const sd=document.getElementById('prog-stats');
   if(!pts.length){sd.innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos</div>';return;}
   const best=Math.max(...pts.map(p=>p.val)),last=pts[pts.length-1].val,diff=Math.round((last-pts[0].val)*10)/10;
