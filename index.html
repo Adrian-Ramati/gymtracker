@@ -1389,6 +1389,7 @@ function renderProgChart(){
       pts.push({val:ex.best_e1rm,date:s.date,bestSet});
     }
   });
+  pts.sort((a,b)=>a.date.localeCompare(b.date));
   const sd=document.getElementById('prog-stats');
   if(!pts.length){sd.innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos</div>';return;}
   const best=Math.max(...pts.map(p=>p.val)),last=pts[pts.length-1].val,diff=Math.round((last-pts[0].val)*10)/10;
@@ -1540,7 +1541,7 @@ async function saveWeight(){
 }
 // editWeightEntry and deleteWeightEntry defined in EDIT MODALS section
 function renderWeightChart(){
-  const weights=db.weights||[];
+  const weights=[...(db.weights||[])].sort((a,b)=>a.date.localeCompare(b.date));
   const histDiv=null; // removed — use openWeightEdit() modal
   if(!weights.length){if(wChart){wChart.destroy();wChart=null;}if(histDiv)histDiv.innerHTML='';return;}
   let labels,data;
@@ -1600,7 +1601,7 @@ function renderMeasuresHistory(){
 
 // ═══ BODY FAT CHART ═══
 function renderBFChart(){
-  const bfData=(db.measures||[]).filter(m=>m.bf!=null);
+  const bfData=(db.measures||[]).filter(m=>m.bf!=null).sort((a,b)=>(a.date||a.week).localeCompare(b.date||b.week));
   if(!bfData.length){if(bfChart){bfChart.destroy();bfChart=null;}return;}
   if(bfChart){bfChart.destroy();bfChart=null;}
   bfChart=new Chart(document.getElementById('bfChart'),{type:'line',data:{
@@ -1818,7 +1819,7 @@ function renderActivityScr(){
 }
 
 function renderNeatChart(){
-  const steps=db.steps||[];
+  const steps=[...(db.steps||[])].sort((a,b)=>a.date.localeCompare(b.date));
   if(!steps.length){if(neatChart){neatChart.destroy();neatChart=null;}return;}
   let labels,data,kcalData;
   if(neatView==='daily'){
@@ -2031,7 +2032,7 @@ function setPeriFilter(field){
   renderPeriChart();
 }
 function renderPeriChart(){
-  const measures=(db.measures||[]).filter(m=>m[periFilter]!=null);
+  const measures=(db.measures||[]).filter(m=>m[periFilter]!=null).sort((a,b)=>(a.date||a.week).localeCompare(b.date||b.week));
   const canvasEl=document.getElementById('periChart');
   if(!canvasEl) return;
   if(!measures.length){if(periChart){periChart.destroy();periChart=null;}return;}
