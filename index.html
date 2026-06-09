@@ -86,6 +86,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .sess-timer{font-size:12px;color:var(--t3);font-family:var(--mono);white-space:nowrap}
 .finish-btn{padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
 .cancel-btn{padding:7px 10px;background:transparent;border:1px solid var(--b2);color:var(--t3);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .2s}
+.resume-bar{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;background:var(--s2);border:1px solid var(--b1);border-radius:999px;padding:7px 7px 7px 16px;display:none;align-items:center;gap:10px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.resume-bar.show{display:flex}
+.resume-bar-info{flex:1;min-width:0}
+.resume-bar-name{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resume-bar-sub{font-size:10px;color:var(--t3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;margin-top:1px}
+.resume-bar-timer{color:var(--blue)}
+.resume-bar-btns{display:flex;gap:6px;flex-shrink:0}
+.resume-bar-btn{border:none;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.resume-bar-continue{background:var(--blue);color:#fff}
+.resume-bar-finish{background:var(--green);color:#000}
 .cancel-btn:hover{border-color:var(--red);color:var(--red)}
 /* EXERCISE CARD */
 .ec{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:12px;margin-bottom:10px;transition:opacity .2s,border-color .15s}
@@ -229,6 +239,16 @@ input[type=date]{color-scheme:dark}
       <button id="logout-btn" onclick="doLogout()" style="display:none;background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--font)">Salir</button>
     </div>
     <div class="hdr-right" id="profile-pills" style="display:none"></div>
+  </div>
+  <div class="resume-bar" id="resume-bar">
+    <div class="resume-bar-info">
+      <div class="resume-bar-name" id="resume-bar-name"></div>
+      <div class="resume-bar-sub"><span id="resume-bar-ex"></span><span class="resume-bar-timer" id="resume-bar-timer">0:00</span></div>
+    </div>
+    <div class="resume-bar-btns">
+      <button class="resume-bar-btn resume-bar-continue" onclick="resumeSession()">Continuar</button>
+      <button class="resume-bar-btn resume-bar-finish" onclick="finishSession()">Finalizar</button>
+    </div>
   </div>
   <div class="content">
     <!-- ENTRENO -->
@@ -888,7 +908,7 @@ async function loadDBFromSupabase(){
     if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
     if(!pRes.error&&pRes.data){
-      db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30};
+      db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30,username:pRes.data.username};
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
     // No seed data — new users start clean
@@ -910,7 +930,7 @@ async function saveDB(){
     // Sync profile + templates
     await sbClient.from('profiles').upsert({
       id:uid, height:db.profile?.height, sex:db.profile?.sex||'male',
-      age:db.profile?.age||30, templates:db.templates, updated_at:new Date().toISOString()
+      age:db.profile?.age||30, username:db.profile?.username, templates:db.templates, updated_at:new Date().toISOString()
     });
   } catch(e){ console.warn('Profile sync error:', e); }
 }
@@ -971,6 +991,7 @@ function showScr(n,el){
   document.getElementById('s-'+n).classList.add('on');
   if(el)el.classList.add('on');
   renderCurrentScr(n);
+  updateResumeBar();
 }
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
@@ -1071,13 +1092,15 @@ function tmplDel(tid,ei){const t=db.templates?.find(t=>t.id===tid);if(t){t.exerc
 function tmplSets(tid,ei,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises[ei].sets=Math.max(1,parseInt(v)||3);saveDB();}}
 
 // ═══ PR DETECTION ═══
+function getSortedSessions(){return [...(db.sessions||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||((a.id||0)-(b.id||0)));}
 function getPRsForSession(sess){
   const prs=new Set();
-  const sessIdx=(db.sessions||[]).findIndex(s=>s.id===sess.id);
+  const sorted=getSortedSessions();
+  const sessIdx=sorted.findIndex(s=>s.id===sess.id);
   (sess.exercises||[]).forEach(ex=>{
     const sessionBest=ex.best_e1rm||0;
     let prevMax=0;
-    for(let i=0;i<sessIdx;i++){const prevEx=(db.sessions[i].exercises||[]).find(e=>e.name===ex.name);if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax)prevMax=prevEx.best_e1rm;}
+    for(let i=0;i<sessIdx;i++){const prevEx=(sorted[i].exercises||[]).find(e=>e.name===ex.name);if(prevEx?.best_e1rm&&prevEx.best_e1rm>prevMax)prevMax=prevEx.best_e1rm;}
     if(sessionBest>0&&sessionBest>prevMax)prs.add(ex.name);
   });
   return prs;
@@ -1177,7 +1200,19 @@ async function cancelSession(){
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento cancelado');
 }
-function updateTimer(){const m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('sess-timer').textContent=m+':'+(s<10?'0':'')+s;}
+function updateTimer(){const m=Math.floor(timerSecs/60),s=timerSecs%60;const txt=m+':'+(s<10?'0':'')+s;document.getElementById('sess-timer').textContent=txt;const rt=document.getElementById('resume-bar-timer');if(rt)rt.textContent=txt;}
+function resumeSession(){showScr('sess',null);renderSessExs();}
+function updateResumeBar(){
+  const bar=document.getElementById('resume-bar');if(!bar)return;
+  const onSess=document.getElementById('s-sess')?.classList.contains('on');
+  if(!activeSess||onSess){bar.classList.remove('show');return;}
+  const name=document.getElementById('sess-name')?.value||activeSess.name||'Entrenamiento';
+  const curEx=(activeSess.exercises||[]).find(ex=>(ex.sets||[]).some(s=>!s.done));
+  document.getElementById('resume-bar-name').textContent=name;
+  document.getElementById('resume-bar-ex').textContent=curEx?curEx.name:'Completado';
+  const m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('resume-bar-timer').textContent=m+':'+(s<10?'0':'')+s;
+  bar.classList.add('show');
+}
 function renderSessExs(){
   if(!activeSess){document.getElementById('sess-exs').innerHTML='';return;}
   document.getElementById('sess-exs').innerHTML=activeSess.exercises.map((ex,ei)=>renderExCard(ex,ei)).join('');
