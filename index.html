@@ -249,7 +249,6 @@ input[type=date]{color-scheme:dark}
       <div class="sess-hdr">
         <input class="sess-name-inp" id="sess-name" value="Entrenamiento">
         <span class="sess-timer" id="sess-timer">0:00</span>
-        <button class="cancel-btn" onclick="deleteCurrentSession()" style="font-size:11px;padding:6px 8px">Borrar</button>
         <button class="cancel-btn" onclick="cancelSession()" title="Cancelar">✕</button>
         <button class="finish-btn" onclick="finishSession()">Finalizar</button>
       </div>
@@ -1095,7 +1094,7 @@ function openSessionDetail(id){
   const totalReps=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(s.reps||0),0),0);
   const muscleReps={};
   (sess.exercises||[]).forEach(ex=>{const r=(ex.sets||[]).filter(s=>s.reps).reduce((a,s)=>a+(s.reps||0),0);muscleReps[ex.muscle]=(muscleReps[ex.muscle]||0)+r;});
-  const muscleBarColors={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#9ca3af'};
+  const muscleBarColors=Object.fromEntries(Object.entries(MC).map(([k,v])=>[k,v[1]]));
   let html=`<div style="margin-bottom:16px">
     <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${fmtFull(sess.date)}</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:12px">${sess.name}${prCount>0?` 🏆${prCount}`:''}</div>
@@ -1200,14 +1199,7 @@ function renderExCard(ex,ei){
     const btnBorder=s.done?'var(--green)':sColors[stype];
     const btnColor=s.done?'#000':sColors[stype];
     const btnLabel=s.done?'✓':(sAbbr[stype]||(si+1));
-    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px">
-      <button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button>
-
-      <input type="number" id="kg_${ei}_${si}" value="${s.kg||''}" placeholder="${lv?lv.kg:'kg'}" min="0" step="0.5" oninput="onSetInput(${ei},${si})">
-      <input type="number" id="rp_${ei}_${si}" value="${s.reps||''}" placeholder="${lv?lv.reps:'reps'}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})">
-      <input type="number" id="rpe_${ei}_${si}" value="${s.rpe||''}" placeholder="${lv?lv.rpe:'rpe'}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})">
-      <button class="check-btn${s.done?' done':''}" onclick="toggleDone(${ei},${si})">${s.done?'✓':'○'}</button>
-    </div>`;
+    sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+"x"+lv.reps):"—"}</div><input type="number" id="kg_${ei}_${si}" value="${s.kg||""}" placeholder="${lv?lv.kg:"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" id="rp_${ei}_${si}" value="${s.reps||""}" placeholder="${lv?lv.reps:"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" id="rpe_${ei}_${si}" value="${s.rpe||""}" placeholder="${lv?lv.rpe:"rpe"}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":"○"}</button></div>`;
   });
   const e1rmRow=`<div class="e1rm-row" id="e1rm_${ei}">
     <span class="e1rm-curr" id="e1rm-curr_${ei}">e1RM: —</span>
@@ -1466,7 +1458,7 @@ function renderVol(){
   const muscles=muscleFilter==='all'?[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))].slice(0,5):[muscleFilter];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
-    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'99',borderRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
+    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
   }
 }
 function getWk(d){const s=new Date(d.getFullYear(),0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);}
