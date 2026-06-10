@@ -312,6 +312,7 @@ input[type=date]{color-scheme:dark}
           <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
         </div>
         <div class="mf-row" id="bib-muscle-filters"></div>
+        <div class="mf-row" id="bib-eq-filters"></div>
         <div id="bib-list"></div>
       </div>
     </div>
@@ -681,8 +682,8 @@ async function loadExercisesDB(){
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }
-const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0f3028','#34d399'],'Tríceps':['#3d2a00','#fbbf24'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#3a1a0a','#fb923c'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#1e1e1e','#9ca3af'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
-const VC={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#9ca3af'};
+const MC={ 'Pectoral':['#0D47A1','#64B5F6'], 'Espalda':['#0B4F6C','#4FC3F7'], 'Tríceps':['#4A148C','#CE93D8'], 'Bíceps':['#6A1B9A','#E1BEE7'], 'Glúteos':['#1B5E20','#81C784'], 'Isquiotibiales':['#2E7D32','#A5D6A7'], 'Cuádriceps':['#388E3C','#C8E6C9'], 'Gemelos':['#558B2F','#DCEDC8'], 'Deltoides anterior':['#E65100','#FFB74D'], 'Deltoides lateral':['#EF6C00','#FFCC80'], 'Hombro posterior':['#F57C00','#FFE0B2'], 'Sóleo':['#558B2F','#DCEDC8'], 'Aductores':['#2E7D32','#A5D6A7'], 'Abductores':['#388E3C','#C8E6C9'] };
+const VC={ 'Pectoral':'#1976D2', 'Espalda':'#29B6F6', 'Tríceps':'#8E24AA', 'Bíceps':'#BA68C8', 'Glúteos':'#1B5E20', 'Isquiotibiales':'#2E7D32', 'Cuádriceps':'#66BB6A', 'Gemelos':'#A5D6A7', 'Deltoides anterior':'#E65100', 'Deltoides lateral':'#FB8C00', 'Hombro posterior':'#FFCC80' };
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
@@ -1397,7 +1398,7 @@ function selectEx(name,muscle){
 }
 
 // ═══ STATS TABS ═══
-let statsTab='prog', bibMFilter='all';
+let statsTab='prog', bibMFilter='all', bibEqFilter='all';
 function setStatsTab(tab){
   statsTab=tab;
   ['prog','vol','bib'].forEach(t=>{
@@ -1413,6 +1414,10 @@ function renderBibliotecaInit(){
   if(mf&&!mf.innerHTML){
     mf.innerHTML=`<div class="mf on" onclick="setBibFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setBibFilter('${m}')">${m}</div>`).join('');
   }
+  const ef=document.getElementById('bib-eq-filters');
+  if(ef&&!ef.innerHTML){
+    ef.innerHTML=`<div class="mf on" onclick="setBibEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setBibEqFilter('${eq}')">${eq}</div>`).join('');
+  }
   renderBiblioteca();
 }
 function setBibFilter(m){
@@ -1420,12 +1425,18 @@ function setBibFilter(m){
   document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));
   renderBiblioteca();
 }
+function setBibEqFilter(eq){
+  bibEqFilter=eq;
+  document.querySelectorAll('#bib-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(eq==='all'?'Todos':eq)));
+  renderBiblioteca();
+}
 function renderBiblioteca(){
   const search=(document.getElementById('bib-search')?.value||'').toLowerCase().trim();
   const list=ALL_EX.filter(e=>{
     const mOk=bibMFilter==='all'||e.muscle===bibMFilter;
+    const eqOk=bibEqFilter==='all'||e.equipment===bibEqFilter;
     const sOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
-    return mOk&&sOk;
+    return mOk&&eqOk&&sOk;
   });
   const mc_map=MC;
   document.getElementById('bib-list').innerHTML=list.length
