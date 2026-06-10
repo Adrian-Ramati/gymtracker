@@ -277,13 +277,23 @@ input[type=date]{color-scheme:dark}
     </div>
     <!-- ESTADÍSTICAS -->
     <div id="s-stats" class="scr">
-      <div class="stitle-section">Progresión e1RM</div>
+      <!-- SUB-NAV -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;justify-content:center">
+        <div class="mf on" id="stats-tab-prog" onclick="setStatsTab('prog')">Progresión</div>
+        <div class="mf" id="stats-tab-vol" onclick="setStatsTab('vol')">Volumen</div>
+        <div class="mf" id="stats-tab-bib" onclick="setStatsTab('bib')">Biblioteca</div>
+      </div>
+      <!-- PROGRESIÓN -->
+      <div id="stats-panel-prog">
+        <div class="stitle-section">Progresión e1RM</div>
       <select class="psel" id="prog-sel" onchange="renderProgChart()"></select>
       <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:10px">Epley ajustada por RIR cuando RPE disponible</div>
       <div class="sg" id="prog-stats"></div>
       <div class="cw"><canvas id="progChart" role="img"></canvas></div>
       <div class="divider-lg"></div>
-      <div class="stitle-section">Volumen semanal</div>
+      </div><!-- /stats-panel-prog -->
+      <div id="stats-panel-vol" style="display:none">
+        <div class="stitle-section">Volumen semanal</div>
       <div class="sg" id="vol-stats"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="stitle" style="margin-bottom:0">Series por músculo — Últ 7 días</div>
@@ -294,6 +304,16 @@ input[type=date]{color-scheme:dark}
       <div id="vol-bars"></div>
       <div class="stitle" style="margin-top:16px">Histórico semanal</div>
       <div class="cw" style="height:220px"><canvas id="volChart" role="img"></canvas></div>
+      </div><!-- /stats-panel-vol -->
+      <!-- BIBLIOTECA -->
+      <div id="stats-panel-bib" style="display:none">
+        <div style="position:relative;margin-bottom:10px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px">🔍</span>
+          <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
+        </div>
+        <div class="mf-row" id="bib-muscle-filters"></div>
+        <div id="bib-list"></div>
+      </div>
     </div>
     <!-- PERFIL -->
     <div id="s-profile" class="scr">
@@ -649,46 +669,18 @@ input[type=date]{color-scheme:dark}
 <div class="toast" id="toast"></div>
 <script>
 // ═══ STATIC DATA ═══
-const ALL_EX=[
-  {name:'Press inclinado en máquina convergente',muscle:'Pectoral'},
-  {name:'Press inclinado en MP',muscle:'Pectoral'},
-  {name:'Chest press en máquina',muscle:'Pectoral'},
-  {name:'Aperturas en polea baja',muscle:'Pectoral'},
-  {name:'Remo en máquina',muscle:'Espalda'},
-  {name:'Remo en polea baja supino',muscle:'Espalda'},
-  {name:'Pullover en polea alta',muscle:'Espalda'},
-  {name:'Jalón en polea agarre ancho',muscle:'Espalda'},
-  {name:'Jalón en máquina',muscle:'Espalda'},
-  {name:'Seal Row',muscle:'Espalda'},
-  {name:'Face pull en polea',muscle:'Espalda'},
-  {name:'Press de hombro en máquina',muscle:'Deltoides anterior'},
-  {name:'Press militar con mancuernas',muscle:'Deltoides anterior'},
-  {name:'Elevaciones laterales en polea baja',muscle:'Deltoides lateral'},
-  {name:'Reverse cable cross',muscle:'Hombro posterior'},
-  {name:'Kaz Press',muscle:'Tríceps'},
-  {name:'Tríceps en polea alta',muscle:'Tríceps'},
-  {name:'Extensiones Katana',muscle:'Tríceps'},
-  {name:'Press francés polea alta',muscle:'Tríceps'},
-  {name:'Crucifix Curl',muscle:'Bíceps'},
-  {name:'Curl Bayesian',muscle:'Bíceps'},
-  {name:'Curl predicador',muscle:'Bíceps'},
-  {name:'Curl barra Z',muscle:'Bíceps'},
-  {name:'Curl alterno mancuernas',muscle:'Bíceps'},
-  {name:'Hip-thrust en máquina',muscle:'Glúteos'},
-  {name:'Abducción en máquina o polea baja',muscle:'Glúteos'},
-  {name:'PM Rumano con mancuernas',muscle:'Isquiotibiales'},
-  {name:'PM Rumano en máquina lumbar',muscle:'Isquiotibiales'},
-  {name:'Curl femoral sentado',muscle:'Isquiotibiales'},
-  {name:'Curl femoral tumbado',muscle:'Isquiotibiales'},
-  {name:'Búlgaras',muscle:'Cuádriceps'},
-  {name:'Prensa 45º',muscle:'Cuádriceps'},
-  {name:'Extensión de cuádriceps',muscle:'Cuádriceps'},
-  {name:'Gemelo de pie',muscle:'Gemelos'},
-  {name:'Gemelo sentado',muscle:'Sóleo'},
-  {name:'Aductor en máquina',muscle:'Aductores'},
-  {name:'Abductor en máquina',muscle:'Abductores'},
-];
-const MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
+// ALL_EX se carga desde Supabase en loadExercisesDB(); fallback a lista vacía
+let ALL_EX=[];
+let MUSCLES=[];
+async function loadExercisesDB(){
+  if(!sbClient){return;}
+  try{
+    const{data,error}=await sbClient.from('exercises').select('name,muscle,equipment,reps,description,execution,cues').order('muscle').order('num');
+    if(error||!data?.length)return;
+    ALL_EX=data.map(r=>({name:r.name,muscle:r.muscle,equipment:r.equipment||'',reps:r.reps||'',description:r.description||'',execution:r.execution||'',cues:r.cues||[]}));
+    MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
+  }catch(e){console.warn('exercises load error:',e);}
+}
 const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0f3028','#34d399'],'Tríceps':['#3d2a00','#fbbf24'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#3a1a0a','#fb923c'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#1e1e1e','#9ca3af'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
 const VC={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#9ca3af'};
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -836,7 +828,7 @@ async function afterLogin(user){
   useSupabase = true;
   document.getElementById('logout-btn').style.display = 'block';
   document.getElementById('logout-btn').textContent = user.email.split('@')[0];
-  await loadDBFromSupabase();
+  await Promise.all([loadDBFromSupabase(), loadExercisesDB()]);
   // Set default username from email if not set
   if(!db.profile?.username && supabaseUser?.email){
     if(!db.profile) db.profile={};
@@ -852,6 +844,7 @@ function skipLogin(){
   const lk = lsKey();
   try{ localStorage.removeItem(lk); }catch(e){}
   loadDB();
+  loadExercisesDB();
   showAppScreens();
 }
 async function doLogout(){
@@ -996,7 +989,7 @@ function showScr(n,el){
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
   if(a==='train'||a==='sess'){renderCal();renderDayPanel();}
-  else if(a==='stats'){renderProg();renderVol();}
+  else if(a==='stats'){setStatsTab(statsTab);}
   else if(a==='profile'){renderProfileScr();}
   else if(a==='activity'){renderActivityScr();}
 }
@@ -1403,7 +1396,70 @@ function selectEx(name,muscle){
   else if(target?.type==='tmpl'){const tid=target.tid||editTmplId;const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises.push({name,muscle,sets:3});saveDB();renderEditTmplBody();renderDayPanel();}}
 }
 
-// ═══ PROGRESS ═══
+// ═══ STATS TABS ═══
+let statsTab='prog', bibMFilter='all';
+function setStatsTab(tab){
+  statsTab=tab;
+  ['prog','vol','bib'].forEach(t=>{
+    document.getElementById('stats-tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('stats-panel-'+t).style.display=t===tab?'block':'none';
+  });
+  if(tab==='prog'){renderProg();}
+  else if(tab==='vol'){renderVol();}
+  else if(tab==='bib'){renderBibliotecaInit();}
+}
+function renderBibliotecaInit(){
+  const mf=document.getElementById('bib-muscle-filters');
+  if(mf&&!mf.innerHTML){
+    mf.innerHTML=`<div class="mf on" onclick="setBibFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setBibFilter('${m}')">${m}</div>`).join('');
+  }
+  renderBiblioteca();
+}
+function setBibFilter(m){
+  bibMFilter=m;
+  document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));
+  renderBiblioteca();
+}
+function renderBiblioteca(){
+  const search=(document.getElementById('bib-search')?.value||'').toLowerCase().trim();
+  const list=ALL_EX.filter(e=>{
+    const mOk=bibMFilter==='all'||e.muscle===bibMFilter;
+    const sOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
+    return mOk&&sOk;
+  });
+  const mc_map=MC;
+  document.getElementById('bib-list').innerHTML=list.length
+    ?list.map((e,i)=>{
+      const mc=mc_map[e.muscle]||['#1e1e1e','#9ca3af'];
+      const eqIcon={'Poleas':'⚙️','Máquina':'🔩','Peso libre':'🏋️'}[e.equipment]||'';
+      const cuesHtml=(e.cues||[]).map(c=>`<li style="margin-bottom:3px">${c}</li>`).join('');
+      return `<div style="border:1px solid var(--b1);border-radius:var(--rl);margin-bottom:8px;overflow:hidden">
+        <div onclick="toggleBibCard(${i})" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--s1)">
+          <div style="flex:1;font-size:13px;font-weight:500">${e.name}</div>
+          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono);flex-shrink:0">${e.muscle}</span>
+          ${eqIcon?`<span style="font-size:11px">${eqIcon}</span>`:''}
+        </div>
+        <div id="bibcard-${i}" style="display:none;padding:10px 12px;border-top:1px solid var(--b1);background:var(--bg)">
+          ${e.reps?`<div style="font-size:11px;color:var(--amber);font-family:var(--mono);margin-bottom:8px">⭐ ${e.reps}</div>`:''}
+          ${e.description?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Descripción</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${e.description}</div>`:''}
+          ${e.execution?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Realización</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${e.execution}</div>`:''}
+          ${cuesHtml?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Claves</div><ul style="font-size:12px;color:var(--t2);padding-left:16px;line-height:1.6">${cuesHtml}</ul>`:''}
+          <button onclick="bibAddToSession(${i})" style="margin-top:10px;width:100%;padding:8px;background:var(--bluedim);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a sesión activa</button>
+        </div>
+      </div>`;
+    }).join('')
+    :'<div style="color:var(--t3);text-align:center;padding:24px;font-size:13px">Sin resultados</div>';
+}
+function toggleBibCard(i){
+  const el=document.getElementById('bibcard-'+i);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+function bibAddToSession(i){
+  const e=ALL_EX[i];if(!e)return;
+  if(!activeSess){toast('No hay sesión activa');return;}
+  activeSess.exercises.push({name:e.name,muscle:e.muscle,notes:'',sets:[{kg:null,reps:null,rpe:null,done:false},{kg:null,reps:null,rpe:null,done:false},{kg:null,reps:null,rpe:null,done:false}]});
+  toast(`${e.name} añadido ✓`);
+}
 let pts=[];
 function renderProg(){
   const all=new Set();(db.sessions||[]).forEach(s=>s.exercises?.forEach(e=>all.add(e.name)));
