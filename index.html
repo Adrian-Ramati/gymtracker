@@ -47,7 +47,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .content::-webkit-scrollbar{display:none}
 .scr{display:none;padding:14px 14px 20px}
-.scr.on{display:block}
+.scr.on{display:block;animation:fIn .18s ease}
 .stitle{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;font-family:var(--mono)}
 .stitle-section{font-size:15px;font-weight:600;color:var(--t1);text-align:center;margin-bottom:14px;letter-spacing:-.2px}
 /* CALENDAR */
@@ -263,6 +263,7 @@ input[type=date]{color-scheme:dark}
       </div>
       <div class="cal-grid" id="cal-grid"></div>
       <div id="day-panel"></div>
+      <button onclick="repeatLastSession()" style="width:100%;margin-top:10px;padding:10px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🔁 Repetir última sesión</button>
     </div>
     <!-- SESIÓN ACTIVA -->
     <div id="s-sess" class="scr">
@@ -312,7 +313,6 @@ input[type=date]{color-scheme:dark}
           <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
         </div>
         <div class="mf-row" id="bib-muscle-filters"></div>
-        <div class="mf-row" id="bib-eq-filters"></div>
         <div id="bib-list"></div>
       </div>
     </div>
@@ -667,6 +667,11 @@ input[type=date]{color-scheme:dark}
   </div>
 </div>
 
+<div id="rest-pill" style="display:none;position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--blue);border-radius:999px;padding:8px 16px;z-index:90;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+  <span style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--blue)" id="rest-time">1:30</span>
+  <button onclick="restAdd(30)" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t2);font-size:11px;padding:2px 8px;cursor:pointer">+30s</button>
+  <button onclick="stopRest()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0">×</button>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 // ═══ STATIC DATA ═══
@@ -682,8 +687,8 @@ async function loadExercisesDB(){
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }
-const MC={ 'Pectoral': ['#1F77B4', '#FFFFFF'], 'Espalda': ['#5DA5DA', '#000000'], 'Tríceps': ['#D62728', '#FFFFFF'], 'Bíceps': ['#FF7F7F', '#000000'], 'Glúteos': ['#2CA02C', '#000000'], 'Isquiotibiales': ['#4CAF50', '#000000'], 'Cuádriceps': ['#81C784', '#000000'], 'Gemelos': ['#A5D6A7', '#000000'], 'Deltoides anterior': ['#FF7F0E', '#000000'], 'Deltoides lateral': ['#FFB74D', '#000000'], 'Deltoides posterior': ['#FFE082', '#000000'], 'Sóleo': ['#D0F7D1', '#000000'], 'Aductores': ['#2F7A32', '#FFFFFF'], 'Abductores': ['#4C8F53', '#000000'] }; 
-const VC={ 'Tríceps': ['#D62728', '#FFFFFF'], 'Bíceps': ['#FF7F7F', '#000000'], 'Glúteos': ['#2CA02C', '#000000'], 'Isquiotibiales': ['#4CAF50', '#000000'], 'Cuádriceps': ['#81C784', '#000000'], 'Gemelos': ['#A5D6A7', '#000000'], 'Sóleo': ['#D0F7D1', '#000000'], 'Deltoides anterior': ['#FF7F0E', '#000000'], 'Deltoides lateral': ['#FFB74D', '#000000'], 'Deltoides posterior': ['#FFE082', '#000000'], 'Pectoral': ['#1F77B4', '#FFFFFF'], 'Espalda': ['#5DA5DA', '#000000'] };
+const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0f3028','#34d399'],'Tríceps':['#3d2a00','#fbbf24'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#3a1a0a','#fb923c'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#1e1e1e','#9ca3af'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
+const VC={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#9ca3af'};
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
@@ -1305,6 +1310,7 @@ function toggleDone(ei,si){
   s.reps=parseFloat(document.getElementById(`rp_${ei}_${si}`)?.value)||s.reps;
   s.rpe=parseFloat(document.getElementById(`rpe_${ei}_${si}`)?.value)||s.rpe;
   s.done=!s.done;
+  if(s.done){vib(30);startRest(90);}
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
   const num=document.getElementById(`sn_${ei}_${si}`);
   if(btn){btn.classList.toggle('done',s.done);btn.textContent=s.done?'✓':'○';}
@@ -1337,6 +1343,7 @@ async function finishSession(){
   const newSess={...activeSess,id:Date.now()};
   db.sessions.push(newSess);
   await saveSession(newSess);activeSess=null;
+  stopRest();vib([50,30,50]);
   toast('Sesión guardada ✓');
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();
@@ -1398,7 +1405,7 @@ function selectEx(name,muscle){
 }
 
 // ═══ STATS TABS ═══
-let statsTab='prog', bibMFilter='all', bibEqFilter='all';
+let statsTab='prog', bibMFilter='all';
 function setStatsTab(tab){
   statsTab=tab;
   ['prog','vol','bib'].forEach(t=>{
@@ -1414,10 +1421,6 @@ function renderBibliotecaInit(){
   if(mf&&!mf.innerHTML){
     mf.innerHTML=`<div class="mf on" onclick="setBibFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setBibFilter('${m}')">${m}</div>`).join('');
   }
-  const ef=document.getElementById('bib-eq-filters');
-  if(ef&&!ef.innerHTML){
-    ef.innerHTML=`<div class="mf on" onclick="setBibEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setBibEqFilter('${eq}')">${eq}</div>`).join('');
-  }
   renderBiblioteca();
 }
 function setBibFilter(m){
@@ -1425,18 +1428,12 @@ function setBibFilter(m){
   document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));
   renderBiblioteca();
 }
-function setBibEqFilter(eq){
-  bibEqFilter=eq;
-  document.querySelectorAll('#bib-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(eq==='all'?'Todos':eq)));
-  renderBiblioteca();
-}
 function renderBiblioteca(){
   const search=(document.getElementById('bib-search')?.value||'').toLowerCase().trim();
   const list=ALL_EX.filter(e=>{
     const mOk=bibMFilter==='all'||e.muscle===bibMFilter;
-    const eqOk=bibEqFilter==='all'||e.equipment===bibEqFilter;
     const sOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
-    return mOk&&eqOk&&sOk;
+    return mOk&&sOk;
   });
   const mc_map=MC;
   document.getElementById('bib-list').innerHTML=list.length
@@ -2261,6 +2258,32 @@ function removeSet(ei,si){
 // ═══ UTILS ═══
 function getLastEx(name){for(let i=(db.sessions||[]).length-1;i>=0;i--){const ex=db.sessions[i].exercises?.find(e=>e.name===name);if(ex)return ex;}return null;}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ═══ MEJORAS: HAPTICS, REST TIMER, REPEAT, OFFLINE ═══
+function vib(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+let restIv=null,restLeft=0;
+function startRest(secs){
+  stopRest();restLeft=secs||90;
+  const pill=document.getElementById('rest-pill');pill.style.display='flex';
+  updateRestUI();
+  restIv=setInterval(()=>{
+    restLeft--;updateRestUI();
+    if(restLeft<=0){stopRest();vib([100,50,100]);toast('¡Descanso terminado!');}
+  },1000);
+}
+function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;}
+function restAdd(s){restLeft+=s;updateRestUI();}
+function stopRest(){clearInterval(restIv);restIv=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';}
+function repeatLastSession(){
+  const ss=(db.sessions||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!ss.length){toast('No hay sesiones previas');return;}
+  const last=ss[0];
+  const exs=last.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:ex.sets.map(()=>({kg:null,reps:null,rpe:null,done:false}))}));
+  startSess(last.name||'Entrenamiento',exs);
+  toast(`Repitiendo: ${last.name}`);
+}
+window.addEventListener('online',()=>{if(useSupabase&&db&&Object.keys(db).length){saveDB();toast('Conexión recuperada — sincronizando');}});
+window.addEventListener('offline',()=>toast('Sin conexión — guardando en local'));
 
 // ═══ INIT ═══
 // Hide nav and hdr initially
