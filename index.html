@@ -298,10 +298,8 @@ input[type=date]{color-scheme:dark}
       <div class="sg" id="vol-stats"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="stitle" style="margin-bottom:0">Series por músculo — Últ 7 días</div>
-        <select id="vol-muscle-filter" class="psel" style="width:auto;margin-bottom:0;padding:4px 8px;font-size:11px" onchange="renderVol()">
-          <option value="all">Todos</option>
-        </select>
       </div>
+      <div class="mf-row" id="vol-muscle-chips"></div>
       <div id="vol-bars"></div>
       <div class="stitle" style="margin-top:16px">Histórico semanal</div>
       <div class="cw" style="height:220px"><canvas id="volChart" role="img"></canvas></div>
@@ -313,6 +311,7 @@ input[type=date]{color-scheme:dark}
           <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
         </div>
         <div class="mf-row" id="bib-muscle-filters"></div>
+        <div class="mf-row" id="bib-eq-filters"></div>
         <div id="bib-list"></div>
       </div>
     </div>
@@ -687,8 +686,8 @@ async function loadExercisesDB(){
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }
-const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0f3028','#34d399'],'Tríceps':['#3d2a00','#fbbf24'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#3a1a0a','#fb923c'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#1e1e1e','#9ca3af'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
-const VC={'Pectoral':'#4f8ef7','Espalda':'#34d399','Tríceps':'#fbbf24','Bíceps':'#f472b6','Glúteos':'#fb923c','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#9ca3af'};
+const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
+const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
@@ -854,6 +853,8 @@ function skipLogin(){
   try{ localStorage.removeItem(lk); }catch(e){}
   loadDB();
   loadExercisesDB();
+  document.getElementById('logout-btn').style.display='block';
+  document.getElementById('logout-btn').textContent='Salir';
   showAppScreens();
 }
 async function doLogout(){
@@ -1086,12 +1087,13 @@ function renderEditTmplBody(){
   const body=document.getElementById('edit-tmpl-body');
   body.innerHTML=`<div class="tmpl-card"><input class="tmpl-name-inp" value="${t.name}" onchange="renameTmpl('${t.id}',this.value)">
     <div style="display:flex;align-items:center;gap:8px;margin:8px 0"><span style="font-size:12px;color:var(--t2)">⏱ Descanso (seg)</span><input type="number" class="tmpl-sets-inp" style="width:64px" value="${t.rest||90}" min="15" max="600" step="15" onchange="tmplRest('${t.id}',this.value)"></div>
-    ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span class="tmpl-ex-name">${ex.name}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
+    ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span style="display:flex;flex-direction:column;gap:1px"><button onclick="tmplMove('${t.id}',${ei},-1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▲</button><button onclick="tmplMove('${t.id}',${ei},1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▼</button></span><span class="tmpl-ex-name">${ex.name}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
     <button class="tmpl-add-btn" onclick="pickerTarget={type:'tmpl',tid:'${t.id}'};openPicker('tmpl')">+ Añadir ejercicio</button></div>`;
 }
 function closeEditTmpl(e){if(!e||e.target===document.getElementById('ov-edittmpl')){document.getElementById('ov-edittmpl').classList.remove('on');editTmplId=null;}}
 function renameTmpl(tid,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.name=v;saveDB();}}
 function tmplDel(tid,ei){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises.splice(ei,1);saveDB();renderEditTmplBody();renderDayPanel();}}
+function tmplMove(tid,ei,dir){const t=db.templates?.find(t=>t.id===tid);if(!t)return;const ni=ei+dir;if(ni<0||ni>=t.exercises.length)return;const[m]=t.exercises.splice(ei,1);t.exercises.splice(ni,0,m);saveDB();renderEditTmplBody();renderDayPanel();}
 function tmplSets(tid,ei,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises[ei].sets=Math.max(1,parseInt(v)||3);saveDB();}}
 function tmplRest(tid,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.rest=Math.max(15,parseInt(v)||90);saveDB();}}
 
@@ -1412,7 +1414,7 @@ function selectEx(name,muscle){
 }
 
 // ═══ STATS TABS ═══
-let statsTab='prog', bibMFilter='all';
+let statsTab='prog', bibMFilter='all', bibEqFilter='all';
 function setStatsTab(tab){
   statsTab=tab;
   ['prog','vol','bib'].forEach(t=>{
@@ -1428,6 +1430,15 @@ function renderBibliotecaInit(){
   if(mf&&!mf.innerHTML){
     mf.innerHTML=`<div class="mf on" onclick="setBibFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setBibFilter('${m}')">${m}</div>`).join('');
   }
+  const ef=document.getElementById('bib-eq-filters');
+  if(ef&&!ef.innerHTML){
+    ef.innerHTML=`<div class="mf on" onclick="setBibEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setBibEqFilter('${eq}')">${eq}</div>`).join('');
+  }
+  renderBiblioteca();
+}
+function setBibEqFilter(eq){
+  bibEqFilter=eq;
+  document.querySelectorAll('#bib-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(eq==='all'?'Todos':eq)));
   renderBiblioteca();
 }
 function setBibFilter(m){
@@ -1439,9 +1450,11 @@ function renderBiblioteca(){
   const search=(document.getElementById('bib-search')?.value||'').toLowerCase().trim();
   const list=ALL_EX.filter(e=>{
     const mOk=bibMFilter==='all'||e.muscle===bibMFilter;
+    const eqOk=bibEqFilter==='all'||e.equipment===bibEqFilter;
     const sOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
-    return mOk&&sOk;
+    return mOk&&eqOk&&sOk;
   });
+  bibLast=list;
   const mc_map=MC;
   document.getElementById('bib-list').innerHTML=list.length
     ?list.map((e,i)=>{
@@ -1460,6 +1473,8 @@ function renderBiblioteca(){
           ${e.execution?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Realización</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${e.execution}</div>`:''}
           ${cuesHtml?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Claves</div><ul style="font-size:12px;color:var(--t2);padding-left:16px;line-height:1.6">${cuesHtml}</ul>`:''}
           <button onclick="bibAddToSession(${i})" style="margin-top:10px;width:100%;padding:8px;background:var(--bluedim);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a sesión activa</button>
+          <button onclick="bibAddToTmpl(${i})" style="margin-top:6px;width:100%;padding:8px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a rutina existente</button>
+          <div id="bibtmpl-${i}" style="display:none;margin-top:6px"></div>
         </div>
       </div>`;
     }).join('')
@@ -1469,11 +1484,29 @@ function toggleBibCard(i){
   const el=document.getElementById('bibcard-'+i);
   if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
+let bibLast=[];
 function bibAddToSession(i){
-  const e=ALL_EX[i];if(!e)return;
+  const e=bibLast[i];if(!e)return;
   if(!activeSess){toast('No hay sesión activa');return;}
   activeSess.exercises.push({name:e.name,muscle:e.muscle,notes:'',sets:[{kg:null,reps:null,rpe:null,done:false},{kg:null,reps:null,rpe:null,done:false},{kg:null,reps:null,rpe:null,done:false}]});
   toast(`${e.name} añadido ✓`);
+}
+function bibAddToTmpl(i){
+  const box=document.getElementById('bibtmpl-'+i);if(!box)return;
+  if(box.style.display!=='none'){box.style.display='none';return;}
+  const tmpls=db.templates||[];
+  box.innerHTML=tmpls.length
+    ?tmpls.map(t=>`<button onclick="bibAddToTmplDo(${i},'${t.id}')" style="width:100%;margin-bottom:4px;padding:7px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;font-family:var(--font);text-align:left">📋 ${t.name}</button>`).join('')
+    :'<div style="color:var(--t3);font-size:12px;text-align:center;padding:8px">No hay rutinas creadas</div>';
+  box.style.display='block';
+}
+function bibAddToTmplDo(i,tid){
+  const e=bibLast[i];const t=db.templates?.find(t=>t.id===tid);
+  if(!e||!t)return;
+  t.exercises.push({name:e.name,muscle:e.muscle,sets:3});
+  saveDB();renderDayPanel();
+  const box=document.getElementById('bibtmpl-'+i);if(box)box.style.display='none';
+  toast(`${e.name} → ${t.name} ✓`);
 }
 let pts=[];
 function renderProg(){
@@ -1525,17 +1558,18 @@ function renderVol(){
   const sessions=db.sessions||[];
   const now=new Date(),wa=new Date(now-7*24*3600*1000);
   const week=sessions.filter(s=>new Date(s.date)>=wa);
-  const muscleFilter=document.getElementById('vol-muscle-filter')?.value||'all';
-  // Populate filter dropdown
+  const muscleFilter='multi';
+  // Populate multi-select chips
   const allMuscles=[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))];
-  const sel=document.getElementById('vol-muscle-filter');
-  if(sel){
-    const curVal=sel.value;
-    sel.innerHTML='<option value="all">Todos</option>'+allMuscles.map(m=>`<option value="${m}"${m===curVal?' selected':''}>${m}</option>`).join('');
+  const chips=document.getElementById('vol-muscle-chips');
+  if(chips&&!chips.dataset.init){
+    chips.dataset.init='1';
+    chips.innerHTML=`<div class="mf on" data-m="all" onclick="volToggle('all')">Todos</div>`+allMuscles.map(m=>`<div class="mf" data-m="${m}" onclick="volToggle('${m}')">${m}</div>`).join('');
   }
+  const selSet=volSel.size?volSel:null;
   const vbm={};
   week.forEach(s=>s.exercises?.forEach(e=>{
-    if(muscleFilter!=='all'&&e.muscle!==muscleFilter)return;
+    if(selSet&&!selSet.has(e.muscle))return;
     vbm[e.muscle]=(vbm[e.muscle]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
@@ -1551,7 +1585,7 @@ function renderVol(){
   sessions.forEach(s=>{
     const wk='S'+getWk(new Date(s.date));
     s.exercises?.forEach(e=>{
-      if(muscleFilter!=='all'&&e.muscle!==muscleFilter)return;
+      if(selSet&&!selSet.has(e.muscle))return;
       if(!aw[wk])aw[wk]={};
       aw[wk][e.muscle]=(aw[wk][e.muscle]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
     });
@@ -1562,11 +1596,21 @@ function renderVol(){
   for(let i=7;i>=0;i--){const d=new Date(now8);d.setDate(d.getDate()-i*7);week8Labels.push('S'+getWk(d));}
   // Deduplicate but keep order
   const weeks=[...new Set(week8Labels)];
-  const muscles=muscleFilter==='all'?[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))]:[muscleFilter];
+  const muscles=selSet?[...selSet]:[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
-    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
+    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#999',boxWidth:10,boxHeight:10,font:{size:9,family:'DM Mono'},padding:6}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
   }
+}
+let volSel=new Set();
+function volToggle(m){
+  if(m==='all'){volSel.clear();}
+  else{volSel.has(m)?volSel.delete(m):volSel.add(m);}
+  document.querySelectorAll('#vol-muscle-chips .mf').forEach(el=>{
+    const dm=el.dataset.m;
+    el.classList.toggle('on',dm==='all'?volSel.size===0:volSel.has(dm));
+  });
+  renderVol();
 }
 function getWk(d){const s=new Date(d.getFullYear(),0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);}
 
