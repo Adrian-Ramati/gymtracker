@@ -718,7 +718,10 @@ function calcE1RM(kg,reps,rpe){
 }
 function getMaxE1RM(exName){
   let max=0;
-  (db.sessions||[]).forEach(s=>{const ex=s.exercises?.find(e=>e.name===exName);if(ex?.best_e1rm&&ex.best_e1rm>max)max=ex.best_e1rm;});
+  (db.sessions||[]).forEach(s=>{(s.exercises||[]).filter(e=>e.name===exName).forEach(ex=>{
+    if(ex.best_e1rm&&ex.best_e1rm>max)max=ex.best_e1rm;
+    (ex.sets||[]).forEach(st=>{const rm=calcE1RM(st.kg,st.reps,st.rpe);if(rm&&rm>max)max=rm;});
+  });});
   return max||null;
 }
 
@@ -1082,6 +1085,7 @@ function renderEditTmplBody(){
   const t=(db.templates||[]).find(t=>t.id===editTmplId);if(!t)return;
   const body=document.getElementById('edit-tmpl-body');
   body.innerHTML=`<div class="tmpl-card"><input class="tmpl-name-inp" value="${t.name}" onchange="renameTmpl('${t.id}',this.value)">
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0"><span style="font-size:12px;color:var(--t2)">⏱ Descanso (seg)</span><input type="number" class="tmpl-sets-inp" style="width:64px" value="${t.rest||90}" min="15" max="600" step="15" onchange="tmplRest('${t.id}',this.value)"></div>
     ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span class="tmpl-ex-name">${ex.name}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
     <button class="tmpl-add-btn" onclick="pickerTarget={type:'tmpl',tid:'${t.id}'};openPicker('tmpl')">+ Añadir ejercicio</button></div>`;
 }
@@ -1089,6 +1093,7 @@ function closeEditTmpl(e){if(!e||e.target===document.getElementById('ov-edittmpl
 function renameTmpl(tid,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.name=v;saveDB();}}
 function tmplDel(tid,ei){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises.splice(ei,1);saveDB();renderEditTmplBody();renderDayPanel();}}
 function tmplSets(tid,ei,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.exercises[ei].sets=Math.max(1,parseInt(v)||3);saveDB();}}
+function tmplRest(tid,v){const t=db.templates?.find(t=>t.id===tid);if(t){t.rest=Math.max(15,parseInt(v)||90);saveDB();}}
 
 // ═══ PR DETECTION ═══
 function getSortedSessions(){return [...(db.sessions||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||((a.id||0)-(b.id||0)));}
@@ -1177,10 +1182,10 @@ async function deleteSession(id){
 }
 
 // ═══ SESSION ═══
-function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;startSess(t.name,t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})));}
+function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;startSess(t.name,t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
-function startSess(name,exercises){
-  activeSess={name,exercises,date:selDate||new Date().toISOString().split('T')[0]};
+function startSess(name,exercises,rest){
+  activeSess={name,exercises,rest:rest||90,date:selDate||new Date().toISOString().split('T')[0]};
   timerSecs=0;clearInterval(timerIv);timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
   document.getElementById('sess-name').value=name;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
@@ -1235,8 +1240,10 @@ function renderExCard(ex,ei){
     const btnLabel=s.done?'✓':(sAbbr[stype]||(si+1));
     sets+=`<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+"x"+lv.reps):"—"}</div><input type="number" id="kg_${ei}_${si}" value="${s.kg||""}" placeholder="${lv?lv.kg:"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" id="rp_${ei}_${si}" value="${s.reps||""}" placeholder="${lv?lv.reps:"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" id="rpe_${ei}_${si}" value="${s.rpe||""}" placeholder="${lv?lv.rpe:"rpe"}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":"○"}</button></div>`;
   });
+  const initRMs=(ex.sets||[]).map(st=>calcE1RM(st.kg,st.reps,st.rpe)).filter(Boolean);
+  const initBest=initRMs.length?Math.max(...initRMs):null;
   const e1rmRow=`<div class="e1rm-row" id="e1rm_${ei}">
-    <span class="e1rm-curr" id="e1rm-curr_${ei}">e1RM: —</span>
+    <span class="e1rm-curr" id="e1rm-curr_${ei}">e1RM: ${initBest?initBest+' kg':'—'}</span>
     ${prevMaxRM?`<span class="e1rm-max">máx: ${prevMaxRM} kg</span>`:''}
     <span id="pr-flag_${ei}" style="display:none;color:var(--amber);font-size:11px">🏆 ¡Nuevo PR!</span>
   </div>`;
@@ -1310,7 +1317,7 @@ function toggleDone(ei,si){
   s.reps=parseFloat(document.getElementById(`rp_${ei}_${si}`)?.value)||s.reps;
   s.rpe=parseFloat(document.getElementById(`rpe_${ei}_${si}`)?.value)||s.rpe;
   s.done=!s.done;
-  if(s.done){vib(30);startRest(90);}
+  if(s.done){vib(30);startRest(activeSess.rest||90);}
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
   const num=document.getElementById(`sn_${ei}_${si}`);
   if(btn){btn.classList.toggle('done',s.done);btn.textContent=s.done?'✓':'○';}
@@ -1474,7 +1481,7 @@ function renderProg(){
   const sel=document.getElementById('prog-sel');
   if(!all.size){document.getElementById('prog-stats').innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos aún</div>';return;}
   const prev=sel.value;
-  sel.innerHTML=[...all].map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');
+  sel.innerHTML=[...all].sort((a,b)=>a.localeCompare(b,'es')).map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');
   renderProgChart();
 }
 function renderProgChart(){
@@ -1555,7 +1562,7 @@ function renderVol(){
   for(let i=7;i>=0;i--){const d=new Date(now8);d.setDate(d.getDate()-i*7);week8Labels.push('S'+getWk(d));}
   // Deduplicate but keep order
   const weeks=[...new Set(week8Labels)];
-  const muscles=muscleFilter==='all'?[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))].slice(0,5):[muscleFilter];
+  const muscles=muscleFilter==='all'?[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))]:[muscleFilter];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
     vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
@@ -2216,7 +2223,7 @@ const SET_TYPES=[
   {id:'normal',   label:'Serie Normal',        color:'var(--t2)',  bg:'var(--s2)'},
   {id:'warmup',   label:'Serie de Calentamiento', color:'#fbbf24', bg:'rgba(251,191,36,.15)'},
   {id:'dropset',  label:'Drop Set',             color:'#f472b6',   bg:'rgba(244,114,182,.15)'},
-  {id:'failure',  label:'Serie al Fallo',       color:'#f87171',   bg:'rgba(248,113,113,.15)'},
+  {id:'failure',  label:'Error',       color:'#f87171',   bg:'rgba(248,113,113,.15)'},
   {id:'preex',    label:'Pre-agotamiento',      color:'#34d399',   bg:'rgba(52,211,153,.15)'},
   {id:'restpause',label:'Rest-Pause',           color:'#a78bfa',   bg:'rgba(167,139,250,.15)'},
   {id:'superset', label:'Superserie',           color:'#4f8ef7',   bg:'rgba(79,142,247,.15)'},
