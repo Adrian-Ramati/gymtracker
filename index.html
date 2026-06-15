@@ -276,6 +276,17 @@ input[type=date]{color-scheme:dark}
       <div id="sess-exs"></div>
       <button class="add-ex-btn" onclick="openPicker('add')">+ Añadir ejercicio</button>
     </div>
+    <!-- EDITAR RUTINA (sin timer, distinta de Nueva Sesión) -->
+    <div id="s-tmpledit" class="scr">
+      <div class="sess-hdr">
+        <input class="sess-name-inp" id="tmpledit-name" value="Rutina">
+        <span class="sess-timer" style="display:flex;align-items:center;gap:4px">⏱<input type="number" id="tmpledit-rest" min="15" max="600" step="15" style="width:48px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;text-align:center;padding:2px">s</span>
+        <button class="cancel-btn" onclick="cancelTmplEdit()" title="Cancelar">✕</button>
+        <button class="finish-btn" onclick="saveTmplEdit()">Guardar</button>
+      </div>
+      <div id="tmpledit-exs"></div>
+      <button class="add-ex-btn" onclick="openPicker('add')">+ Añadir ejercicio</button>
+    </div>
     <!-- ESTADÍSTICAS -->
     <div id="s-stats" class="scr">
       <!-- SUB-NAV -->
@@ -999,6 +1010,7 @@ function showScr(n,el){
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
   if(a==='train'||a==='sess'){renderCal();renderDayPanel();}
+  else if(a==='tmpledit'){/* nothing extra to render */}
   else if(a==='stats'){setStatsTab(statsTab);}
   else if(a==='profile'){renderProfileScr();}
   else if(a==='activity'){renderActivityScr();}
@@ -1081,7 +1093,37 @@ function closeTmplDropdown(){document.querySelectorAll('.tmpl-dropdown-menu').fo
 document.addEventListener('click',()=>closeTmplDropdown());
 function duplicateTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;db.templates.push({...JSON.parse(JSON.stringify(t)),id:'tmpl_'+Date.now(),name:t.name+' (copia)'});saveDB();renderDayPanel();toast('Rutina duplicada');}
 async function deleteTmpl(tid){if(!await dlgConfirm('¿Eliminar esta rutina?'))return;db.templates=db.templates.filter(t=>t.id!==tid);saveDB();renderDayPanel();}
-function openEditTmpl(tid){editTmplId=tid;const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;document.getElementById('edit-tmpl-title').textContent='Editar: '+t.name;renderEditTmplBody();document.getElementById('ov-edittmpl').classList.add('on');}
+let savedActiveSess=null;
+function openEditTmpl(tid){
+  const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;
+  savedActiveSess=activeSess;
+  activeSess={name:t.name,exercises:t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,ex.sets||3)},()=>({kg:null,reps:null,rpe:null,done:false}))})),rest:t.rest||90,isTmplEdit:tid};
+  document.getElementById('tmpledit-name').value=t.name;
+  document.getElementById('tmpledit-rest').value=t.rest||90;
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  showScr('tmpledit',null);renderSessExs();
+}
+function saveTmplEdit(){
+  if(!activeSess?.isTmplEdit)return;
+  collectInputs();
+  const t=db.templates?.find(t=>t.id===activeSess.isTmplEdit);
+  if(t){
+    t.name=document.getElementById('tmpledit-name').value||t.name;
+    t.exercises=activeSess.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,sets:ex.sets.length}));
+    t.rest=Math.max(15,parseInt(document.getElementById('tmpledit-rest').value)||90);
+    saveDB();
+  }
+  exitTmplEdit();toast('Rutina guardada ✓');
+}
+async function cancelTmplEdit(){
+  if(!await dlgConfirm('¿Descartar cambios en la rutina?'))return;
+  exitTmplEdit();toast('Cambios descartados');
+}
+function exitTmplEdit(){
+  activeSess=savedActiveSess;savedActiveSess=null;
+  const trainBtn=document.querySelector('.bn');
+  showScr('train',trainBtn);renderCal();renderDayPanel();
+}
 function renderEditTmplBody(){
   const t=(db.templates||[]).find(t=>t.id===editTmplId);if(!t)return;
   const body=document.getElementById('edit-tmpl-body');
@@ -1220,8 +1262,9 @@ function updateResumeBar(){
   bar.classList.add('show');
 }
 function renderSessExs(){
-  if(!activeSess){document.getElementById('sess-exs').innerHTML='';return;}
-  document.getElementById('sess-exs').innerHTML=activeSess.exercises.map((ex,ei)=>renderExCard(ex,ei)).join('');
+  const target=activeSess?.isTmplEdit?'tmpledit-exs':'sess-exs';
+  if(!activeSess){document.getElementById(target).innerHTML='';return;}
+  document.getElementById(target).innerHTML=activeSess.exercises.map((ex,ei)=>renderExCard(ex,ei)).join('');
 }
 function renderExCard(ex,ei){
   const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
