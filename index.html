@@ -323,6 +323,7 @@ input[type=date]{color-scheme:dark}
         </div>
         <div class="mf-row" id="bib-muscle-filters"></div>
         <div class="mf-row" id="bib-eq-filters"></div>
+        <button onclick="openExEditor(null)" style="width:100%;margin-bottom:10px;padding:9px;background:var(--s2);border:1px dashed var(--b2);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir nuevo ejercicio</button>
         <div id="bib-list"></div>
       </div>
     </div>
@@ -560,6 +561,7 @@ input[type=date]{color-scheme:dark}
       <input id="picker-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderPickerList()">
     </div>
     <div class="mf-row" id="muscle-filters"></div>
+    <div class="mf-row" id="picker-eq-filters"></div>
     <div class="mscroll" id="picker-list"></div>
   </div>
 </div>
@@ -656,6 +658,45 @@ input[type=date]{color-scheme:dark}
     <div class="mscroll" id="measures-edit-list"></div>
   </div>
 </div>
+<!-- EJERCICIO EDITOR MODAL -->
+<div class="overlay" id="ov-ex-editor" onclick="closeExEditor(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span class="mtitle" style="margin-bottom:0;flex:1" id="ex-editor-title">Nuevo ejercicio</span>
+      <button onclick="closeExEditor()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div class="mscroll" style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre</label>
+        <input id="exed-name" type="text" placeholder="Nombre del ejercicio" style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Músculo</label>
+          <select id="exed-muscle" style="width:100%;padding:9px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none"></select>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Equipamiento</label>
+          <select id="exed-equipment" style="width:100%;padding:9px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none">
+            <option value="Peso libre">Peso libre</option>
+            <option value="Poleas">Poleas</option>
+            <option value="Máquina">Máquina</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Rango de repeticiones</label>
+        <input id="exed-reps" type="text" placeholder="ej. 8-12 repeticiones" style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Descripción</label>
+        <textarea id="exed-description" rows="5" placeholder="Descripción del ejercicio..." style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none;resize:vertical"></textarea>
+      </div>
+      <button onclick="saveExEditor()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)" id="exed-save-btn">Guardar</button>
+    </div>
+  </div>
+</div>
 <!-- CUSTOM DIALOG (replaces browser confirm/prompt) -->
 <div id="dlg-overlay" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:24px">
   <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);width:100%;max-width:320px;padding:20px;animation:slideUp .2s ease">
@@ -715,7 +756,7 @@ const PERI_LABELS={cuello:'Cuello',brazo:'Brazo','pectoral-p':'Pectoral',cintura
 // ═══ STATE ═══
 let profile='Adrian',db={},calYear,calMonth,selDate=null;
 let activeSess=null,timerSecs=0,timerIv=null;
-let pickerTarget=null,mFilter='all';
+let pickerTarget=null,mFilter='all',pickerEqFilter='all';
 let pChart=null,vChart=null,wChart=null,bfChart=null;
 let dragSrcIdx=null,weightView='daily';
 let editTmplId=null,measureTab='perimetros';
@@ -1253,7 +1294,7 @@ function resumeSession(){showScr('sess',null);renderSessExs();}
 function updateResumeBar(){
   const bar=document.getElementById('resume-bar');if(!bar)return;
   const onSess=document.getElementById('s-sess')?.classList.contains('on');
-  if(!activeSess||onSess){bar.classList.remove('show');return;}
+  if(!activeSess||onSess||activeSess.isTmplEdit){bar.classList.remove('show');return;}
   const name=document.getElementById('sess-name')?.value||activeSess.name||'Entrenamiento';
   const curEx=(activeSess.exercises||[]).find(ex=>(ex.sets||[]).some(s=>!s.done));
   document.getElementById('resume-bar-name').textContent=name;
@@ -1425,21 +1466,25 @@ function removeEx(ei){closeCtx();if(!activeSess)return;collectInputs();activeSes
 // ═══ EXERCISE PICKER ═══
 function openPicker(targetOrMode){
   if(targetOrMode&&typeof targetOrMode==='string'&&targetOrMode!=='replace'&&targetOrMode!=='tmpl')pickerTarget=targetOrMode;
-  mFilter='all';
+  mFilter='all';pickerEqFilter='all';
   const searchInp=document.getElementById('picker-search');if(searchInp)searchInp.value='';
   const isReplace=pickerTarget?.type==='replace'||pickerTarget==='replace';
   document.getElementById('picker-title').textContent=isReplace?'Reemplazar ejercicio':'Añadir ejercicio';
   const mf=document.getElementById('muscle-filters');
   mf.innerHTML=`<div class="mf on" onclick="setMFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setMFilter('${m}')">${m}</div>`).join('');
+  const ef=document.getElementById('picker-eq-filters');
+  ef.innerHTML=`<div class="mf on" onclick="setPickerEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setPickerEqFilter('${eq}')">${eq}</div>`).join('');
   renderPickerList();document.getElementById('ov-picker').classList.add('on');
 }
-function setMFilter(m){mFilter=m;document.querySelectorAll('.mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));renderPickerList();}
+function setMFilter(m){mFilter=m;document.querySelectorAll('#muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));renderPickerList();}
+function setPickerEqFilter(eq){pickerEqFilter=eq;document.querySelectorAll('#picker-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(eq==='all'?'Todos':eq)));renderPickerList();}
 function renderPickerList(){
   const search=(document.getElementById('picker-search')?.value||'').toLowerCase().trim();
   const list=ALL_EX.filter(e=>{
     const muscleOk=mFilter==='all'||e.muscle===mFilter;
+    const eqOk=pickerEqFilter==='all'||e.equipment===pickerEqFilter;
     const searchOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
-    return muscleOk&&searchOk;
+    return muscleOk&&eqOk&&searchOk;
   });
   const safe=n=>n.replace(/'/g,"\'");
   document.getElementById('picker-list').innerHTML=list.length
@@ -1517,6 +1562,7 @@ function renderBiblioteca(){
           ${cuesHtml?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Claves</div><ul style="font-size:12px;color:var(--t2);padding-left:16px;line-height:1.6">${cuesHtml}</ul>`:''}
           <button onclick="bibAddToSession(${i})" style="margin-top:10px;width:100%;padding:8px;background:var(--bluedim);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a sesión activa</button>
           <button onclick="bibAddToTmpl(${i})" style="margin-top:6px;width:100%;padding:8px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a rutina existente</button>
+          <button onclick="openExEditor('${i}')" style="margin-top:6px;width:100%;padding:8px;background:transparent;border:1px dashed var(--b2);border-radius:8px;color:var(--t3);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">✎ Editar descripción</button>
           <div id="bibtmpl-${i}" style="display:none;margin-top:6px"></div>
         </div>
       </div>`;
@@ -1526,6 +1572,67 @@ function renderBiblioteca(){
 function toggleBibCard(i){
   const el=document.getElementById('bibcard-'+i);
   if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+let exEditorIdx=null;
+function openExEditor(i){
+  exEditorIdx=i===null?null:Number(i);
+  const isNew=exEditorIdx===null;
+  document.getElementById('ex-editor-title').textContent=isNew?'Nuevo ejercicio':'Editar ejercicio';
+  const msel=document.getElementById('exed-muscle');
+  msel.innerHTML=MUSCLES.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const nameInp=document.getElementById('exed-name');
+  if(isNew){
+    nameInp.value='';nameInp.disabled=false;
+    msel.value=MUSCLES[0]||'';
+    document.getElementById('exed-equipment').value='Peso libre';
+    document.getElementById('exed-reps').value='';
+    document.getElementById('exed-description').value='';
+  }else{
+    const e=bibLast[exEditorIdx];
+    nameInp.value=e.name;nameInp.disabled=true;
+    msel.value=e.muscle;
+    document.getElementById('exed-equipment').value=e.equipment||'Peso libre';
+    document.getElementById('exed-reps').value=e.reps||'';
+    document.getElementById('exed-description').value=e.description||'';
+  }
+  document.getElementById('ov-ex-editor').classList.add('on');
+}
+function closeExEditor(e){if(!e||e.target===document.getElementById('ov-ex-editor'))document.getElementById('ov-ex-editor').classList.remove('on');}
+async function saveExEditor(){
+  const isNew=exEditorIdx===null;
+  const btn=document.getElementById('exed-save-btn');
+  if(isNew){
+    const name=document.getElementById('exed-name').value.trim();
+    if(!name){toast('Escribe un nombre');return;}
+    const muscle=document.getElementById('exed-muscle').value;
+    const equipment=document.getElementById('exed-equipment').value;
+    const reps=document.getElementById('exed-reps').value.trim();
+    const description=document.getElementById('exed-description').value.trim();
+    const num=ALL_EX.filter(e=>e.muscle===muscle).length+1;
+    const row={name,muscle,equipment,reps,description,execution:'',cues:[],num};
+    if(sbClient){
+      btn.textContent='Guardando...';btn.disabled=true;
+      const{error}=await sbClient.from('exercises').insert(row);
+      btn.textContent='Guardar';btn.disabled=false;
+      if(error){toast('Error al guardar: '+error.message);return;}
+    }
+    ALL_EX.push({name,muscle,equipment,reps,description,execution:'',cues:[]});
+    if(!MUSCLES.includes(muscle))MUSCLES.push(muscle);
+    toast('Ejercicio añadido ✓');
+  }else{
+    const e=bibLast[exEditorIdx];
+    const description=document.getElementById('exed-description').value.trim();
+    if(sbClient){
+      btn.textContent='Guardando...';btn.disabled=true;
+      const{error}=await sbClient.from('exercises').update({description}).eq('name',e.name);
+      btn.textContent='Guardar';btn.disabled=false;
+      if(error){toast('Error al guardar: '+error.message);return;}
+    }
+    const orig=ALL_EX.find(x=>x.name===e.name);
+    if(orig)orig.description=description;
+    toast('Descripción actualizada ✓');
+  }
+  closeExEditor();renderBiblioteca();
 }
 let bibLast=[];
 function bibAddToSession(i){
