@@ -1118,16 +1118,16 @@ function renderDayPanel(){
   }
   html+='<div class="stitle" style="margin-bottom:8px">Iniciar entrenamiento</div><div class="chips">';
   (db.templates||[]).forEach(t=>{
-    html+=`<div class="chip-row"><div class="chip" onclick="startFromTmpl('${t.id}')">${t.name}
+    html+=`<div class="chip-row"><div class="chip" onclick="startFromTmpl('${t.id}')">${t.name}</div>
       <div class="tmpl-dropdown" id="dd_${t.id}">
         <button class="chip-menu-btn" onclick="toggleTmplDropdown('${t.id}',event)">⋮</button>
         <div class="tmpl-dropdown-menu" id="ddm_${t.id}">
-          <button class="tmpl-dropdown-item" onclick="event.stopPropagation();openEditTmpl('${t.id}');closeTmplDropdown()">Editar rutina</button>
-          <button class="tmpl-dropdown-item" onclick="event.stopPropagation();duplicateTmpl('${t.id}');closeTmplDropdown()">Duplicar rutina</button>
-          <button class="tmpl-dropdown-item danger" onclick="event.stopPropagation();deleteTmpl('${t.id}');closeTmplDropdown()">Eliminar rutina</button>
+          <button class="tmpl-dropdown-item" onclick="openEditTmpl('${t.id}');closeTmplDropdown()">Editar rutina</button>
+          <button class="tmpl-dropdown-item" onclick="duplicateTmpl('${t.id}');closeTmplDropdown()">Duplicar rutina</button>
+          <button class="tmpl-dropdown-item danger" onclick="deleteTmpl('${t.id}');closeTmplDropdown()">Eliminar rutina</button>
         </div>
       </div>
-    </div></div>`;
+    </div>`;
   });
   html+=`<div class="chip blank" onclick="createNewRoutine()" style="border-color:var(--blue);color:var(--blue)">+ Nueva rutina</div></div></div>`;
   panel.innerHTML=html;
@@ -2483,12 +2483,13 @@ function removeSet(ei,si){
 // ═══ UTILS ═══
 function getLastEx(name){
   const norm=normExName(name);
-  for(let i=(db.sessions||[]).length-1;i>=0;i--){
-    const ex=db.sessions[i].exercises?.find(e=>e.name===name);
+  const sorted=[...(db.sessions||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  for(const s of sorted){
+    const ex=s.exercises?.find(e=>e.name===name);
     if(ex)return ex;
   }
-  for(let i=(db.sessions||[]).length-1;i>=0;i--){
-    const ex=db.sessions[i].exercises?.find(e=>normExName(e.name)===norm);
+  for(const s of sorted){
+    const ex=s.exercises?.find(e=>normExName(e.name)===norm);
     if(ex)return ex;
   }
   return null;
