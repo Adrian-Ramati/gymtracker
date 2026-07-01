@@ -756,6 +756,9 @@ const PERI_LABELS={cuello:'Cuello',brazo:'Brazo','pectoral-p':'Pectoral',cintura
 // ═══ STATE ═══
 let profile='Adrian',db={},calYear,calMonth,selDate=null;
 let activeSess=null,timerSecs=0,timerIv=null;
+window.addEventListener('beforeunload',(e)=>{
+  if(activeSess&&!activeSess.isTmplEdit){e.preventDefault();e.returnValue='';}
+});
 let pickerTarget=null,mFilter='all',pickerEqFilter='all';
 let pChart=null,vChart=null,wChart=null,bfChart=null;
 let dragSrcIdx=null,weightView='daily';
@@ -1336,7 +1339,7 @@ function renderExCard(ex,ei){
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
       <span class="drag-handle">⠿</span>
-      <span class="ec-name">${ex.name}</span>
+      <span class="ec-name" onclick="goToExInBiblioteca('${ex.name.replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${ex.name}</span>
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${ex.muscle}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
@@ -1503,6 +1506,17 @@ function selectEx(name,muscle){
 
 // ═══ STATS TABS ═══
 let statsTab='prog', bibMFilter='all', bibEqFilter='all';
+let pendingBibOpenName=null;
+function goToExInBiblioteca(name){
+  pendingBibOpenName=name;
+  bibMFilter='all';bibEqFilter='all';
+  const search=document.getElementById('bib-search');if(search)search.value='';
+  document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent==='Todos'));
+  document.querySelectorAll('#bib-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent==='Todos'));
+  const statsBtn=[...document.querySelectorAll('.bn')].find(b=>b.getAttribute('onclick')?.includes("'stats'"));
+  showScr('stats',statsBtn);
+  setStatsTab('bib');
+}
 function setStatsTab(tab){
   statsTab=tab;
   ['prog','vol','bib'].forEach(t=>{
@@ -1568,6 +1582,14 @@ function renderBiblioteca(){
       </div>`;
     }).join('')
     :'<div style="color:var(--t3);text-align:center;padding:24px;font-size:13px">Sin resultados</div>';
+  if(pendingBibOpenName){
+    const idx=list.findIndex(e=>e.name===pendingBibOpenName);
+    pendingBibOpenName=null;
+    if(idx>=0){
+      const card=document.getElementById('bibcard-'+idx);
+      if(card){card.style.display='block';setTimeout(()=>card.closest('div[style*="overflow:hidden"]')?.scrollIntoView({behavior:'smooth',block:'center'}),50);}
+    }
+  }
 }
 function toggleBibCard(i){
   const el=document.getElementById('bibcard-'+i);
