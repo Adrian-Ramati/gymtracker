@@ -298,7 +298,10 @@ input[type=date]{color-scheme:dark}
       <!-- PROGRESIÓN -->
       <div id="stats-panel-prog">
         <div class="stitle-section">Progresión e1RM</div>
-      <select class="psel" id="prog-sel" onchange="renderProgChart()"></select>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:0">
+        <select class="psel" id="prog-sel" onchange="renderProgChart()" style="flex:1;margin-bottom:0"></select>
+        <button id="prog-hide-few-btn" onclick="toggleProgHideFew()" title="Ocultar ejercicios con 3 o menos récords" style="flex-shrink:0;padding:9px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--s2);color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--font)">🔎3+</button>
+      </div>
       <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:10px">Epley ajustada por RIR cuando RPE disponible</div>
       <div class="sg" id="prog-stats"></div>
       <div class="cw"><canvas id="progChart" role="img"></canvas></div>
@@ -738,8 +741,9 @@ async function loadExercisesDB(){
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }
-const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
-const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
+const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Isquiosurales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
+const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Isquiosurales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
+function normMuscle(m){return m==='Isquiotibiales'?'Isquiosurales':m;}
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
@@ -1683,8 +1687,21 @@ function bibAddToTmplDo(i,tid){
   toast(`${e.name} → ${t.name} ✓`);
 }
 let pts=[];
+let progHideFew=false;
+function toggleProgHideFew(){
+  progHideFew=!progHideFew;
+  const btn=document.getElementById('prog-hide-few-btn');
+  btn.style.background=progHideFew?'var(--blue)':'var(--s2)';
+  btn.style.color=progHideFew?'#fff':'var(--t2)';
+  btn.style.borderColor=progHideFew?'var(--blue)':'var(--b1)';
+  renderProg();
+}
 function renderProg(){
-  const all=new Set();(db.sessions||[]).forEach(s=>s.exercises?.forEach(e=>all.add(e.name)));
+  const counts={};
+  (db.sessions||[]).forEach(s=>s.exercises?.forEach(e=>{if(e.best_e1rm)counts[e.name]=(counts[e.name]||0)+1;}));
+  let all=new Set(Object.keys(counts));
+  (db.sessions||[]).forEach(s=>s.exercises?.forEach(e=>all.add(e.name)));
+  if(progHideFew)all=new Set([...all].filter(n=>(counts[n]||0)>3));
   const sel=document.getElementById('prog-sel');
   if(!all.size){document.getElementById('prog-stats').innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos aún</div>';return;}
   const prev=sel.value;
@@ -1734,7 +1751,7 @@ function renderVol(){
   const week=sessions.filter(s=>new Date(s.date)>=wa);
   const muscleFilter='multi';
   // Populate multi-select chips
-  const allMuscles=[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))];
+  const allMuscles=[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[]))];
   const chips=document.getElementById('vol-muscle-chips');
   if(chips&&!chips.dataset.init){
     chips.dataset.init='1';
@@ -1743,8 +1760,9 @@ function renderVol(){
   const selSet=volSel.size?volSel:null;
   const vbm={};
   week.forEach(s=>s.exercises?.forEach(e=>{
-    if(selSet&&!selSet.has(e.muscle))return;
-    vbm[e.muscle]=(vbm[e.muscle]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
+    const m=normMuscle(e.muscle);
+    if(selSet&&!selSet.has(m))return;
+    vbm[m]=(vbm[m]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
   document.getElementById('vol-stats').innerHTML=`
@@ -1757,20 +1775,21 @@ function renderVol(){
   // Weekly chart filtered
   const aw={};
   sessions.forEach(s=>{
-    const wk='S'+getWk(new Date(s.date));
+    const wk=wkLabel(new Date(s.date));
     s.exercises?.forEach(e=>{
-      if(selSet&&!selSet.has(e.muscle))return;
+      const m=normMuscle(e.muscle);
+      if(selSet&&!selSet.has(m))return;
       if(!aw[wk])aw[wk]={};
-      aw[wk][e.muscle]=(aw[wk][e.muscle]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
+      aw[wk][m]=(aw[wk][m]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
     });
   });
   // Always show last 8 calendar weeks, padding with zeros if no data
   const now8=new Date();
   const week8Labels=[];
-  for(let i=7;i>=0;i--){const d=new Date(now8);d.setDate(d.getDate()-i*7);week8Labels.push('S'+getWk(d));}
+  for(let i=7;i>=0;i--){const d=new Date(now8);d.setDate(d.getDate()-i*7);week8Labels.push(wkLabel(d));}
   // Deduplicate but keep order
   const weeks=[...new Set(week8Labels)];
-  const muscles=selSet?[...selSet]:[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>e.muscle)||[]))];
+  const muscles=selSet?[...selSet]:[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[]))];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
     vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#999',boxWidth:10,boxHeight:10,font:{size:9,family:'DM Mono'},padding:6}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
@@ -1787,6 +1806,7 @@ function volToggle(m){
   renderVol();
 }
 function getWk(d){const s=new Date(d.getFullYear(),0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);}
+function wkLabel(d){return d.getFullYear()+'-S'+String(getWk(d)).padStart(2,'0');}
 
 // ═══ PROFILE SCREEN ═══
 function renderProfileScr(){
