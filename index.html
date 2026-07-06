@@ -696,6 +696,14 @@ input[type=date]{color-scheme:dark}
         <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Descripción</label>
         <textarea id="exed-description" rows="5" placeholder="Descripción del ejercicio..." style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none;resize:vertical"></textarea>
       </div>
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Realización</label>
+        <textarea id="exed-execution" rows="5" placeholder="Cómo realizar el ejercicio..." style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none;resize:vertical"></textarea>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Claves (una por línea)</label>
+        <textarea id="exed-cues" rows="4" placeholder="Una clave por línea..." style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none;resize:vertical"></textarea>
+      </div>
       <button onclick="saveExEditor()" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)" id="exed-save-btn">Guardar</button>
     </div>
   </div>
@@ -1615,6 +1623,8 @@ function openExEditor(i){
     document.getElementById('exed-equipment').value='Peso libre';
     document.getElementById('exed-reps').value='';
     document.getElementById('exed-description').value='';
+    document.getElementById('exed-execution').value='';
+    document.getElementById('exed-cues').value='';
   }else{
     const e=bibLast[exEditorIdx];
     nameInp.value=e.name;nameInp.disabled=true;
@@ -1622,6 +1632,8 @@ function openExEditor(i){
     document.getElementById('exed-equipment').value=e.equipment||'Peso libre';
     document.getElementById('exed-reps').value=e.reps||'';
     document.getElementById('exed-description').value=e.description||'';
+    document.getElementById('exed-execution').value=e.execution||'';
+    document.getElementById('exed-cues').value=(e.cues||[]).join('\n');
   }
   document.getElementById('ov-ex-editor').classList.add('on');
 }
@@ -1636,29 +1648,33 @@ async function saveExEditor(){
     const equipment=document.getElementById('exed-equipment').value;
     const reps=document.getElementById('exed-reps').value.trim();
     const description=document.getElementById('exed-description').value.trim();
+    const execution=document.getElementById('exed-execution').value.trim();
+    const cues=document.getElementById('exed-cues').value.split('\n').map(c=>c.trim()).filter(Boolean);
     const num=ALL_EX.filter(e=>e.muscle===muscle).length+1;
-    const row={name,muscle,equipment,reps,description,execution:'',cues:[],num};
+    const row={name,muscle,equipment,reps,description,execution,cues,num};
     if(sbClient){
       btn.textContent='Guardando...';btn.disabled=true;
       const{error}=await sbClient.from('exercises').insert(row);
       btn.textContent='Guardar';btn.disabled=false;
       if(error){toast('Error al guardar: '+error.message);return;}
     }
-    ALL_EX.push({name,muscle,equipment,reps,description,execution:'',cues:[]});
+    ALL_EX.push({name,muscle,equipment,reps,description,execution,cues});
     if(!MUSCLES.includes(muscle))MUSCLES.push(muscle);
     toast('Ejercicio añadido ✓');
   }else{
     const e=bibLast[exEditorIdx];
     const description=document.getElementById('exed-description').value.trim();
+    const execution=document.getElementById('exed-execution').value.trim();
+    const cues=document.getElementById('exed-cues').value.split('\n').map(c=>c.trim()).filter(Boolean);
     if(sbClient){
       btn.textContent='Guardando...';btn.disabled=true;
-      const{error}=await sbClient.from('exercises').update({description}).eq('name',e.name);
+      const{error}=await sbClient.from('exercises').update({description,execution,cues}).eq('name',e.name);
       btn.textContent='Guardar';btn.disabled=false;
       if(error){toast('Error al guardar: '+error.message);return;}
     }
     const orig=ALL_EX.find(x=>x.name===e.name);
-    if(orig)orig.description=description;
-    toast('Descripción actualizada ✓');
+    if(orig){orig.description=description;orig.execution=execution;orig.cues=cues;}
+    toast('Ejercicio actualizado ✓');
   }
   closeExEditor();renderBiblioteca();
 }
