@@ -127,6 +127,10 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .add-set-btn:only-child{border-radius:8px}
 .add-set-btn:hover{border-color:var(--blue);color:var(--blue)}
 .e1rm-row{display:flex;gap:8px;margin-top:6px;font-size:10px;font-family:var(--mono);align-items:center;flex-wrap:wrap}
+.prog-hint{margin:6px 0 2px;padding:5px 9px;border-radius:7px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1px dashed var(--b1);color:var(--t2);line-height:1.4}
+.prog-hint.weight{color:var(--green);border-color:var(--green);background:rgba(52,211,153,.07)}
+.prog-hint.reps{color:var(--blue);border-color:var(--blue);background:rgba(79,142,247,.07)}
+.prog-hint.hold{color:var(--amber);border-color:var(--amber);background:rgba(251,191,36,.06)}
 .e1rm-curr{color:var(--blue)}
 .e1rm-max{color:var(--amber)}
 .notes-wrap{margin-top:8px;border-top:1px solid var(--b1);padding-top:8px}
@@ -1485,6 +1489,8 @@ function renderExCard(ex,ei){
     ${prevMaxRM?`<span class="e1rm-max">máx: ${prevMaxRM} kg</span>`:''}
     <span id="pr-flag_${ei}" style="display:none;color:var(--amber);font-size:11px">🏆 ¡Nuevo PR!</span>
   </div>`;
+  const prog=(activeSess&&!activeSess.isTmplEdit&&!activeSess.editing)?getProgression(ex.name):null;
+  const progRow=prog?`<div class="prog-hint ${prog.action}" onclick="applyProgression(${ei})" title="Toca para rellenar las series vacías">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`:'';
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
       <span class="drag-handle">⠿</span>
@@ -1492,6 +1498,7 @@ function renderExCard(ex,ei){
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
+    ${progRow}
     <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">rpe</div><div></div></div>
     <div id="sets_${ei}">${sets}</div>
     <div class="ec-footer">
@@ -1525,6 +1532,71 @@ function fillFromPrev(ei,si){
   if(rpEl&&lv.reps){rpEl.value=lv.reps;}
   if(rpeEl&&lv.rpe){rpeEl.value=lv.rpe;}
   onSetInput(ei,si);
+}
+
+// ═══ DOUBLE PROGRESSION ═══
+// RPE-gated double progression from the last logged session of each exercise:
+//   1. All top-weight working sets at the TOP of the rep range @ RPE ≤ 8 → add load
+//   2. Otherwise, RPE ≤ 8.5 and room in the range → add 1 rep to the weakest set
+//   3. Max RPE ≥ 9.5 → hold the load (accumulated fatigue / near-miss)
+// Warm-ups and back-off sets (below the top working weight) don't gate progression.
+// Missing RPE is treated as 8 (neutral) so the feature works without RPE logging,
+// except the no-range weight jump, which requires an explicit RPE ≤ 7.5.
+function parseRepRange(str){
+  if(!str)return null;
+  const s=String(str).replace(/–|—/g,'-');
+  // Prefer explicit "a-b" pairs; with "sets x reps" notation ("3x8-12") the rep
+  // range is the LAST pair. hi≥4 filters out the sets count being read as a range.
+  const pairs=[...s.matchAll(/(\d{1,2})\s*-\s*(\d{1,2})/g)].map(m=>({lo:+m[1],hi:+m[2]}));
+  const valid=pairs.filter(p=>p.lo>=1&&p.hi>=p.lo&&p.hi>=4&&p.hi<=50);
+  if(valid.length)return valid[valid.length-1];
+  const nums=[...s.matchAll(/\d{1,2}/g)].map(m=>+m[0]).filter(n=>n>=5&&n<=30);
+  if(nums.length){const n=nums[nums.length-1];return{lo:n,hi:n};}
+  return null;
+}
+function getProgression(exName){
+  const last=getLastEx(exName);if(!last)return null;
+  const ws=(last.sets||[]).filter(s=>s.kg!=null&&s.reps&&(s.type||'normal')!=='warmup');
+  if(!ws.length)return null;
+  const topKg=Math.max(...ws.map(s=>s.kg));
+  if(!(topKg>0))return null;
+  const work=ws.filter(s=>s.kg===topKg);
+  const range=parseRepRange(ALL_EX.find(e=>normExName(e.name)===normExName(exName))?.reps);
+  const rpes=work.map(s=>s.rpe).filter(r=>r!=null);
+  const maxRpe=rpes.length?Math.max(...rpes):8;
+  const minReps=Math.min(...work.map(s=>s.reps));
+  const inc=topKg>=20?2.5:1.25;
+  const r1=v=>Math.round(v*100)/100;
+  const lo=range?.lo??null, hi=range?.hi??null;
+  if(maxRpe>=9.5)
+    return{action:'hold',kg:topKg,reps:minReps,msg:`Mantén ${topKg} kg — RPE ${maxRpe} la última sesión`};
+  if(hi&&work.every(s=>s.reps>=hi)&&maxRpe<=8)
+    return{action:'weight',kg:r1(topKg+inc),reps:lo||hi,msg:`Sube a ${r1(topKg+inc)} kg × ${lo||hi} — tope del rango a RPE ≤8`};
+  if(!hi&&rpes.length&&maxRpe<=7.5)
+    return{action:'weight',kg:r1(topKg+inc),reps:minReps,msg:`Sube a ${r1(topKg+inc)} kg — RPE ${maxRpe} la última sesión`};
+  if(maxRpe<=8.5&&(!hi||minReps<hi)){
+    const target=hi?Math.min(minReps+1,hi):minReps+1;
+    return{action:'reps',kg:topKg,reps:target,msg:`Busca ${target} reps con ${topKg} kg${hi?` (rango ${lo}–${hi})`:''}`};
+  }
+  return null;
+}
+// Tap the hint → fill EMPTY inputs of non-warmup sets with the suggested target
+function applyProgression(ei){
+  if(!activeSess)return;
+  const ex=activeSess.exercises[ei];
+  const prog=getProgression(ex.name);
+  if(!prog)return;
+  let filled=0;
+  ex.sets.forEach((s,si)=>{
+    if((s.type||'normal')==='warmup')return;
+    const kgEl=document.getElementById(`kg_${ei}_${si}`);
+    const rpEl=document.getElementById(`rp_${ei}_${si}`);
+    if(kgEl&&!kgEl.value){kgEl.value=prog.kg;filled++;}
+    if(rpEl&&!rpEl.value){rpEl.value=prog.reps;}
+    onSetInput(ei,si);
+  });
+  vib(20);
+  toast(filled?`Objetivo aplicado: ${prog.kg} kg × ${prog.reps}`:'Las series ya tienen valores');
 }
 
 // Recompute the e1RM line + PR flag for one card from activeSess data
