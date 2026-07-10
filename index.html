@@ -754,7 +754,11 @@ const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps
 function normMuscle(m){return m==='Isquiotibiales'?'Isquiosurales':m;}
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
-function fmtFull(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
+const fmtFull=fmtDate;
+// HTML-escape for any user/DB-sourced string interpolated into innerHTML (XSS fix)
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Explicit numeric parse: ''→null (clearable), '0'→0 (valid), missing element→undefined (keep old)
+function numVal(el){if(!el)return undefined;const v=String(el.value).trim();if(v==='')return null;const n=parseFloat(v);return isNaN(n)?null:n;}
 const DEFAULT_TEMPLATES=[
   {id:'ua',name:'Upper A',exercises:[{name:'Press inclinado en máquina convergente',muscle:'Pectoral',sets:3},{name:'Remo en Máquina Neutro',muscle:'Espalda',sets:3},{name:'Aperturas en polea baja',muscle:'Pectoral',sets:3},{name:'Pullover en polea alta',muscle:'Espalda',sets:3},{name:'Kaz Press',muscle:'Tríceps',sets:3},{name:'Crucifix Curl',muscle:'Bíceps',sets:3}]},
   {id:'lo',name:'Lower',exercises:[{name:'Hip-thrust en máquina',muscle:'Glúteos',sets:3},{name:'PM Rumano con mancuernas',muscle:'Isquiotibiales',sets:3},{name:'Curl femoral sentado',muscle:'Isquiotibiales',sets:3},{name:'Prensa 45º',muscle:'Cuádriceps',sets:3},{name:'Extensión de cuádriceps',muscle:'Cuádriceps',sets:3},{name:'Gemelo de pie',muscle:'Gemelos',sets:3}]},
@@ -767,7 +771,7 @@ const PERI_LABELS={cuello:'Cuello',brazo:'Brazo','pectoral-p':'Pectoral',cintura
 
 // ═══ STATE ═══
 let profile='Adrian',db={},calYear,calMonth,selDate=null;
-let activeSess=null,timerSecs=0,timerIv=null;
+let activeSess=null,timerSecs=0,timerIv=null,sessStartTs=null;
 window.addEventListener('beforeunload',(e)=>{
   if(activeSess&&!activeSess.isTmplEdit){e.preventDefault();e.returnValue='';}
 });
@@ -945,6 +949,9 @@ function showAppScreens(){
   document.querySelector('.bnav').style.display='flex';
   document.querySelector('.bn').classList.add('on');
   renderCal(); renderDayPanel();
+  updateSyncBadge();
+  flushSyncQueue();
+  checkRestoreSession();
 }
 
 // ═══ STORAGE ═══
@@ -975,7 +982,7 @@ async function loadDBFromSupabase(){
     ]);
     // Initialise db
     db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
-    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({...r.exercises?{...JSON.parse(typeof r.exercises==='string'?r.exercises:JSON.stringify(r.exercises))}:{}, id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:r.exercises}));
+    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:typeof r.exercises==='string'?JSON.parse(r.exercises):(r.exercises||[])}));
     if(!wRes.error) db.weights = (wRes.data||[]).map(r=>({date:r.date,kg:parseFloat(r.kg)}));
     if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
@@ -1007,49 +1014,148 @@ async function saveDB(){
   } catch(e){ console.warn('Profile sync error:', e); }
 }
 
-// Granular saves for individual records (faster than full sync)
+// Granular saves for individual records (faster than full sync).
+// NOTE: supabase-js v2 returns {error} instead of throwing — must check it explicitly,
+// otherwise RLS/network failures are silently swallowed. Failed ops go to a pending
+// sync queue that is retried when connectivity/auth returns.
 async function saveSession(sess){
   saveDB();
   if(!useSupabase||!sbClient||!supabaseUser) return;
+  const row={id:sess.id, user_id:supabaseUser.id, date:sess.date, name:sess.name, day_name:sess.dayName, exercises:sess.exercises};
   try {
-    await sbClient.from('sessions').upsert({
-      id:sess.id, user_id:supabaseUser.id, date:sess.date,
-      name:sess.name, day_name:sess.dayName, exercises:sess.exercises
-    });
-  } catch(e){ console.warn('Session save error:', e); }
+    const {error} = await sbClient.from('sessions').upsert(row);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'upsert',table:'sessions',row}); console.warn('Session save error:', e); }
 }
 async function deleteSessionRemote(id){
   saveDB();
   if(!useSupabase||!sbClient||!supabaseUser) return;
-  try { await sbClient.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id); }
-  catch(e){ console.warn('Session delete error:', e); }
+  try {
+    const {error} = await sbClient.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'delete',table:'sessions',match:{id,user_id:supabaseUser.id}}); console.warn('Session delete error:', e); }
 }
 async function saveWeightRemote(kg, date){
-  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
+  saveDB();
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  const row={user_id:supabaseUser.id,date,kg};
   try {
-    await sbClient.from('weights').upsert({user_id:supabaseUser.id,date,kg});
-    saveDB();
-  } catch(e){ saveDB(); console.warn('Weight save error:', e); }
+    const {error} = await sbClient.from('weights').upsert(row);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'upsert',table:'weights',row}); console.warn('Weight save error:', e); }
 }
 async function deleteWeightRemote(date){
   saveDB();
   if(!useSupabase||!sbClient||!supabaseUser) return;
-  try { await sbClient.from('weights').delete().eq('user_id',supabaseUser.id).eq('date',date); }
-  catch(e){ console.warn('Weight delete error:', e); }
+  try {
+    const {error} = await sbClient.from('weights').delete().eq('user_id',supabaseUser.id).eq('date',date);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'delete',table:'weights',match:{user_id:supabaseUser.id,date}}); console.warn('Weight delete error:', e); }
 }
 async function saveStepsRemote(date, steps){
-  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
+  saveDB();
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  const row={user_id:supabaseUser.id,date,steps};
   try {
-    await sbClient.from('steps').upsert({user_id:supabaseUser.id,date,steps});
-    saveDB();
-  } catch(e){ saveDB(); console.warn('Steps save error:', e); }
+    const {error} = await sbClient.from('steps').upsert(row);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'upsert',table:'steps',row}); console.warn('Steps save error:', e); }
+}
+async function deleteStepsRemote(date){
+  saveDB();
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  try {
+    const {error} = await sbClient.from('steps').delete().eq('user_id',supabaseUser.id).eq('date',date);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'delete',table:'steps',match:{user_id:supabaseUser.id,date}}); console.warn('Steps delete error:', e); }
 }
 async function saveMeasureRemote(entry){
-  if(!useSupabase||!sbClient||!supabaseUser){saveDB();return;}
+  saveDB();
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  const row={user_id:supabaseUser.id,week:entry.week,date:entry.date,data:entry};
   try {
-    await sbClient.from('measures').upsert({user_id:supabaseUser.id,week:entry.week,date:entry.date,data:entry});
-    saveDB();
-  } catch(e){ saveDB(); console.warn('Measure save error:', e); }
+    const {error} = await sbClient.from('measures').upsert(row);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'upsert',table:'measures',row}); console.warn('Measure save error:', e); }
+}
+async function deleteMeasureRemote(week){
+  saveDB();
+  if(!useSupabase||!sbClient||!supabaseUser) return;
+  try {
+    const {error} = await sbClient.from('measures').delete().eq('user_id',supabaseUser.id).eq('week',week);
+    if(error) throw error;
+  } catch(e){ queueSync({t:'delete',table:'measures',match:{user_id:supabaseUser.id,week}}); console.warn('Measure delete error:', e); }
+}
+
+// ═══ PENDING SYNC QUEUE ═══
+// Writes that failed (offline, expired token, RLS hiccup) are stored here and
+// retried on 'online', after login, or by tapping the ⚠ badge in the header.
+function syncQKey(){return 'gt_syncq_'+(supabaseUser?.id||'local');}
+function getSyncQ(){try{return JSON.parse(localStorage.getItem(syncQKey()))||[];}catch(e){return[];}}
+function setSyncQ(q){try{localStorage.setItem(syncQKey(),JSON.stringify(q));}catch(e){} updateSyncBadge();}
+function queueSync(op){const q=getSyncQ();q.push(op);setSyncQ(q);toast('⚠ Guardado en local — pendiente de sincronizar');}
+async function flushSyncQueue(){
+  if(!useSupabase||!sbClient||!supabaseUser){updateSyncBadge();return;}
+  const q=getSyncQ();
+  if(!q.length)return;
+  const remaining=[];
+  for(const op of q){
+    try{
+      let error;
+      if(op.t==='upsert'){({error}=await sbClient.from(op.table).upsert(op.row));}
+      else if(op.t==='delete'){
+        let qb=sbClient.from(op.table).delete();
+        for(const[k,v]of Object.entries(op.match||{}))qb=qb.eq(k,v);
+        ({error}=await qb);
+      }
+      if(error)throw error;
+    }catch(e){remaining.push(op);}
+  }
+  setSyncQ(remaining);
+  if(!remaining.length&&q.length)toast('Sincronización completada ✓');
+}
+function updateSyncBadge(){
+  let b=document.getElementById('sync-badge');
+  const n=getSyncQ().length;
+  if(!b){
+    const hr=document.querySelector('.hdr-right');if(!hr)return;
+    b=document.createElement('button');b.id='sync-badge';b.title='Cambios pendientes de sincronizar — toca para reintentar';
+    b.style.cssText='display:none;align-items:center;gap:3px;font-size:11px;color:var(--amber);font-family:var(--mono);background:transparent;border:1px solid var(--amber);border-radius:20px;padding:4px 9px;cursor:pointer';
+    b.onclick=()=>flushSyncQueue();
+    hr.prepend(b);
+  }
+  b.textContent='⚠ '+n;
+  b.style.display=n?'flex':'none';
+}
+
+// ═══ ACTIVE SESSION PERSISTENCE ═══
+// The in-progress workout is stashed in localStorage on every mutation, because
+// beforeunload does NOT fire reliably in standalone PWAs and the OS kills
+// backgrounded web apps freely. Without this, a phone call mid-workout = data loss.
+function activeKey(){return 'gt_active_'+(supabaseUser?.id||'local');}
+function persistActive(){
+  try{
+    if(activeSess&&!activeSess.isTmplEdit)
+      localStorage.setItem(activeKey(),JSON.stringify({sess:activeSess,startedAt:sessStartTs||Date.now()}));
+    else localStorage.removeItem(activeKey());
+  }catch(e){}
+}
+function clearActiveStash(){try{localStorage.removeItem(activeKey());}catch(e){}}
+async function checkRestoreSession(){
+  if(activeSess)return;
+  let stash=null;
+  try{stash=JSON.parse(localStorage.getItem(activeKey()));}catch(e){}
+  if(!stash?.sess)return;
+  const mins=Math.max(0,Math.round((Date.now()-(stash.startedAt||Date.now()))/60000));
+  const nm=stash.sess.name||'Entrenamiento';
+  if(await dlgConfirm(`Tienes un entrenamiento sin terminar: «${nm}» (empezado hace ${mins} min). ¿Quieres continuarlo?`)){
+    activeSess=stash.sess;
+    sessStartTs=stash.startedAt||Date.now();
+    clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
+    const ni=document.getElementById('sess-name');if(ni)ni.value=nm;
+    document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+    showScr('sess',null);renderSessExs();
+  } else clearActiveStash();
 }
 
 // ═══ PROFILE ═══
@@ -1115,10 +1221,10 @@ function renderDayPanel(){
       const prCount=prs.size;
       html+=`<div style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--blue)" onclick="openSessionDetail(${s.id})">${s.name}${prCount>0?` 🏆${prCount}`:''}</span>
+          <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--blue)" onclick="openSessionDetail(${s.id})">${esc(s.name)}${prCount>0?` 🏆${prCount}`:''}</span>
           <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ej.</span>
         </div>`;
-      s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${e.name} — ${ds2} series</div>`;});
+      s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${esc(e.name)} — ${ds2} series</div>`;});
       if((s.exercises?.length||0)>3)html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
       html+=`<div style="display:flex;gap:12px;margin-top:6px">
         <button onclick="openSessionDetail(${s.id})" style="background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Ver detalle</button>
@@ -1130,7 +1236,7 @@ function renderDayPanel(){
   }
   html+='<div class="stitle" style="margin-bottom:8px">Iniciar entrenamiento</div><div class="chips">';
   (db.templates||[]).forEach(t=>{
-    html+=`<div class="chip-row"><div class="chip" onclick="startFromTmpl('${t.id}')">${t.name}</div>
+    html+=`<div class="chip-row"><div class="chip" onclick="startFromTmpl('${t.id}')">${esc(t.name)}</div>
       <div class="tmpl-dropdown" id="dd_${t.id}">
         <button class="chip-menu-btn" onclick="toggleTmplDropdown('${t.id}',event)">⋮</button>
         <div class="tmpl-dropdown-menu" id="ddm_${t.id}">
@@ -1185,9 +1291,9 @@ function exitTmplEdit(){
 function renderEditTmplBody(){
   const t=(db.templates||[]).find(t=>t.id===editTmplId);if(!t)return;
   const body=document.getElementById('edit-tmpl-body');
-  body.innerHTML=`<div class="tmpl-card"><input class="tmpl-name-inp" value="${t.name}" onchange="renameTmpl('${t.id}',this.value)">
+  body.innerHTML=`<div class="tmpl-card"><input class="tmpl-name-inp" value="${esc(t.name)}" onchange="renameTmpl('${t.id}',this.value)">
     <div style="display:flex;align-items:center;gap:8px;margin:8px 0"><span style="font-size:12px;color:var(--t2)">⏱ Descanso (seg)</span><input type="number" class="tmpl-sets-inp" style="width:64px" value="${t.rest||90}" min="15" max="600" step="15" onchange="tmplRest('${t.id}',this.value)"></div>
-    ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span style="display:flex;flex-direction:column;gap:1px"><button onclick="tmplMove('${t.id}',${ei},-1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▲</button><button onclick="tmplMove('${t.id}',${ei},1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▼</button></span><span class="tmpl-ex-name">${ex.name}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
+    ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span style="display:flex;flex-direction:column;gap:1px"><button onclick="tmplMove('${t.id}',${ei},-1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▲</button><button onclick="tmplMove('${t.id}',${ei},1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▼</button></span><span class="tmpl-ex-name">${esc(ex.name)}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
     <button class="tmpl-add-btn" onclick="pickerTarget={type:'tmpl',tid:'${t.id}'};openPicker('tmpl')">+ Añadir ejercicio</button></div>`;
 }
 function closeEditTmpl(e){if(!e||e.target===document.getElementById('ov-edittmpl')){document.getElementById('ov-edittmpl').classList.remove('on');editTmplId=null;}}
@@ -1226,7 +1332,7 @@ function openSessionDetail(id){
   const muscleBarColors=Object.fromEntries(Object.entries(MC).map(([k,v])=>[k,v[1]]));
   let html=`<div style="margin-bottom:16px">
     <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${fmtFull(sess.date)}</div>
-    <div style="font-size:20px;font-weight:700;margin-bottom:12px">${sess.name}${prCount>0?` 🏆${prCount}`:''}</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:12px">${esc(sess.name)}${prCount>0?` 🏆${prCount}`:''}</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
       <div class="detail-stat"><div class="detail-stat-val">${totalSets}</div><div class="detail-stat-lbl">Series</div></div>
       <div class="detail-stat"><div class="detail-stat-val">${totalVol}</div><div class="detail-stat-lbl">Vol kg</div></div>
@@ -1237,7 +1343,7 @@ function openSessionDetail(id){
     html+=`<div style="margin-bottom:16px"><div class="stitle">Distribución muscular</div>`;
     Object.entries(muscleReps).sort((a,b)=>b[1]-a[1]).forEach(([m,r])=>{
       const pct=Math.round(r/totalReps*100);
-      html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:500;margin-bottom:4px"><span>${m}</span><span style="color:var(--t3);font-family:var(--mono)">${pct}%</span></div><div class="muscle-pct-bar"><div class="muscle-pct-fill" style="width:${pct}%;background:${muscleBarColors[m]||'#4f8ef7'}"></div></div></div>`;
+      html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:500;margin-bottom:4px"><span>${esc(m)}</span><span style="color:var(--t3);font-family:var(--mono)">${pct}%</span></div><div class="muscle-pct-bar"><div class="muscle-pct-fill" style="width:${pct}%;background:${muscleBarColors[m]||'#4f8ef7'}"></div></div></div>`;
     });
     html+='</div>';
   }
@@ -1247,15 +1353,15 @@ function openSessionDetail(id){
     const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
     html+=`<div class="detail-ex-row">
       <div class="detail-ex-name" style="flex-wrap:wrap;gap:6px">
-        <span>${ex.name}${isPR?' <span style="color:var(--amber);font-size:11px">🏆 PR</span>':''}</span>
-        <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono)">${ex.muscle}</span>
+        <span>${esc(ex.name)}${isPR?' <span style="color:var(--amber);font-size:11px">🏆 PR</span>':''}</span>
+        <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono)">${esc(ex.muscle)}</span>
       </div>
       <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;margin-bottom:4px"><span style="font-size:10px;color:var(--t3);width:60px;font-family:var(--mono)">Serie</span><span style="font-size:10px;color:var(--t3);font-family:var(--mono)">Peso / Reps / RPE</span></div>`;
     (ex.sets||[]).filter(s=>s.kg||s.reps).forEach((s,si)=>{
       const rm=calcE1RM(s.kg,s.reps,s.rpe);
       html+=`<div class="detail-set-row"><div class="detail-set-num">${si+1}</div><div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${s.rpe?' @'+s.rpe:''}${rm?` <span style="color:var(--blue);font-size:10px">e1RM ${rm}</span>`:''}</div></div>`;
     });
-    if(ex.notes)html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${ex.notes}</div>`;
+    if(ex.notes)html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${esc(ex.notes)}</div>`;
     html+='</div>';
   });
   document.getElementById('detail-body').innerHTML=html;
@@ -1267,10 +1373,11 @@ function closeDetail(e){if(!e||e.target===document.getElementById('ov-detail'))d
 // ═══ EDIT / DELETE SESSION ═══
 function editSession(id){
   const sess=(db.sessions||[]).find(s=>s.id===id);if(!sess)return;
-  db.sessions=db.sessions.filter(s=>s.id!==id);saveDB();
+  // Do NOT remove the original here — it stays intact until finishSession
+  // replaces it in-place (canceling or an app kill no longer loses the session).
   activeSess={...JSON.parse(JSON.stringify(sess)),editing:true,originalId:id};
-  timerSecs=0;clearInterval(timerIv);
-  timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
+  sessStartTs=Date.now();
+  clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
   document.getElementById('sess-name').value=sess.name;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
@@ -1288,7 +1395,10 @@ function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t
 function startBlank(){startSess('Entrenamiento',[]);}
 function startSess(name,exercises,rest){
   activeSess={name,exercises,rest:rest||90,date:selDate||new Date().toISOString().split('T')[0]};
-  timerSecs=0;clearInterval(timerIv);timerIv=setInterval(()=>{timerSecs++;updateTimer();},1000);
+  // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
+  // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
+  sessStartTs=Date.now();
+  clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
   document.getElementById('sess-name').value=name;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
@@ -1296,17 +1406,21 @@ function startSess(name,exercises,rest){
 async function deleteCurrentSession(){
   if(!activeSess?.editing){cancelSession();return;}
   if(!await dlgConfirm('¿Borrar este entrenamiento definitivamente?'))return;
-  clearInterval(timerIv);activeSess=null;
+  const oid=activeSess.originalId;
+  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();
+  if(oid){db.sessions=db.sessions.filter(s=>s.id!==oid);await deleteSessionRemote(oid);}
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento eliminado');
 }
 async function cancelSession(){
-  if(!await dlgConfirm('¿Cancelar el entrenamiento? No se guardará nada.'))return;
-  clearInterval(timerIv);activeSess=null;
+  const wasEdit=!!activeSess?.editing;
+  const msg=wasEdit?'¿Descartar los cambios de esta sesión?':'¿Cancelar el entrenamiento? No se guardará nada.';
+  if(!await dlgConfirm(msg))return;
+  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();
   const trainBtn=document.querySelector('.bn');
-  showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento cancelado');
+  showScr('train',trainBtn);renderCal();renderDayPanel();toast(wasEdit?'Cambios descartados':'Entrenamiento cancelado');
 }
-function updateTimer(){const m=Math.floor(timerSecs/60),s=timerSecs%60;const txt=m+':'+(s<10?'0':'')+s;document.getElementById('sess-timer').textContent=txt;const rt=document.getElementById('resume-bar-timer');if(rt)rt.textContent=txt;}
+function updateTimer(){timerSecs=sessStartTs?Math.max(0,Math.floor((Date.now()-sessStartTs)/1000)):0;const m=Math.floor(timerSecs/60),s=timerSecs%60;const txt=m+':'+(s<10?'0':'')+s;document.getElementById('sess-timer').textContent=txt;const rt=document.getElementById('resume-bar-timer');if(rt)rt.textContent=txt;}
 function resumeSession(){showScr('sess',null);renderSessExs();}
 function updateResumeBar(){
   const bar=document.getElementById('resume-bar');if(!bar)return;
@@ -1323,6 +1437,7 @@ function renderSessExs(){
   const target=activeSess?.isTmplEdit?'tmpledit-exs':'sess-exs';
   if(!activeSess){document.getElementById(target).innerHTML='';return;}
   document.getElementById(target).innerHTML=activeSess.exercises.map((ex,ei)=>renderExCard(ex,ei)).join('');
+  persistActive();
 }
 function renderExCard(ex,ei){
   const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
@@ -1353,8 +1468,8 @@ function renderExCard(ex,ei){
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
       <span class="drag-handle">⠿</span>
-      <span class="ec-name" onclick="goToExInBiblioteca('${ex.name.replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${ex.name}</span>
-      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${ex.muscle}</span>
+      <span class="ec-name" data-exn="${esc(ex.name)}" onclick="goToExInBiblioteca(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
+      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
     <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">rpe</div><div></div></div>
@@ -1364,7 +1479,7 @@ function renderExCard(ex,ei){
       ${ex.sets.length>1?`<button class="add-set-btn" onclick="removeLastSet(${ei})">− Serie</button>`:''}
     </div>
     ${e1rmRow}
-    <div class="notes-wrap"><textarea class="notes-inp" placeholder="Notas del ejercicio…" rows="1" oninput="saveNote(${ei},this.value)">${ex.notes||''}</textarea></div>
+    <div class="notes-wrap"><textarea class="notes-inp" placeholder="Notas del ejercicio…" rows="1" oninput="saveNote(${ei},this.value)">${esc(ex.notes||'')}</textarea></div>
   </div>`;
 }
 
@@ -1386,9 +1501,9 @@ function fillFromPrev(ei,si){
 function onSetInput(ei,si){
   if(!activeSess)return;
   const s=activeSess.exercises[ei].sets[si];
-  s.kg=parseFloat(document.getElementById(`kg_${ei}_${si}`)?.value)||null;
-  s.reps=parseFloat(document.getElementById(`rp_${ei}_${si}`)?.value)||null;
-  s.rpe=parseFloat(document.getElementById(`rpe_${ei}_${si}`)?.value)||null;
+  const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
+  const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
+  const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined)s.rpe=rpe;
   const allRMs=activeSess.exercises[ei].sets.map(st=>calcE1RM(st.kg,st.reps,st.rpe)).filter(Boolean);
   const bestCurr=allRMs.length?Math.max(...allRMs):null;
   const currEl=document.getElementById(`e1rm-curr_${ei}`);
@@ -1396,6 +1511,7 @@ function onSetInput(ei,si){
   const prFlag=document.getElementById(`pr-flag_${ei}`);
   const exName=activeSess?.exercises[ei]?.name;
   if(prFlag&&bestCurr&&exName){const histMax=getMaxE1RM(exName);prFlag.style.display=(histMax&&bestCurr>histMax)?'':'none';}
+  persistActive();
 }
 function toggleDone(ei,si){
   if(!activeSess)return;
@@ -1404,21 +1520,22 @@ function toggleDone(ei,si){
   const kgEl=document.getElementById(`kg_${ei}_${si}`);
   const rpEl=document.getElementById(`rp_${ei}_${si}`);
   const rpeEl=document.getElementById(`rpe_${ei}_${si}`);
-  const kgVal=parseFloat(kgEl?.value)||null;
-  const rpVal=parseFloat(rpEl?.value)||null;
-  if(!kgVal&&!rpVal){
+  const kgVal=numVal(kgEl);
+  const rpVal=numVal(rpEl);
+  if(kgVal==null&&rpVal==null){
     // Fill from placeholder (previous session values)
     const last=getLastEx(activeSess.exercises[ei].name);
     const lv=last?.sets?.[si];
     if(lv){
-      if(kgEl&&lv.kg&&!kgEl.value){kgEl.value=lv.kg;}
-      if(rpEl&&lv.reps&&!rpEl.value){rpEl.value=lv.reps;}
-      if(rpeEl&&lv.rpe&&!rpeEl.value){rpeEl.value=lv.rpe;}
+      if(kgEl&&lv.kg!=null&&!kgEl.value){kgEl.value=lv.kg;}
+      if(rpEl&&lv.reps!=null&&!rpEl.value){rpEl.value=lv.reps;}
+      if(rpeEl&&lv.rpe!=null&&!rpeEl.value){rpeEl.value=lv.rpe;}
     }
   }
-  s.kg=parseFloat(document.getElementById(`kg_${ei}_${si}`)?.value)||s.kg;
-  s.reps=parseFloat(document.getElementById(`rp_${ei}_${si}`)?.value)||s.reps;
-  s.rpe=parseFloat(document.getElementById(`rpe_${ei}_${si}`)?.value)||s.rpe;
+  // Explicit read: what's in the input is the truth (empty = null, 0 = 0)
+  const kg=numVal(kgEl);if(kg!==undefined)s.kg=kg;
+  const rp=numVal(rpEl);if(rp!==undefined)s.reps=rp;
+  const rpe=numVal(rpeEl);if(rpe!==undefined)s.rpe=rpe;
   s.done=!s.done;
   if(s.done){vib(30);startRest(activeSess.rest||90);}
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
@@ -1429,18 +1546,19 @@ function toggleDone(ei,si){
 }
 function addSet(ei){if(!activeSess)return;collectInputs();activeSess.exercises[ei].sets.push({kg:null,reps:null,rpe:null,done:false});renderSessExs();}
 function removeLastSet(ei){if(!activeSess||activeSess.exercises[ei].sets.length<=1)return;collectInputs();activeSess.exercises[ei].sets.pop();renderSessExs();}
-function saveNote(ei,val){if(activeSess)activeSess.exercises[ei].notes=val;}
+function saveNote(ei,val){if(activeSess){activeSess.exercises[ei].notes=val;persistActive();}}
 function collectInputs(){
   if(!activeSess)return;
   activeSess.exercises.forEach((ex,ei)=>{
     ex.sets.forEach((s,si)=>{
-      s.kg=parseFloat(document.getElementById(`kg_${ei}_${si}`)?.value)||s.kg||null;
-      s.reps=parseFloat(document.getElementById(`rp_${ei}_${si}`)?.value)||s.reps||null;
-      s.rpe=parseFloat(document.getElementById(`rpe_${ei}_${si}`)?.value)||s.rpe||null;
+      const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
+      const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
+      const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined)s.rpe=rpe;
     });
     const notesEl=document.querySelector(`#ec_${ei} .notes-inp`);
     if(notesEl)ex.notes=notesEl.value;
   });
+  persistActive();
 }
 async function finishSession(){
   if(!activeSess)return;
@@ -1448,13 +1566,19 @@ async function finishSession(){
   activeSess.exercises.forEach(ex=>{const rms=ex.sets.filter(s=>s.kg&&s.reps).map(s=>calcE1RM(s.kg,s.reps,s.rpe));ex.best_e1rm=rms.length?Math.max(...rms):null;});
   activeSess.name=document.getElementById('sess-name').value||'Entrenamiento';
   const valid=activeSess.exercises.filter(ex=>ex.sets.some(s=>s.kg||s.reps));
-  if(!valid.length){toast('Añade al menos una serie');return;}
+  if(!valid.length){timerIv=setInterval(updateTimer,1000);toast('Añade al menos una serie');return;}
   activeSess.exercises=valid;
-  const newSess={...activeSess,id:Date.now()};
+  // Reuse originalId when editing: the upsert becomes an UPDATE of the existing
+  // Supabase row instead of inserting a duplicate with a new id.
+  const isEdit=!!activeSess.originalId;
+  const newSess={...activeSess,id:activeSess.originalId||Date.now()};
+  delete newSess.editing;delete newSess.originalId;
+  if(isEdit)db.sessions=db.sessions.filter(s=>s.id!==newSess.id);
   db.sessions.push(newSess);
-  await saveSession(newSess);activeSess=null;
+  activeSess=null;clearActiveStash();
+  await saveSession(newSess);
   stopRest();vib([50,30,50]);
-  toast('Sesión guardada ✓');
+  toast(isEdit?'Sesión actualizada ✓':'Sesión guardada ✓');
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();
 }
@@ -1488,7 +1612,7 @@ function openPicker(targetOrMode){
   const isReplace=pickerTarget?.type==='replace'||pickerTarget==='replace';
   document.getElementById('picker-title').textContent=isReplace?'Reemplazar ejercicio':'Añadir ejercicio';
   const mf=document.getElementById('muscle-filters');
-  mf.innerHTML=`<div class="mf on" onclick="setMFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" onclick="setMFilter('${m}')">${m}</div>`).join('');
+  mf.innerHTML=`<div class="mf on" onclick="setMFilter('all')">Todos</div>`+MUSCLES.map(m=>`<div class="mf" data-m="${esc(m)}" onclick="setMFilter(this.dataset.m)">${esc(m)}</div>`).join('');
   const ef=document.getElementById('picker-eq-filters');
   ef.innerHTML=`<div class="mf on" onclick="setPickerEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setPickerEqFilter('${eq}')">${eq}</div>`).join('');
   renderPickerList();document.getElementById('ov-picker').classList.add('on');
@@ -1503,9 +1627,9 @@ function renderPickerList(){
     const searchOk=!search||e.name.toLowerCase().includes(search)||e.muscle.toLowerCase().includes(search);
     return muscleOk&&eqOk&&searchOk;
   });
-  const safe=n=>n.replace(/'/g,"\'");
+  // data-attrs instead of inline string args: names with quotes/HTML no longer break the handler
   document.getElementById('picker-list').innerHTML=list.length
-    ?list.map(e=>`<div class="ex-item" onclick="selectEx('${safe(e.name)}','${e.muscle}')"><div><div class="ex-item-name">${e.name}</div><div class="ex-item-muscle">${e.muscle}</div></div></div>`).join('')
+    ?list.map(e=>`<div class="ex-item" data-n="${esc(e.name)}" data-m="${esc(e.muscle)}" onclick="selectEx(this.dataset.n,this.dataset.m)"><div><div class="ex-item-name">${esc(e.name)}</div><div class="ex-item-muscle">${esc(e.muscle)}</div></div></div>`).join('')
     :'<div class="empty">Sin resultados</div>';
 }
 function closePicker(e){if(!e||e.target===document.getElementById('ov-picker'))document.getElementById('ov-picker').classList.remove('on');}
@@ -1576,17 +1700,17 @@ function renderBiblioteca(){
     ?list.map((e,i)=>{
       const mc=mc_map[e.muscle]||['#1e1e1e','#9ca3af'];
       const eqIcon={'Poleas':'⚙️','Máquina':'🔩','Peso libre':'🏋️'}[e.equipment]||'';
-      const cuesHtml=(e.cues||[]).map(c=>`<li style="margin-bottom:3px">${c}</li>`).join('');
+      const cuesHtml=(e.cues||[]).map(c=>`<li style="margin-bottom:3px">${esc(c)}</li>`).join('');
       return `<div style="border:1px solid var(--b1);border-radius:var(--rl);margin-bottom:8px;overflow:hidden">
         <div onclick="toggleBibCard(${i})" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--s1)">
-          <div style="flex:1;font-size:13px;font-weight:500">${e.name}</div>
-          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono);flex-shrink:0">${e.muscle}</span>
+          <div style="flex:1;font-size:13px;font-weight:500">${esc(e.name)}</div>
+          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono);flex-shrink:0">${esc(e.muscle)}</span>
           ${eqIcon?`<span style="font-size:11px">${eqIcon}</span>`:''}
         </div>
         <div id="bibcard-${i}" style="display:none;padding:10px 12px;border-top:1px solid var(--b1);background:var(--bg)">
-          ${e.reps?`<div style="font-size:11px;color:var(--amber);font-family:var(--mono);margin-bottom:8px">⭐ ${e.reps}</div>`:''}
-          ${e.description?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Descripción</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${e.description}</div>`:''}
-          ${e.execution?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Realización</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${e.execution}</div>`:''}
+          ${e.reps?`<div style="font-size:11px;color:var(--amber);font-family:var(--mono);margin-bottom:8px">⭐ ${esc(e.reps)}</div>`:''}
+          ${e.description?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Descripción</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${esc(e.description)}</div>`:''}
+          ${e.execution?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Realización</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${esc(e.execution)}</div>`:''}
           ${cuesHtml?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Claves</div><ul style="font-size:12px;color:var(--t2);padding-left:16px;line-height:1.6">${cuesHtml}</ul>`:''}
           <button onclick="bibAddToSession(${i})" style="margin-top:10px;width:100%;padding:8px;background:var(--bluedim);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a sesión activa</button>
           <button onclick="bibAddToTmpl(${i})" style="margin-top:6px;width:100%;padding:8px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir a rutina existente</button>
@@ -1615,7 +1739,7 @@ function openExEditor(i){
   const isNew=exEditorIdx===null;
   document.getElementById('ex-editor-title').textContent=isNew?'Nuevo ejercicio':'Editar ejercicio';
   const msel=document.getElementById('exed-muscle');
-  msel.innerHTML=MUSCLES.map(m=>`<option value="${m}">${m}</option>`).join('');
+  msel.innerHTML=MUSCLES.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
   const nameInp=document.getElementById('exed-name');
   if(isNew){
     nameInp.value='';nameInp.disabled=false;
@@ -1690,7 +1814,7 @@ function bibAddToTmpl(i){
   if(box.style.display!=='none'){box.style.display='none';return;}
   const tmpls=db.templates||[];
   box.innerHTML=tmpls.length
-    ?tmpls.map(t=>`<button onclick="bibAddToTmplDo(${i},'${t.id}')" style="width:100%;margin-bottom:4px;padding:7px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;font-family:var(--font);text-align:left">📋 ${t.name}</button>`).join('')
+    ?tmpls.map(t=>`<button onclick="bibAddToTmplDo(${i},'${t.id}')" style="width:100%;margin-bottom:4px;padding:7px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;font-family:var(--font);text-align:left">📋 ${esc(t.name)}</button>`).join('')
     :'<div style="color:var(--t3);font-size:12px;text-align:center;padding:8px">No hay rutinas creadas</div>';
   box.style.display='block';
 }
@@ -1721,7 +1845,7 @@ function renderProg(){
   const sel=document.getElementById('prog-sel');
   if(!all.size){document.getElementById('prog-stats').innerHTML='<div class="empty" style="grid-column:1/-1">Sin datos aún</div>';return;}
   const prev=sel.value;
-  sel.innerHTML=[...all].sort((a,b)=>a.localeCompare(b,'es')).map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');
+  sel.innerHTML=[...all].sort((a,b)=>a.localeCompare(b,'es')).map(e=>`<option value="${esc(e)}"${e===prev?' selected':''}>${esc(e)}</option>`).join('');
   renderProgChart();
 }
 function renderProgChart(){
@@ -1771,7 +1895,7 @@ function renderVol(){
   const chips=document.getElementById('vol-muscle-chips');
   if(chips&&!chips.dataset.init){
     chips.dataset.init='1';
-    chips.innerHTML=`<div class="mf on" data-m="all" onclick="volToggle('all')">Todos</div>`+allMuscles.map(m=>`<div class="mf" data-m="${m}" onclick="volToggle('${m}')">${m}</div>`).join('');
+    chips.innerHTML=`<div class="mf on" data-m="all" onclick="volToggle('all')">Todos</div>`+allMuscles.map(m=>`<div class="mf" data-m="${esc(m)}" onclick="volToggle(this.dataset.m)">${esc(m)}</div>`).join('');
   }
   const selSet=volSel.size?volSel:null;
   const vbm={};
@@ -1786,7 +1910,7 @@ function renderVol(){
     <div class="sc"><div class="sc-label">SESIONES / SEMANA</div><div class="sc-val">${week.length}</div></div>`;
   const mx=Math.max(...Object.values(vbm),1);
   document.getElementById('vol-bars').innerHTML=Object.entries(vbm).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`
-    <div class="vbar-wrap"><div class="vbar-label"><span>${m}</span><span style="font-family:var(--mono)">${v} series</span></div>
+    <div class="vbar-wrap"><div class="vbar-label"><span>${esc(m)}</span><span style="font-family:var(--mono)">${v} series</span></div>
     <div class="vbar"><div class="vfill" style="width:${Math.round(v/mx*100)}%;background:${VC[m]||'#4f8ef7'}"></div></div></div>`).join('');
   // Weekly chart filtered
   const aw={};
@@ -2048,7 +2172,7 @@ function openQuickStart(){
   const list=document.getElementById('quickstart-list');
   let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   (db.templates||[]).forEach(t=>{
-    html+=`<div onclick="startFromTmpl('${t.id}');closeQuickStart()" style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;cursor:pointer;font-size:13px;font-weight:500;transition:border-color .15s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--b1)'">${t.name}</div>`;
+    html+=`<div onclick="startFromTmpl('${t.id}');closeQuickStart()" style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;cursor:pointer;font-size:13px;font-weight:500;transition:border-color .15s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--b1)'">${esc(t.name)}</div>`;
   });
   html+='</div>';
   html+=`<div style="display:flex;gap:8px;margin-top:4px">
@@ -2106,7 +2230,8 @@ function setGetView(v){
 
 // Get weight closest to (and not after) a date
 function getWeightForDate(dateStr){
-  const weights=(db.weights||[]).filter(w=>w.date<=dateStr);
+  // Sort explicitly: db.weights order depends on insertion/edits, not date
+  const weights=(db.weights||[]).filter(w=>w.date<=dateStr).sort((a,b)=>a.date.localeCompare(b.date));
   if(!weights.length) return db.profile?.height?(db.profile.height-100):70; // fallback
   return weights[weights.length-1].kg;
 }
@@ -2116,9 +2241,11 @@ function getWeightForDate(dateStr){
 // Simpler: 4km/h, ~0.8 * weight_kg * distance_km
 // steps × 0.75m/step ≈ distance_km
 function stepsToKcal(steps, weightKg, heightCm){
-  const distKm = steps * 0.00075; // avg stride ~0.75m
-  // MET for 4km/h ≈ 3.0 for average person; scale by weight
-  const kcal = 3.0 * weightKg * (distKm / 4); // time_h = dist/speed
+  // Stride ≈ 0.415 × height (walking); falls back to 0.75 m if no height set
+  const strideM = heightCm ? heightCm*0.00415 : 0.75;
+  const distKm = steps * strideM / 1000;
+  // MET for 4 km/h ≈ 3.0; time_h = dist/speed
+  const kcal = 3.0 * weightKg * (distKm / 4);
   return Math.round(kcal);
 }
 
@@ -2316,12 +2443,12 @@ async function editNeatEntry(date){
   const v=await dlgPrompt(`Editar pasos (${fmtFull(date)}):`,String(entry.steps));
   if(v===null)return;const n=parseInt(v);
   if(isNaN(n)||n<0){toast('Valor no válido');return;}
-  entry.steps=n;saveDB();openNeatEdit();renderNeatChart();toast('Actualizado ✓');
+  entry.steps=n;await saveStepsRemote(date,n);openNeatEdit();renderNeatChart();toast('Actualizado ✓');
 }
 async function deleteNeatEntry(date){
   if(!await dlgConfirm(`¿Eliminar registro del ${fmtFull(date)}?`))return;
   db.steps=(db.steps||[]).filter(s=>s.date!==date);
-  saveDB();openNeatEdit();renderNeatChart();toast('Eliminado');
+  await deleteStepsRemote(date);openNeatEdit();renderNeatChart();toast('Eliminado');
 }
 
 function openWeightEdit(){
@@ -2352,7 +2479,7 @@ async function editWeightEntry(date){
 async function deleteWeightEntry(date){
   if(!await dlgConfirm(`¿Eliminar entrada del ${fmtFull(date)}?`))return;
   db.weights=(db.weights||[]).filter(w=>w.date!==date);
-  saveDB();
+  await deleteWeightRemote(date);
   if(document.getElementById('ov-weight-edit').classList.contains('on'))openWeightEdit();
   renderWeightChart();renderProfileScr();toast('Eliminado');
 }
@@ -2379,7 +2506,7 @@ function closeMeasuresEdit(e){if(!e||e.target===document.getElementById('ov-meas
 async function deleteMeasureEntry(week){
   if(!await dlgConfirm('¿Eliminar este registro de medidas?'))return;
   db.measures=(db.measures||[]).filter(m=>m.week!==week);
-  saveDB();openMeasuresEdit();renderMeasuresHistory();renderBFChart();renderProfileScr();toast('Eliminado');
+  await deleteMeasureRemote(week);openMeasuresEdit();renderMeasuresHistory();renderBFChart();renderProfileScr();toast('Eliminado');
 }
 
 // ═══ PERÍMETROS CHART ═══
@@ -2534,19 +2661,33 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 // ═══ MEJORAS: HAPTICS, REST TIMER, REPEAT, OFFLINE ═══
 function vib(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
-let restIv=null,restLeft=0;
+let restIv=null,restLeft=0,restEndTs=null;
 function startRest(secs){
-  stopRest();restLeft=secs||90;
+  stopRest();
+  // Anchor to an absolute end time: when the phone screen is off between sets
+  // (the normal case in a gym), intervals freeze — on wake, tickRest() recomputes
+  // the true remaining time from the wall clock instead of resuming a stale count.
+  restEndTs=Date.now()+(secs||90)*1000;
   const pill=document.getElementById('rest-pill');pill.style.display='flex';
+  tickRest();
+  restIv=setInterval(tickRest,1000);
+}
+function tickRest(){
+  if(restEndTs===null)return;
+  restLeft=Math.max(0,Math.round((restEndTs-Date.now())/1000));
   updateRestUI();
-  restIv=setInterval(()=>{
-    restLeft--;updateRestUI();
-    if(restLeft<=0){stopRest();vib([100,50,100]);toast('¡Descanso terminado!');}
-  },1000);
+  if(restLeft<=0){stopRest();vib([100,50,100]);toast('¡Descanso terminado!');}
 }
 function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;}
-function restAdd(s){restLeft+=s;updateRestUI();}
-function stopRest(){clearInterval(restIv);restIv=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';}
+function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();}
+function stopRest(){clearInterval(restIv);restIv=null;restEndTs=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';}
+// On wake/foreground, immediately resync both timers with the wall clock
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    if(activeSess&&!activeSess.isTmplEdit)updateTimer();
+    if(restEndTs!==null)tickRest();
+  }
+});
 function repeatLastSession(){
   const ss=(db.sessions||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!ss.length){toast('No hay sesiones previas');return;}
@@ -2555,7 +2696,7 @@ function repeatLastSession(){
   startSess(last.name||'Entrenamiento',exs);
   toast(`Repitiendo: ${last.name}`);
 }
-window.addEventListener('online',()=>{if(useSupabase&&db&&Object.keys(db).length){saveDB();toast('Conexión recuperada — sincronizando');}});
+window.addEventListener('online',()=>{if(useSupabase&&db&&Object.keys(db).length){saveDB();flushSyncQueue();toast('Conexión recuperada — sincronizando');}});
 window.addEventListener('offline',()=>toast('Sin conexión — guardando en local'));
 
 // ═══ INIT ═══
