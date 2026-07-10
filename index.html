@@ -2892,6 +2892,35 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // ═══ MEJORAS: HAPTICS, REST TIMER, REPEAT, OFFLINE ═══
 function vib(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 let restIv=null,restLeft=0,restEndTs=null;
+// ═══ REST NOTIFICATIONS (screen off / app in background) ═══
+// The in-page timer can't fire while Android suspends the tab, so the rest end
+// is also scheduled in the service worker, which shows a system notification
+// with vibration. The SW delays 1.2s past endTs so a VISIBLE page always wins
+// the race (toast+vib in-app) and cancels the notification before it shows.
+let notifAsked=false;
+async function ensureNotifPermission(){
+  if(!('Notification' in window))return false;
+  if(Notification.permission==='granted')return true;
+  if(Notification.permission==='denied')return false;
+  if(notifAsked)return false; // ask once per app load, don't nag
+  notifAsked=true;
+  try{return(await Notification.requestPermission())==='granted';}catch(e){return false;}
+}
+async function scheduleRestNotification(endTs){
+  try{
+    if(!await ensureNotifPermission())return;
+    const reg=await navigator.serviceWorker?.ready;
+    reg?.active?.postMessage({type:'schedule-rest',endTs});
+  }catch(e){}
+}
+function cancelRestNotification(){
+  try{
+    navigator.serviceWorker?.ready.then(reg=>{
+      reg.active?.postMessage({type:'cancel-rest'});
+      reg.getNotifications({tag:'rest-timer'}).then(ns=>ns.forEach(n=>n.close())).catch(()=>{});
+    });
+  }catch(e){}
+}
 function startRest(secs){
   stopRest();
   // Anchor to an absolute end time: when the phone screen is off between sets
@@ -2901,6 +2930,7 @@ function startRest(secs){
   const pill=document.getElementById('rest-pill');pill.style.display='flex';
   tickRest();
   restIv=setInterval(tickRest,1000);
+  scheduleRestNotification(restEndTs);
 }
 function tickRest(){
   if(restEndTs===null)return;
@@ -2909,13 +2939,17 @@ function tickRest(){
   if(restLeft<=0){stopRest();vib([100,50,100]);toast('¡Descanso terminado!');}
 }
 function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;}
-function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();}
-function stopRest(){clearInterval(restIv);restIv=null;restEndTs=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';}
+function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();if(restEndTs!==null)scheduleRestNotification(restEndTs);}
+function stopRest(){clearInterval(restIv);restIv=null;restEndTs=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';cancelRestNotification();}
 // On wake/foreground, immediately resync both timers with the wall clock
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
     if(activeSess&&!activeSess.isTmplEdit)updateTimer();
     if(restEndTs!==null)tickRest();
+  }else if(restEndTs!==null){
+    // Going to background with a rest pending: re-post the schedule. The message
+    // event also refreshes the SW's lifetime right when we start depending on it.
+    scheduleRestNotification(restEndTs);
   }
 });
 function repeatLastSession(){
