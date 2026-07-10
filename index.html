@@ -316,6 +316,7 @@ input[type=date]{color-scheme:dark}
       <div class="sg" id="vol-stats"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="stitle" style="margin-bottom:0">Series por músculo — Últ 7 días</div>
+        <button onclick="openLandmarks()" title="Editar MEV/MAV/MRV" style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t2);font-size:11px;font-family:var(--mono);padding:4px 9px;cursor:pointer">⚙ MEV·MAV·MRV</button>
       </div>
       <div class="mf-row" id="vol-muscle-chips"></div>
       <div id="vol-bars"></div>
@@ -654,6 +655,20 @@ input[type=date]{color-scheme:dark}
     <div class="mscroll" id="weight-edit-list"></div>
   </div>
 </div>
+<!-- LANDMARKS (MEV/MAV/MRV) MODAL -->
+<div class="overlay" id="ov-landmarks" onclick="closeLandmarks(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span class="mtitle" style="margin-bottom:0;flex:1">Landmarks de volumen</span>
+      <button onclick="closeLandmarks()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.4">Series semanales por músculo. Vacío = valor por defecto (guía RP). Se dibujan como bandas en el histórico al seleccionar un músculo.</div>
+    <div style="display:grid;grid-template-columns:1fr 52px 52px 52px;gap:6px;font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;padding:0 2px"><span></span><span style="text-align:center">MEV</span><span style="text-align:center">MAV</span><span style="text-align:center">MRV</span></div>
+    <div class="mscroll" id="lm-rows"></div>
+    <button class="save-measure-btn" style="margin-top:10px" onclick="saveLandmarks()">Guardar</button>
+  </div>
+</div>
 <!-- MEASURES EDIT MODAL -->
 <div class="overlay" id="ov-measures-edit" onclick="closeMeasuresEdit(event)">
   <div class="modal">
@@ -755,6 +770,57 @@ async function loadExercisesDB(){
 }
 const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Isquiosurales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
 const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Isquiosurales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
+// ═══ VOLUME LANDMARKS (MEV/MAV/MRV, series/semana) ═══
+// Defaults follow RP-style guidelines; editable per muscle via el botón ⚙ de la
+// pestaña Volumen. Overrides live in db.profile.landmarks → sync with the profile.
+const DEFAULT_LANDMARKS={
+  'Pectoral':{mev:8,mav:16,mrv:22},
+  'Espalda':{mev:10,mav:18,mrv:25},
+  'Tríceps':{mev:6,mav:12,mrv:18},
+  'Bíceps':{mev:8,mav:14,mrv:20},
+  'Glúteos':{mev:4,mav:12,mrv:16},
+  'Isquiosurales':{mev:6,mav:12,mrv:16},
+  'Cuádriceps':{mev:8,mav:14,mrv:20},
+  'Gemelos':{mev:8,mav:14,mrv:20},
+  'Sóleo':{mev:6,mav:10,mrv:16},
+  'Deltoides anterior':{mev:2,mav:8,mrv:12},
+  'Deltoides lateral':{mev:8,mav:18,mrv:26},
+  'Deltoides posterior':{mev:6,mav:14,mrv:22},
+  'Hombro posterior':{mev:6,mav:14,mrv:22},
+  'Aductores':{mev:4,mav:8,mrv:12},
+  'Abductores':{mev:4,mav:8,mrv:12},
+};
+function getLandmarks(m){
+  const lm={...(DEFAULT_LANDMARKS[m]||{}),...(db.profile?.landmarks?.[m]||{})};
+  return(lm.mev!=null&&lm.mav!=null&&lm.mrv!=null&&lm.mev<=lm.mav&&lm.mav<=lm.mrv)?lm:null;
+}
+function lmZone(total,lm){
+  if(total<lm.mev)return{txt:`&lt; MEV`,detail:`${total} de ${lm.mev} mín.`,color:'#4f8ef7'};
+  if(total<=lm.mav)return{txt:`MEV–MAV ✓`,detail:`zona productiva`,color:'#34d399'};
+  if(total<=lm.mrv)return{txt:`MAV–MRV ⚠`,detail:`alta fatiga`,color:'#fbbf24'};
+  return{txt:`&gt; MRV ✕`,detail:`sobre el máximo recuperable`,color:'#f87171'};
+}
+// Chart.js inline plugin: shaded MEV–MAV / MAV–MRV bands + threshold lines,
+// drawn only when exactly one muscle is selected in the chips.
+const volBandsPlugin={id:'volBands',beforeDatasetsDraw(chart,args,opts){
+  const lm=opts?.lm;if(!lm)return;
+  const{ctx,chartArea,scales:{y}}=chart;if(!chartArea||!y)return;
+  const{left,right,top,bottom}=chartArea;
+  const Y=v=>Math.min(bottom,Math.max(top,y.getPixelForValue(v)));
+  ctx.save();
+  ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
+  ctx.fillStyle='rgba(52,211,153,.10)';ctx.fillRect(left,Y(lm.mav),right-left,Y(lm.mev)-Y(lm.mav));
+  ctx.fillStyle='rgba(251,191,36,.08)';ctx.fillRect(left,Y(lm.mrv),right-left,Y(lm.mav)-Y(lm.mrv));
+  ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  const line=(v,c)=>{ctx.strokeStyle=c;ctx.beginPath();ctx.moveTo(left,Y(v));ctx.lineTo(right,Y(v));ctx.stroke();};
+  line(lm.mev,'rgba(52,211,153,.7)');line(lm.mav,'rgba(251,191,36,.6)');line(lm.mrv,'rgba(248,113,113,.8)');
+  ctx.setLineDash([]);
+  ctx.font='9px DM Mono';ctx.textAlign='right';
+  ctx.fillStyle='rgba(52,211,153,.95)';ctx.fillText('MEV '+lm.mev,right-4,Y(lm.mev)-3);
+  ctx.fillStyle='rgba(251,191,36,.95)';ctx.fillText('MAV '+lm.mav,right-4,Y(lm.mav)-3);
+  ctx.fillStyle='rgba(248,113,113,.95)';ctx.fillText('MRV '+lm.mrv,right-4,Y(lm.mrv)-3);
+  ctx.restore();
+}};
 function normMuscle(m){return m==='Isquiotibiales'?'Isquiosurales':m;}
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
@@ -2015,6 +2081,44 @@ function renderProgChart(){
 }
 
 // ═══ VOLUME ═══
+// ═══ LANDMARKS EDITOR ═══
+function openLandmarks(){
+  const seen=new Set([...(db.sessions||[]).flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[])]);
+  Object.keys(DEFAULT_LANDMARKS).forEach(m=>seen.add(m));
+  Object.keys(db.profile?.landmarks||{}).forEach(m=>seen.add(m));
+  const muscles=[...seen].sort((a,b)=>a.localeCompare(b,'es'));
+  const ov=db.profile?.landmarks||{};
+  const inp=(m,f)=>{const v=ov[m]?.[f];const ph=DEFAULT_LANDMARKS[m]?.[f]??'';
+    return `<input type="number" min="0" max="40" step="1" data-m="${esc(m)}" data-f="${f}" value="${v??''}" placeholder="${ph}" style="width:100%;padding:6px 4px;text-align:center;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;outline:none">`;};
+  document.getElementById('lm-rows').innerHTML=muscles.map(m=>`
+    <div style="display:grid;grid-template-columns:1fr 52px 52px 52px;gap:6px;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--t1)">${esc(m)}</span>
+      ${inp(m,'mev')}${inp(m,'mav')}${inp(m,'mrv')}
+    </div>`).join('');
+  document.getElementById('ov-landmarks').classList.add('on');
+}
+function closeLandmarks(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('ov-landmarks').classList.remove('on');}
+function saveLandmarks(){
+  const rows={};
+  document.querySelectorAll('#lm-rows input').forEach(el=>{
+    const m=el.dataset.m,f=el.dataset.f,v=numVal(el);
+    if(v==null)return; // empty → fall back to default
+    (rows[m]=rows[m]||{})[f]=v;
+  });
+  // Sanity: whatever is EFFECTIVE (override merged over default) must be ordered
+  for(const m of Object.keys(rows)){
+    const eff={...(DEFAULT_LANDMARKS[m]||{}),...rows[m]};
+    if(eff.mev!=null&&eff.mav!=null&&eff.mrv!=null&&!(eff.mev<=eff.mav&&eff.mav<=eff.mrv)){
+      toast(`${m}: se necesita MEV ≤ MAV ≤ MRV`);return;
+    }
+  }
+  db.profile=db.profile||{};
+  db.profile.landmarks=rows;
+  saveDB();
+  closeLandmarks();
+  renderVol();
+  toast('Landmarks guardados ✓');
+}
 function renderVol(){
   const sessions=db.sessions||[];
   const now=new Date(),wa=new Date(now-7*24*3600*1000);
@@ -2035,9 +2139,14 @@ function renderVol(){
     vbm[m]=(vbm[m]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
+  // MEV/MAV/MRV context: bands + zone card only with a single muscle selected
+  const selMuscle=(selSet&&selSet.size===1)?[...selSet][0]:null;
+  const lm=selMuscle?getLandmarks(selMuscle):null;
+  const zone=lm?lmZone(total,lm):null;
   document.getElementById('vol-stats').innerHTML=`
     <div class="sc"><div class="sc-label">SERIES / SEMANA</div><div class="sc-val">${total}</div></div>
-    <div class="sc"><div class="sc-label">SESIONES / SEMANA</div><div class="sc-val">${week.length}</div></div>`;
+    <div class="sc"><div class="sc-label">SESIONES / SEMANA</div><div class="sc-val">${week.length}</div></div>${zone?`
+    <div class="sc"><div class="sc-label">ZONA · ${lm.mev}/${lm.mav}/${lm.mrv}</div><div class="sc-val" style="font-size:15px;color:${zone.color}">${zone.txt}</div><div style="font-size:9px;color:var(--t3);font-family:var(--mono)">${zone.detail}</div></div>`:''}`;
   const mx=Math.max(...Object.values(vbm),1);
   document.getElementById('vol-bars').innerHTML=Object.entries(vbm).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`
     <div class="vbar-wrap"><div class="vbar-label"><span>${esc(m)}</span><span style="font-family:var(--mono)">${v} series</span></div>
@@ -2062,7 +2171,7 @@ function renderVol(){
   const muscles=selSet?[...selSet]:[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[]))];
   if(vChart){vChart.destroy();vChart=null;}
   if(weeks.length){
-    vChart=new Chart(document.getElementById('volChart'),{type:'bar',data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#999',boxWidth:10,boxHeight:10,font:{size:9,family:'DM Mono'},padding:6}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
+    vChart=new Chart(document.getElementById('volChart'),{type:'bar',plugins:[volBandsPlugin],data:{labels:weeks,datasets:muscles.map(m=>({label:m,data:weeks.map(w=>aw[w]?.[m]||0),backgroundColor:(VC[m]||'#4f8ef7')+'CC',borderRadius:3,borderColor:(VC[m]||'#4f8ef7'),borderWidth:0}))},options:{responsive:true,maintainAspectRatio:false,plugins:{volBands:{lm},legend:{display:true,position:'bottom',labels:{color:'#999',boxWidth:10,boxHeight:10,font:{size:9,family:'DM Mono'},padding:6}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}},y:{stacked:true,suggestedMax:lm?lm.mrv+3:undefined,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:10,family:'DM Mono'}}}}}});
   }
 }
 let volSel=new Set();
