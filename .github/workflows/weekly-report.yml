@@ -1,0 +1,35 @@
+name: Informe semanal Peak Physique
+
+on:
+  schedule:
+    # Se dispara dos veces cada domingo (17:00 y 18:00 UTC) para cubrir
+    # tanto horario de verano como de invierno en España.
+    # El script comprueba la hora real en Madrid y solo actúa a las 19:00.
+    - cron: '0 17 * * 0'
+    - cron: '0 18 * * 0'
+  workflow_dispatch: {}   # permite lanzarlo a mano desde la pestaña Actions para probar
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install --prefix scripts
+
+      - name: Generar y enviar informe
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_USER_ID: ${{ secrets.SUPABASE_USER_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+          REPORT_EMAIL_FROM: ${{ secrets.REPORT_EMAIL_FROM }}
+        run: node scripts/weekly-report.mjs
