@@ -1349,6 +1349,8 @@ function renderDayPanel(){
           <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--blue)" onclick="openSessionDetail(${s.id})">${esc(s.name)}${prCount>0?` 🏆${prCount}`:''}</span>
           <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ej.</span>
         </div>`;
+      const meta=sessMetaTag(s);
+      if(meta)html+=`<div style="font-size:10px;color:var(--t2);font-family:var(--mono);margin:-2px 0 4px">${meta}</div>`;
       s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${esc(e.name)} — ${ds2} series</div>`;});
       if((s.exercises?.length||0)>3)html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
       html+=`<div style="display:flex;gap:12px;margin-top:6px">
@@ -1452,18 +1454,14 @@ function openSessionDetail(id){
   const totalSets=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets?.filter(s=>s.kg||s.reps).length||0),0);
   const totalVol=Math.round((sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+((s.kg||0)*(s.reps||0)),0),0));
   const totalReps=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(s.reps||0),0),0);
-  const durMin=sess.durationMin||estimateSessDuration(sess);
-  const wt=getWeightForDate(sess.date);
-  const met=sessionMET(sess);
-  const kcal=sess.kcalWatch??(met&&durMin?Math.round((met-1)*wt*(durMin/60)):null);
-  const kcalTag=kcal?`${kcal} kcal ${sess.kcalWatch?'⌚':'~'}`:null;
+  const metaLine=sessMetaTag(sess);
   const muscleReps={};
   (sess.exercises||[]).forEach(ex=>{const r=(ex.sets||[]).filter(s=>s.reps).reduce((a,s)=>a+(s.reps||0),0);muscleReps[ex.muscle]=(muscleReps[ex.muscle]||0)+r;});
   const muscleBarColors=Object.fromEntries(Object.entries(MC).map(([k,v])=>[k,v[1]]));
   let html=`<div style="margin-bottom:16px">
     <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${fmtFull(sess.date)}</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:12px">${esc(sess.name)}${prCount>0?` 🏆${prCount}`:''}</div>
-    ${durMin||kcalTag?`<div style="font-size:11px;color:var(--t2);font-family:var(--mono);margin:-6px 0 12px">${durMin?`⏱ ${durMin} min${sess.durationMin?'':' (est.)'}`:''}${durMin&&kcalTag?' · ':''}${kcalTag?`🔥 ${kcalTag}`:''}</div>`:''}
+    ${metaLine?`<div style="font-size:11px;color:var(--t2);font-family:var(--mono);margin:-6px 0 12px">${metaLine}</div>`:''}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
       <div class="detail-stat"><div class="detail-stat-val">${totalSets}</div><div class="detail-stat-lbl">Series</div></div>
       <div class="detail-stat"><div class="detail-stat-val">${totalVol}</div><div class="detail-stat-lbl">Vol kg</div></div>
@@ -2596,6 +2594,17 @@ function estimateSessDuration(s){
   let sets=0;
   (s.exercises||[]).forEach(ex=>{sets+=(ex.sets||[]).filter(st=>(st.kg||st.reps)&&(st.type||'normal')!=='warmup').length;});
   return sets?Math.min(150,10+sets*3):0;
+}
+// "⏱ 83 min · 🔥 412 kcal ⌚" — shared by session detail and the calendar day panel
+function sessMetaTag(sess){
+  const durMin=sess.durationMin||estimateSessDuration(sess);
+  const wt=getWeightForDate(sess.date);
+  const met=sessionMET(sess);
+  const kcal=sess.kcalWatch??((met&&durMin)?Math.round((met-1)*wt*(durMin/60)):null);
+  const parts=[];
+  if(durMin)parts.push(`⏱ ${durMin} min${sess.durationMin?'':' (est.)'}`);
+  if(kcal)parts.push(`🔥 ${kcal} kcal ${sess.kcalWatch?'⌚':'~'}`);
+  return parts.join(' · ');
 }
 function gymKcalForDate(dateStr){
   const sessions=(db.sessions||[]).filter(s=>s.date===dateStr);
