@@ -278,6 +278,10 @@ input[type=date]{color-scheme:dark}
         <button class="finish-btn" onclick="finishSession()">Finalizar</button>
       </div>
       <div id="sess-exs"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:10px 0 2px">
+        <span style="font-size:12px;color:var(--t2)">⌚ kcal del reloj <span style="color:var(--t3)">(opcional)</span></span>
+        <input type="number" id="sess-kcal" min="0" max="3000" step="1" placeholder="auto" oninput="onKcalInput(this.value)" style="width:76px;background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:13px;text-align:center;padding:6px 4px;outline:none">
+      </div>
       <button class="add-ex-btn" onclick="openPicker('add')">+ Añadir ejercicio</button>
     </div>
     <!-- EDITAR RUTINA (sin timer, distinta de Nueva Sesión) -->
@@ -850,10 +854,38 @@ let dragSrcIdx=null,weightView='daily';
 let editTmplId=null,measureTab='perimetros';
 
 // ═══ E1RM ═══
+// ═══ e1RM — TUCHSCHERER / RTS TABLE ═══
+// %1RM indexed by EFFECTIVE reps (reps + RIR, RIR = 10 − RPE) at 0.5 resolution.
+// ER 1–10 is the canonical RTS RPE-10 row; ER 10.5–14 extends it with the classic
+// chart's 10-rep row read across RPE 9.5→6 (equivalent under the diagonal identity
+// PercentMax(reps,RPE)=REPMAX(reps+10−RPE)) — the standard community extension.
+// Beyond 14 effective reps there is no empirical support → return null: high-rep
+// burnout sets get honest silence instead of a fictitious PR (the old linear Epley
+// happily turned 80 kg × 27 into a 176 kg "e1RM").
+const RTS_PCT={1:100,1.5:97.8,2:95.5,2.5:93.9,3:92.2,3.5:90.7,4:89.2,4.5:87.8,5:86.3,5.5:85,6:83.7,6.5:82.4,7:81.1,7.5:79.9,8:78.6,8.5:77.4,9:76.2,9.5:75.1,10:73.9,10.5:72.3,11:70.7,11.5:69.4,12:68,12.5:66.7,13:65.3,13.5:64,14:62.6};
+function effReps(reps,rpe){
+  // Missing RPE → assume max effort (RIR 0), same semantics as the old calc.
+  // RPE clamped to the table's validated 6–10 band.
+  const r=(rpe!=null&&rpe>0)?Math.min(10,Math.max(6,rpe)):10;
+  return reps+(10-r);
+}
 function calcE1RM(kg,reps,rpe){
   if(!kg||!reps) return null;
-  const rir=(rpe!=null&&rpe>0)?(10-rpe):0;
-  return Math.round(kg*(1+(reps+rir)/30)*10)/10;
+  const er=Math.round(effReps(reps,rpe)*2)/2;
+  if(er>14) return null;
+  const pct=RTS_PCT[Math.max(1,er)];
+  if(!pct) return null;
+  return Math.round(kg/(pct/100)*10)/10;
+}
+// Stored best_e1rm on historical rows was computed with the old Epley formula.
+// One in-memory pass on every load keeps the whole series consistent with the
+// current estimator (charts, PRs, cache, session detail) without touching remote
+// rows — they get persisted naturally whenever a session is edited.
+function recalcAllE1RM(){
+  (db.sessions||[]).forEach(s=>(s.exercises||[]).forEach(ex=>{
+    const rms=(ex.sets||[]).filter(x=>x.kg&&x.reps).map(x=>calcE1RM(x.kg,x.reps,x.rpe)).filter(Boolean);
+    ex.best_e1rm=rms.length?Math.max(...rms):null;
+  }));
 }
 function normExName(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');}
 // ═══ EXERCISE HISTORY CACHE ═══
@@ -1053,6 +1085,7 @@ function loadDB(){
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
   // No seed data — start clean for new users
+  recalcAllE1RM();
 }
 
 async function loadDBFromSupabase(){
@@ -1070,7 +1103,7 @@ async function loadDBFromSupabase(){
     ]);
     // Initialise db
     db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
-    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({id:r.id, date:r.date, name:r.name, dayName:r.day_name, exercises:typeof r.exercises==='string'?JSON.parse(r.exercises):(r.exercises||[])}));
+    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({id:r.id, date:r.date, name:r.name, dayName:r.day_name, durationMin:r.duration_min??null, kcalWatch:r.kcal_watch??null, exercises:typeof r.exercises==='string'?JSON.parse(r.exercises):(r.exercises||[])}));
     if(!wRes.error) db.weights = (wRes.data||[]).map(r=>({date:r.date,kg:parseFloat(r.kg)}));
     if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
@@ -1085,6 +1118,7 @@ async function loadDBFromSupabase(){
     console.warn('Supabase load failed, using localStorage:', e);
     loadDB();
   }
+  recalcAllE1RM();
 }
 
 async function saveDB(){
@@ -1110,7 +1144,7 @@ async function saveDB(){
 async function saveSession(sess){
   saveDB();
   if(!useSupabase||!sbClient||!supabaseUser) return;
-  const row={id:sess.id, user_id:supabaseUser.id, date:sess.date, name:sess.name, day_name:sess.dayName, exercises:sess.exercises};
+  const row={id:sess.id, user_id:supabaseUser.id, date:sess.date, name:sess.name, day_name:sess.dayName, duration_min:sess.durationMin??null, kcal_watch:sess.kcalWatch??null, exercises:sess.exercises};
   try {
     const {error} = await sbClient.from('sessions').upsert(row);
     if(error) throw error;
@@ -1241,7 +1275,9 @@ async function checkRestoreSession(){
     activeSess=stash.sess;
     sessStartTs=stash.startedAt||Date.now();
     clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
+    acquireWakeLock();
     const ni=document.getElementById('sess-name');if(ni)ni.value=nm;
+    const ki=document.getElementById('sess-kcal');if(ki)ki.value=activeSess.kcalWatch??'';
     document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
     showScr('sess',null);renderSessExs();
   } else clearActiveStash();
@@ -1416,12 +1452,18 @@ function openSessionDetail(id){
   const totalSets=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets?.filter(s=>s.kg||s.reps).length||0),0);
   const totalVol=Math.round((sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+((s.kg||0)*(s.reps||0)),0),0));
   const totalReps=(sess.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(s.reps||0),0),0);
+  const durMin=sess.durationMin||estimateSessDuration(sess);
+  const wt=getWeightForDate(sess.date);
+  const met=sessionMET(sess);
+  const kcal=sess.kcalWatch??(met&&durMin?Math.round((met-1)*wt*(durMin/60)):null);
+  const kcalTag=kcal?`${kcal} kcal ${sess.kcalWatch?'⌚':'~'}`:null;
   const muscleReps={};
   (sess.exercises||[]).forEach(ex=>{const r=(ex.sets||[]).filter(s=>s.reps).reduce((a,s)=>a+(s.reps||0),0);muscleReps[ex.muscle]=(muscleReps[ex.muscle]||0)+r;});
   const muscleBarColors=Object.fromEntries(Object.entries(MC).map(([k,v])=>[k,v[1]]));
   let html=`<div style="margin-bottom:16px">
     <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${fmtFull(sess.date)}</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:12px">${esc(sess.name)}${prCount>0?` 🏆${prCount}`:''}</div>
+    ${durMin||kcalTag?`<div style="font-size:11px;color:var(--t2);font-family:var(--mono);margin:-6px 0 12px">${durMin?`⏱ ${durMin} min${sess.durationMin?'':' (est.)'}`:''}${durMin&&kcalTag?' · ':''}${kcalTag?`🔥 ${kcalTag}`:''}</div>`:''}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
       <div class="detail-stat"><div class="detail-stat-val">${totalSets}</div><div class="detail-stat-lbl">Series</div></div>
       <div class="detail-stat"><div class="detail-stat-val">${totalVol}</div><div class="detail-stat-lbl">Vol kg</div></div>
@@ -1467,7 +1509,9 @@ function editSession(id){
   activeSess={...JSON.parse(JSON.stringify(sess)),editing:true,originalId:id};
   sessStartTs=Date.now();
   clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
+  acquireWakeLock();
   document.getElementById('sess-name').value=sess.name;
+  const ki=document.getElementById('sess-kcal');if(ki)ki.value=sess.kcalWatch??'';
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
   toast('Editando sesión — Finalizar para guardar');
@@ -1488,7 +1532,9 @@ function startSess(name,exercises,rest){
   // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
   sessStartTs=Date.now();
   clearInterval(timerIv);timerIv=setInterval(updateTimer,1000);updateTimer();
+  acquireWakeLock();
   document.getElementById('sess-name').value=name;
+  const ki=document.getElementById('sess-kcal');if(ki)ki.value='';
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('sess',null);renderSessExs();
 }
@@ -1496,7 +1542,7 @@ async function deleteCurrentSession(){
   if(!activeSess?.editing){cancelSession();return;}
   if(!await dlgConfirm('¿Borrar este entrenamiento definitivamente?'))return;
   const oid=activeSess.originalId;
-  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();
+  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();releaseWakeLock();
   if(oid){db.sessions=db.sessions.filter(s=>s.id!==oid);await deleteSessionRemote(oid);}
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast('Entrenamiento eliminado');
@@ -1505,7 +1551,7 @@ async function cancelSession(){
   const wasEdit=!!activeSess?.editing;
   const msg=wasEdit?'¿Descartar los cambios de esta sesión?':'¿Cancelar el entrenamiento? No se guardará nada.';
   if(!await dlgConfirm(msg))return;
-  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();
+  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();releaseWakeLock();
   const trainBtn=document.querySelector('.bn');
   showScr('train',trainBtn);renderCal();renderDayPanel();toast(wasEdit?'Cambios descartados':'Entrenamiento cancelado');
 }
@@ -1602,6 +1648,9 @@ function fillFromPrev(ei,si){
 
 // ═══ DOUBLE PROGRESSION ═══
 // RPE-gated double progression from the last logged session of each exercise:
+//   0. All top-weight sets at ≥12 EFFECTIVE reps (reps + RIR) → add load. The set
+//      demonstrates the weight is below the strength-stimulus zone regardless of
+//      rep-range settings or RPE — this rule takes priority over the hold rule.
 //   1. All top-weight working sets at the TOP of the rep range @ RPE ≤ 8 → add load
 //   2. Otherwise, RPE ≤ 8.5 and room in the range → add 1 rep to the weakest set
 //   3. Max RPE ≥ 9.5 → hold the load (accumulated fatigue / near-miss)
@@ -1634,6 +1683,12 @@ function getProgression(exName){
   const inc=topKg>=20?2.5:1.25;
   const r1=v=>Math.round(v*100)/100;
   const lo=range?.lo??null, hi=range?.hi??null;
+  // Rule 0: ≥12 effective reps on every top-weight set → the load is too light,
+  // increase regardless of range or RPE (explicit user rule; beats the hold rule).
+  const erOf=s=>s.reps+(10-Math.min(10,Math.max(6,s.rpe??8)));
+  const minER=Math.min(...work.map(erOf));
+  if(minER>=12)
+    return{action:'weight',kg:r1(topKg+inc),reps:lo||8,msg:`Sube a ${r1(topKg+inc)} kg — ${Math.round(minER*10)/10} reps efectivas (≥12)`};
   if(maxRpe>=9.5)
     return{action:'hold',kg:topKg,reps:minReps,msg:`Mantén ${topKg} kg — RPE ${maxRpe} la última sesión`};
   if(hi&&work.every(s=>s.reps>=hi)&&maxRpe<=8)
@@ -1743,6 +1798,7 @@ function removeLastSet(ei){
   persistActive();
 }
 function saveNote(ei,val){if(activeSess){activeSess.exercises[ei].notes=val;persistActive();}}
+function onKcalInput(v){if(!activeSess)return;const n=parseFloat(v);activeSess.kcalWatch=(v===''||isNaN(n))?null:Math.round(n);persistActive();}
 function collectInputs(){
   if(!activeSess)return;
   activeSess.exercises.forEach((ex,ei)=>{
@@ -1768,10 +1824,13 @@ async function finishSession(){
   // Supabase row instead of inserting a duplicate with a new id.
   const isEdit=!!activeSess.originalId;
   const newSess={...activeSess,id:activeSess.originalId||Date.now()};
+  // Duration: for new sessions derive from the wall-clock start; when editing an
+  // old one, KEEP its stored duration (the edit timer measures editing, not training).
+  if(!isEdit)newSess.durationMin=Math.max(1,Math.round((Date.now()-(sessStartTs||Date.now()))/60000));
   delete newSess.editing;delete newSess.originalId;
   if(isEdit)db.sessions=db.sessions.filter(s=>s.id!==newSess.id);
   db.sessions.push(newSess);
-  activeSess=null;clearActiveStash();
+  activeSess=null;clearActiveStash();releaseWakeLock();
   await saveSession(newSess);
   stopRest();vib([50,30,50]);
   toast(isEdit?'Sesión actualizada ✓':'Sesión guardada ✓');
@@ -2483,8 +2542,9 @@ function stepsToKcal(steps, weightKg, heightCm){
   // Stride ≈ 0.415 × height (walking); falls back to 0.75 m if no height set
   const strideM = heightCm ? heightCm*0.00415 : 0.75;
   const distKm = steps * strideM / 1000;
-  // MET for 4 km/h ≈ 3.0; time_h = dist/speed
-  const kcal = 3.0 * weightKg * (distKm / 4);
+  // NET kcal: (MET − 1) so resting burn isn't double-counted against TMB.
+  // MET 3.0 for ~4 km/h; time_h = dist/speed
+  const kcal = (3.0 - 1) * weightKg * (distKm / 4);
   return Math.round(kcal);
 }
 
@@ -2500,41 +2560,57 @@ function calcTMB(dateStr){
   return Math.round(tmb);
 }
 
-// Gym kcal: MET × weight × duration_h
-// Upper: MET 5, Lower: MET 6, other: MET 5
-// Lambert et al. (JSCR, R²=0.773):
-// Net kcal = 0.874*height - 0.596*age - 1.016*fatMass + 1.638*leanMass + 2.461*(TV/1000) - 110.742
-// TV = sets × reps × kg (total volume load of session)
-// RPE corrector: if mean RPE > 7, multiply by 1 + 0.03*(meanRPE - 7) to capture anaerobic contribution
+// ═══ GYM KCAL — DURATION-BASED NET MET MODEL ═══
+// Replaces the Lambert et al. regression, which had no duration term (derived
+// from a fixed lab protocol) and priced extra volume at ~2.5 kcal/tonne — hence
+// whole sessions reading ~150 kcal. New model:
+//   kcal = (MET − 1) × weight × hours       ← NET of BMR, consistent with NEAT
+// Base MET 3.5 (Compendium: resistance training, multiple exercises, 8–15 reps),
+// modulated by the muscle mass engaged (the "normalized intensity by muscle
+// trained" idea), work density (sets/min captures short-rest metabolic work),
+// and mean session RPE. Clamped to the physiological 2.5–6.0 MET band.
+// If the user logged the watch's kcal for the session (kcalWatch), it wins as-is.
+const MET_LOWER=new Set(['Cuádriceps','Isquiosurales','Glúteos','Gemelos','Sóleo','Aductores','Abductores']);
+const MET_BIG_UPPER=new Set(['Espalda','Pectoral']);
+function sessionMET(s){
+  let sets=0,lower=0,big=0,rs=0,rc=0;
+  (s.exercises||[]).forEach(ex=>{
+    const n=(ex.sets||[]).filter(st=>(st.kg||st.reps)&&(st.type||'normal')!=='warmup').length;
+    if(!n)return;
+    sets+=n;
+    const m=normMuscle(ex.muscle||'');
+    if(MET_LOWER.has(m))lower+=n;else if(MET_BIG_UPPER.has(m))big+=n;
+    (ex.sets||[]).forEach(st=>{if(st.rpe){rs+=st.rpe;rc++;}});
+  });
+  if(!sets)return null;
+  let met=3.5;
+  met+=1.0*(lower/sets)+0.4*(big/sets);                    // muscle mass engaged
+  const dur=s.durationMin||estimateSessDuration(s);
+  if(dur){const dens=sets/dur;met+=Math.max(-0.5,Math.min(0.7,(dens-0.30)*4));} // vs ~0.30 sets/min typical
+  if(rc)met+=Math.max(-0.4,Math.min(0.6,(rs/rc-7.5)*0.3)); // effort
+  return Math.min(6,Math.max(2.5,met));
+}
+// Legacy sessions (pre-migration) have no stored duration: ~3 min per working
+// set (set + rest) + 10 min overhead, capped at 150 min.
+function estimateSessDuration(s){
+  let sets=0;
+  (s.exercises||[]).forEach(ex=>{sets+=(ex.sets||[]).filter(st=>(st.kg||st.reps)&&(st.type||'normal')!=='warmup').length;});
+  return sets?Math.min(150,10+sets*3):0;
+}
 function gymKcalForDate(dateStr){
   const sessions=(db.sessions||[]).filter(s=>s.date===dateStr);
   if(!sessions.length) return 0;
-  const height=db.profile?.height||175;
-  const age=db.profile?.age||30;
   const weight=getWeightForDate(dateStr);
-  // Body composition: use last JP bodyfat if available, else estimate 20%
-  const lastBFEntry=(db.measures||[]).filter(m=>m.bf!=null&&(m.date||'9999')<=dateStr).pop();
-  const bfPct=lastBFEntry?lastBFEntry.bf/100:0.20;
-  const fatMass=weight*bfPct;
-  const leanMass=weight*(1-bfPct);
   let total=0;
   sessions.forEach(s=>{
-    // Calculate TV = Σ(kg × reps) for all completed sets
-    let TV=0, rpeSum=0, rpeCount=0;
-    (s.exercises||[]).forEach(ex=>{
-      (ex.sets||[]).filter(st=>st.kg&&st.reps).forEach(st=>{
-        TV+=st.kg*st.reps;
-        if(st.rpe){rpeSum+=st.rpe;rpeCount++;}
-      });
-    });
-    if(TV===0) return; // no data, skip
-    const meanRPE=rpeCount?rpeSum/rpeCount:7;
-    const rpeFactor=meanRPE>7?1+0.03*(meanRPE-7):1;
-    const rawKcal=0.874*height - 0.596*age - 1.016*fatMass + 1.638*leanMass + 2.461*(TV/1000) - 110.742;
-    // Lambert equation can return negative for very low TV — floor at 0
-    total+=Math.max(0, Math.round(rawKcal*rpeFactor));
+    if(s.kcalWatch){total+=s.kcalWatch;return;} // watch value overrides the model
+    const met=sessionMET(s);
+    if(met==null)return;
+    const durMin=s.durationMin||estimateSessDuration(s);
+    if(!durMin)return;
+    total+=(met-1)*weight*(durMin/60);
   });
-  return total;
+  return Math.round(total);
 }
 
 function renderActivityScr(){
@@ -2892,6 +2968,45 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 // ═══ MEJORAS: HAPTICS, REST TIMER, REPEAT, OFFLINE ═══
 function vib(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 let restIv=null,restLeft=0,restEndTs=null;
+// ═══ SCREEN WAKE LOCK ═══
+// A web app cannot turn a locked screen ON, but it CAN keep it from turning off.
+// While a session is active the screen stays awake, so the in-page timer never
+// freezes and vibration+beep fire reliably — the SW notification remains as
+// backup for when the user locks the screen manually.
+let wakeLock=null;
+async function acquireWakeLock(){
+  try{
+    if(!('wakeLock' in navigator)||wakeLock)return;
+    wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',()=>{wakeLock=null;});
+  }catch(e){wakeLock=null;}
+}
+function releaseWakeLock(){try{wakeLock?.release();}catch(e){}wakeLock=null;}
+// ═══ AUDIBLE ALERT ═══
+// AudioContext is created/resumed inside startRest (a tap gesture), so the
+// end-of-rest beep can play later without needing a new user gesture.
+let audioCtx=null;
+function initAudio(){
+  try{
+    audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+  }catch(e){}
+}
+function beep(){
+  try{
+    if(!audioCtx||audioCtx.state!=='running')return;
+    const t0=audioCtx.currentTime;
+    [[880,0],[880,0.35],[1174,0.7]].forEach(([f,dt])=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(audioCtx.destination);
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t0+dt);
+      g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.28);
+      o.start(t0+dt);o.stop(t0+dt+0.3);
+    });
+  }catch(e){}
+}
 // ═══ REST NOTIFICATIONS (screen off / app in background) ═══
 // The in-page timer can't fire while Android suspends the tab, so the rest end
 // is also scheduled in the service worker, which shows a system notification
@@ -2923,6 +3038,7 @@ function cancelRestNotification(){
 }
 function startRest(secs){
   stopRest();
+  initAudio(); // inside the tap gesture → beep at rest end needs no new gesture
   // Anchor to an absolute end time: when the phone screen is off between sets
   // (the normal case in a gym), intervals freeze — on wake, tickRest() recomputes
   // the true remaining time from the wall clock instead of resuming a stale count.
@@ -2936,7 +3052,7 @@ function tickRest(){
   if(restEndTs===null)return;
   restLeft=Math.max(0,Math.round((restEndTs-Date.now())/1000));
   updateRestUI();
-  if(restLeft<=0){stopRest();vib([100,50,100]);toast('¡Descanso terminado!');}
+  if(restLeft<=0){stopRest();vib([300,100,300]);beep();toast('¡Descanso terminado!');}
 }
 function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;}
 function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();if(restEndTs!==null)scheduleRestNotification(restEndTs);}
@@ -2944,7 +3060,7 @@ function stopRest(){clearInterval(restIv);restIv=null;restEndTs=null;const p=doc
 // On wake/foreground, immediately resync both timers with the wall clock
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
-    if(activeSess&&!activeSess.isTmplEdit)updateTimer();
+    if(activeSess&&!activeSess.isTmplEdit){updateTimer();acquireWakeLock();}
     if(restEndTs!==null)tickRest();
   }else if(restEndTs!==null){
     // Going to background with a rest pending: re-post the schedule. The message
