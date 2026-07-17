@@ -6,6 +6,10 @@ import { createClient } from '@supabase/supabase-js';
 import PDFDocument from 'pdfkit';
 
 // ─── 1. Comprobar que son las 19:00 en Madrid (evita duplicados por DST) ────
+// Se puede saltar temporalmente lanzando el workflow a mano con "force" activado
+// (útil para probar formatos sin esperar al domingo).
+const forceSend = process.env.FORCE_SEND === 'true';
+
 const madridHour = Number(
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Madrid',
@@ -14,9 +18,12 @@ const madridHour = Number(
   }).format(new Date())
 );
 
-if (madridHour !== 19) {
+if (!forceSend && madridHour !== 19) {
   console.log(`Hora actual en Madrid: ${madridHour}h. No son las 19:00, no se envía nada.`);
   process.exit(0);
+}
+if (forceSend) {
+  console.log('FORCE_SEND activo: saltando la comprobación de hora.');
 }
 
 // ─── 2. Config y cliente Supabase ───────────────────────────────────────────
@@ -33,7 +40,10 @@ for (const [k, v] of Object.entries({ SUPABASE_URL, SUPABASE_SERVICE_KEY, RESEND
   if (!v) { console.error(`Falta la variable de entorno ${k}`); process.exit(1); }
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  realtime: { params: { eventsPerSecond: 1 } },
+  auth: { persistSession: false },
+});
 
 // ─── 3. Rango de la semana (lunes a domingo, hora Madrid) ──────────────────
 function madridDateParts(d) {
