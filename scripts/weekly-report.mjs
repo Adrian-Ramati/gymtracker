@@ -55,7 +55,8 @@ const todayMid = new Date(Date.UTC(ty, tm - 1, td));
 const dow = todayMid.getUTCDay();
 const daysSinceMonday = (dow + 6) % 7;
 // Lunes de ESTA semana
-const monThis = new Date(todayMid); monThis.setUTCDate(todayMid.getUTCDate() - daysSinceMonday);
+const weekOffset = Number(process.env.WEEK_OFFSET || 0);
+const monThis = new Date(todayMid); monThis.setUTCDate(todayMid.getUTCDate() - daysSinceMonday + weekOffset * 7);
 const sunThis = new Date(monThis); sunThis.setUTCDate(monThis.getUTCDate() + 6);
 // Semana pasada
 const monPrev = new Date(monThis); monPrev.setUTCDate(monThis.getUTCDate() - 7);
