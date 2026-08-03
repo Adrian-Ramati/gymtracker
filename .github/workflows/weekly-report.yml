@@ -10,9 +10,8 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Forzar envío ahora mismo (ignora la comprobación de las 19:00)'
         week_offset:
-        description: 'Semanas hacia atrás (0 = actual, -1 = semana pasada)'
+        description: 'Semanas hacia atrás (0 = actual, -1 = semana pasada). Forzar envío ahora mismo (ignora la comprobación de las 19:00)'
         type: string
         default: '0'
         type: boolean
