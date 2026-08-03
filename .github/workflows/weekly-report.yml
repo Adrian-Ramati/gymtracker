@@ -10,12 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        week_offset:
-        description: 'Semanas hacia atrás (0 = actual, -1 = semana pasada). Forzar envío ahora mismo (ignora la comprobación de las 19:00)'
-        type: string
-        default: '0'
+        description: 'Forzar envío ahora mismo (ignora la comprobación de las 19:00)'
         type: boolean
         default: false
+      week_offset:
+        description: 'Semanas hacia atrás (0 = actual, -1 = semana pasada)'
+        type: string
+        default: '0'
 
 jobs:
   send-report:
@@ -35,11 +36,11 @@ jobs:
       - name: Generar y enviar informe
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          WEEK_OFFSET: ${{ inputs.week_offset }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           SUPABASE_USER_ID: ${{ secrets.SUPABASE_USER_ID }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
           REPORT_EMAIL_FROM: ${{ secrets.REPORT_EMAIL_FROM }}
           FORCE_SEND: ${{ inputs.force }}
+          WEEK_OFFSET: ${{ inputs.week_offset }}
         run: node scripts/weekly-report.mjs
