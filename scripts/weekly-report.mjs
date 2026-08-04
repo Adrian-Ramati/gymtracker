@@ -233,7 +233,7 @@ try {
     headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-5',
-      max_tokens: 2500,
+      max_tokens: 4500,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: `Datos de la semana (JSON):\n${JSON.stringify(aiPayload, null, 2)}` }],
     }),
@@ -244,8 +244,9 @@ try {
     console.error('Error API Anthropic:', aiErrorDetail);
   } else {
     const aiData = JSON.parse(rawText);
-    aiAnalysisMarkdown = aiData.content?.[0]?.text || null;
-    if (!aiAnalysisMarkdown) { aiErrorDetail = `Respuesta sin texto: ${rawText.slice(0, 300)}`; }
+    const textBlock = (aiData.content || []).find(b => b.type === 'text');
+    aiAnalysisMarkdown = textBlock?.text || null;
+    if (!aiAnalysisMarkdown) { aiErrorDetail = `Sin bloque de texto (stop_reason: ${aiData.stop_reason}): ${rawText.slice(0, 300)}`; }
   }
 } catch (e) {
   aiErrorDetail = `Excepción: ${e.message}`;
