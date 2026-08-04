@@ -295,48 +295,15 @@ const CW = PW - M * 2;
 
 function paintBg() { doc.save().rect(0, 0, PW, PH).fill(C.bg).restore(); }
 paintBg();
-doc.on('pageAdded', paintBg);
 
-function ensure(need) { if (doc.y + need > PH - M) doc.addPage(); }
-function heading(txt, color = C.text) { ensure(30); doc.fillColor(color).fontSize(14).font('Helvetica-Bold').text(txt, M, doc.y); doc.moveDown(0.4); }
-function sub(txt) { doc.fillColor(C.dim).fontSize(9).font('Helvetica').text(txt); doc.moveDown(0.3); }
-function pill(x, y, txt, color) {
-  doc.font('Helvetica-Bold').fontSize(7.5);
-  const w = doc.widthOfString(txt) + 12;
-  doc.save().roundedRect(x, y, w, 14, 7).fillOpacity(0.18).fill(color).restore();
-  doc.fillOpacity(1).fillColor(color).text(txt, x + 6, y + 3.5, { width: w - 12, align: 'center' });
+function pill(x, y, txt, color, fontSize = 6.5) {
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  const w = doc.widthOfString(txt) + 10;
+  doc.save().roundedRect(x, y, w, 12, 6).fillOpacity(0.18).fill(color).restore();
+  doc.fillOpacity(1).fillColor(color).text(txt, x + 5, y + 3, { width: w - 10, align: 'center' });
   return w;
 }
-
-// Iconos simples dibujados a mano (sin librería de iconos)
-function iconCalendar(cx, cy, r, color) {
-  doc.save().roundedRect(cx - r, cy - r * 0.85, r * 2, r * 1.8, 3).lineWidth(1.6).strokeColor(color).stroke().restore();
-  doc.save().moveTo(cx - r, cy - r * 0.35).lineTo(cx + r, cy - r * 0.35).lineWidth(1.2).strokeColor(color).stroke().restore();
-  doc.save().moveTo(cx - r * 0.5, cy - r * 1.1).lineTo(cx - r * 0.5, cy - r * 0.6).lineWidth(1.4).strokeColor(color).stroke().restore();
-  doc.save().moveTo(cx + r * 0.5, cy - r * 1.1).lineTo(cx + r * 0.5, cy - r * 0.6).lineWidth(1.4).strokeColor(color).stroke().restore();
-  [0, 1].forEach(row => [0, 1, 2].forEach(col => {
-    doc.save().circle(cx - r * 0.55 + col * r * 0.55, cy + row * r * 0.5, 1.1).fill(color).restore();
-  }));
-}
-function iconDumbbell(cx, cy, r, color) {
-  doc.save().rect(cx - r * 0.9, cy - 1.5, r * 1.8, 3).fill(color).restore();
-  [-1, 1].forEach(side => {
-    doc.save().circle(cx + side * r * 0.95, cy, r * 0.5).fill(color).restore();
-  });
-}
-function iconStar(cx, cy, r, color) {
-  const pts = [];
-  for (let i = 0; i < 10; i++) {
-    const ang = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rad = i % 2 === 0 ? r : r * 0.45;
-    pts.push([cx + rad * Math.cos(ang), cy + rad * Math.sin(ang)]);
-  }
-  doc.save().moveTo(...pts[0]);
-  pts.slice(1).forEach(p => doc.lineTo(...p));
-  doc.closePath().fill(color).restore();
-}
-// Triángulo de tendencia (sustituye a los caracteres unicode ↑/↓, no soportados por Helvetica en pdfkit)
-function triArrow(x, y, dir, color, size = 4) {
+function triArrow(x, y, dir, color, size = 3.5) {
   doc.save();
   if (dir === 'up') { doc.moveTo(x, y - size).lineTo(x - size, y + size).lineTo(x + size, y + size); }
   else { doc.moveTo(x, y + size).lineTo(x - size, y - size).lineTo(x + size, y - size); }
@@ -349,246 +316,246 @@ function trendGlyphs(curr, prev) {
   if (curr < prev) return { dir: 'down', double: false, c: C.red };
   return { dir: 'flat', double: false, c: C.dim };
 }
-// ─── 16. Cabecera ─────────────────────────────────────────────────────────────
-doc.image(logoBuffer, M, M, { width: 54, height: 54 });
-doc.fillColor(C.text).fontSize(20).font('Helvetica-Bold').text('Informe semanal', M + 66, M + 6);
-doc.fillColor(C.blue).fontSize(11).font('Helvetica').text('Peak Physique', M + 66, M + 30);
-doc.fillColor(C.dim).fontSize(9).text(`Semana ${fmtDate(wkThis.start)} — ${fmtDate(wkThis.end)}  (lun-dom)`, M + 66, M + 44);
-doc.y = M + 74;
-doc.save().moveTo(M, doc.y).lineTo(PW - M, doc.y).lineWidth(1).strokeColor(C.line).stroke().restore();
-doc.moveDown(0.8);
-
-// ─── 17. Tarjetas de resumen con icono ───────────────────────────────────────
-function statCard(x, y, w, icon, label, value, sub2, valColor) {
-  const h = 92;
-  doc.save().roundedRect(x, y, w, h, 10).fill(C.card).restore();
-  const iconCx = x + w / 2, iconCy = y + 26;
-  doc.save().circle(iconCx, iconCy, 18).fillOpacity(0.15).fill(valColor || C.blue).restore();
-  doc.fillOpacity(1);
-  icon(iconCx, iconCy, 9, valColor || C.blue);
-  doc.fillColor(C.faint).fontSize(7.5).font('Helvetica-Bold').text(label.toUpperCase(), x, y + 50, { width: w, align: 'center' });
-  doc.fillColor(valColor || C.text).fontSize(22).font('Helvetica-Bold').text(String(value), x, y + 60, { width: w, align: 'center' });
-  if (sub2) doc.fillColor(C.dim).fontSize(7.5).font('Helvetica').text(sub2, x, y + 80, { width: w, align: 'center' });
+function iconCalendar(cx, cy, r, color) {
+  doc.save().roundedRect(cx - r, cy - r * 0.85, r * 2, r * 1.8, 2.5).lineWidth(1.4).strokeColor(color).stroke().restore();
+  doc.save().moveTo(cx - r, cy - r * 0.35).lineTo(cx + r, cy - r * 0.35).lineWidth(1).strokeColor(color).stroke().restore();
+  doc.save().moveTo(cx - r * 0.5, cy - r * 1.1).lineTo(cx - r * 0.5, cy - r * 0.6).lineWidth(1.2).strokeColor(color).stroke().restore();
+  doc.save().moveTo(cx + r * 0.5, cy - r * 1.1).lineTo(cx + r * 0.5, cy - r * 0.6).lineWidth(1.2).strokeColor(color).stroke().restore();
 }
+function iconDumbbell(cx, cy, r, color) {
+  doc.save().rect(cx - r * 0.9, cy - 1.3, r * 1.8, 2.6).fill(color).restore();
+  [-1, 1].forEach(side => doc.save().circle(cx + side * r * 0.95, cy, r * 0.45).fill(color).restore());
+}
+function iconStar(cx, cy, r, color) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rad = i % 2 === 0 ? r : r * 0.45;
+    pts.push([cx + rad * Math.cos(ang), cy + rad * Math.sin(ang)]);
+  }
+  doc.save().moveTo(...pts[0]);
+  pts.slice(1).forEach(p => doc.lineTo(...p));
+  doc.closePath().fill(color).restore();
+}
+function iconTrophy(cx, cy, r, color) {
+  doc.save().roundedRect(cx - r * 0.55, cy - r * 0.5, r * 1.1, r * 0.9, 1.5).fill(color).restore();
+  doc.save().moveTo(cx - r * 0.55, cy - r * 0.35).bezierCurveTo(cx - r * 1.2, cy - r * 0.35, cx - r * 1.2, cy + r * 0.15, cx - r * 0.55, cy + r * 0.05).lineWidth(1.1).strokeColor(color).stroke().restore();
+  doc.save().moveTo(cx + r * 0.55, cy - r * 0.35).bezierCurveTo(cx + r * 1.2, cy - r * 0.35, cx + r * 1.2, cy + r * 0.15, cx + r * 0.55, cy + r * 0.05).lineWidth(1.1).strokeColor(color).stroke().restore();
+  doc.save().rect(cx - r * 0.15, cy + r * 0.4, r * 0.3, r * 0.35).fill(color).restore();
+  doc.save().rect(cx - r * 0.4, cy + r * 0.72, r * 0.8, r * 0.16).fill(color).restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CABECERA
+// ═══════════════════════════════════════════════════════════════════════════
+doc.image(logoBuffer, M, M, { width: 46, height: 46 });
+doc.fillColor(C.text).fontSize(18).font('Helvetica-Bold').text('Informe semanal', M + 58, M + 3);
+doc.fillColor(C.blue).fontSize(10).font('Helvetica').text('Peak Physique', M + 58, M + 24);
+doc.fillColor(C.dim).fontSize(8.5).text(`Semana ${fmtDate(wkThis.start)} — ${fmtDate(wkThis.end)}  (lun-dom)`, M + 58, M + 37);
+let y = M + 58;
+doc.save().moveTo(M, y).lineTo(PW - M, y).lineWidth(1).strokeColor(C.line).stroke().restore();
+y += 14;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILA 1 — Highlights (izq) + PRs de la semana (der)
+// ═══════════════════════════════════════════════════════════════════════════
+const colGap = 16;
+const colW = (CW - colGap) / 2;
+const row1Y = y;
+const row1H = 186;
+
+// --- Highlights: 3 tarjetas apiladas ---
 {
-  const gap = 10, w = (CW - gap * 2) / 3, y = doc.y;
-  const dSets = totalThis - totalPrev;
-  statCard(M, y, w, iconCalendar, 'Sesiones', sThis.length, `Sem. pasada: ${sPrev.length}`, C.blue);
-  statCard(M + w + gap, y, w, iconDumbbell, 'Series totales', totalThis, `${dSets >= 0 ? '+' : ''}${dSets} vs pasada`, dSets >= 0 ? C.green : C.red);
-  statCard(M + (w + gap) * 2, y, w, iconStar, 'PRs', prs.length, prs.length ? '¡Nuevos récords!' : 'Sin PRs', prs.length ? C.amber : C.dim);
-  doc.y = y + 92 + 16;
-}
-
-// ─── 18. PRs de la semana ─────────────────────────────────────────────────────
-heading('🏆 PRs de la semana'.replace('🏆 ', ''), C.amber);
-if (prs.length) {
-  prs.slice(0, 10).forEach(p => {
-    ensure(16);
-    const y = doc.y;
-    doc.save().rect(M - 4, y, 3, 13).fill(mColor(p.muscle)).restore();
-    doc.fillColor(C.text).fontSize(9.5).font('Helvetica-Bold').text(p.name, M + 4, y, { continued: true, width: 260 });
-    doc.fillColor(C.green).font('Helvetica').text(`   ${p.prev || 0} -> ${p.val} kg e1RM   (+${p.diff})`);
-    doc.moveDown(0.15);
+  const cardGap = 8;
+  const cardH = (row1H - cardGap * 2) / 3;
+  const cards = [
+    [iconCalendar, 'Sesiones', sThis.length, `Sem. pasada: ${sPrev.length}`, C.blue],
+    [iconDumbbell, 'Series totales', totalThis, `${totalThis - totalPrev >= 0 ? '+' : ''}${totalThis - totalPrev} vs pasada`, (totalThis - totalPrev) >= 0 ? C.green : C.red],
+    [iconStar, 'PRs', prs.length, prs.length ? '¡Nuevos récords!' : 'Sin PRs', prs.length ? C.amber : C.dim],
+  ];
+  cards.forEach(([icon, label, value, sub2, col], i) => {
+    const cy0 = row1Y + i * (cardH + cardGap);
+    doc.save().roundedRect(M, cy0, colW, cardH, 8).fill(C.card).restore();
+    const iconCx = M + 28, iconCy = cy0 + cardH / 2;
+    doc.save().circle(iconCx, iconCy, 15).fillOpacity(0.15).fill(col).restore();
+    doc.fillOpacity(1);
+    icon(iconCx, iconCy, 8, col);
+    doc.fillColor(C.faint).fontSize(7).font('Helvetica-Bold').text(label.toUpperCase(), M + 54, cy0 + 9, { width: colW - 64 });
+    doc.fillColor(col).fontSize(17).font('Helvetica-Bold').text(String(value), M + 54, cy0 + 19, { width: colW - 64 });
+    doc.fillColor(C.dim).fontSize(6.8).font('Helvetica').text(sub2, M + 54, cy0 + cardH - 15, { width: colW - 64 });
   });
-} else sub('Sin PRs esta semana.');
-doc.moveDown(0.8);
+}
 
-// ─── 19. Tabla de volumen por músculo con flechas de tendencia ──────────────
-heading('Volumen por músculo');
-sub('Series esta semana · flecha: tendencia vs semana pasada');
+// --- PRs de la semana (tabla, hasta 9) ---
 {
-  const colX = { dot: M, m: M + 14, t: M + 150, p: M + 205, a: M + 260, tr: M + 320 };
-  ensure(20);
-  doc.fillColor(C.faint).fontSize(8).font('Helvetica-Bold');
-  doc.text('MÚSCULO', colX.m, doc.y);
-  doc.text('ESTA', colX.t, doc.y - 10);
-  doc.text('PAS.', colX.p, doc.y - 10);
-  doc.text('~4SEM', colX.a, doc.y - 10);
-  doc.text('TEND.', colX.tr, doc.y - 10);
-  doc.moveDown(0.3);
-  doc.save().moveTo(M, doc.y).lineTo(PW - M, doc.y).lineWidth(0.5).strokeColor(C.line).stroke().restore();
-  doc.moveDown(0.3);
-  allMuscles.forEach(m => {
-    ensure(20);
-    const y = doc.y;
-    doc.save().circle(colX.dot + 3, y + 6, 3.5).fill(mColor(m)).restore();
-    doc.fillColor(C.text).fontSize(9).font('Helvetica').text(m, colX.m, y + 2, { width: 130, ellipsis: true });
-    doc.fillColor(C.text).font('Helvetica-Bold').text(String(volThis[m] || 0), colX.t, y + 2);
-    doc.fillColor(C.dim).font('Helvetica').text(String(volPrev[m] || 0), colX.p, y + 2);
-    doc.fillColor(C.dim).text(String(vol4avg[m] || 0), colX.a, y + 2);
+  const px = M + colW + colGap;
+  doc.save().roundedRect(px, row1Y, colW, row1H, 8).fill(C.card).restore();
+  let py = row1Y + 12;
+  iconTrophy(px + 16, py + 4, 8, C.amber);
+  doc.fillColor(C.amber).fontSize(11).font('Helvetica-Bold').text('PRs de la semana', px + 30, py - 3);
+  py += 20;
+  doc.save().moveTo(px + 12, py).lineTo(px + colW - 12, py).lineWidth(0.5).strokeColor(C.line).stroke().restore();
+  py += 6;
+  if (prs.length) {
+    const maxRows = 9;
+    const rowH = (row1H - 38) / maxRows;
+    prs.slice(0, maxRows).forEach(p => {
+      doc.fillColor(C.text).fontSize(7.6).font('Helvetica-Bold').text(p.name, px + 12, py, { width: colW * 0.4, height: 10, ellipsis: true });
+      const prevTxt = p.prev ? `${p.prev} -> ${p.val} kg e1RM` : `nuevo: ${p.val} kg e1RM`;
+      doc.fillColor(C.dim).fontSize(7).font('Helvetica').text(prevTxt, px + 12 + colW * 0.4, py, { width: colW * 0.36, height: 10, ellipsis: true });
+      doc.fillColor(C.green).fontSize(7.2).font('Helvetica-Bold').text(`(+${p.diff})`, px + colW - 44, py, { width: 38, align: 'right', height: 10, ellipsis: true });
+      py += rowH;
+    });
+  } else {
+    doc.fillColor(C.dim).fontSize(9).font('Helvetica').text('Sin PRs esta semana.', px + 12, py);
+  }
+}
+y = row1Y + row1H + 12;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILA 2 — Volumen por músculo: tabla (izq) + gráfico (der)
+// ═══════════════════════════════════════════════════════════════════════════
+const row2Y = y;
+const row2H = 195;
+
+// --- Tabla de volumen ---
+{
+  doc.fillColor(C.text).fontSize(11).font('Helvetica-Bold').text('Volumen por músculo', M, row2Y);
+  doc.fillColor(C.dim).fontSize(7).font('Helvetica').text('Series esta semana', M, row2Y + 14);
+  let ty = row2Y + 28;
+  const colX = { dot: M, m: M + 12, t: M + 108, p: M + 145, a: M + 178, tr: M + 214 };
+  doc.fillColor(C.faint).fontSize(6.8).font('Helvetica-Bold');
+  doc.text('MÚSCULO', colX.m, ty);
+  doc.text('ESTA', colX.t, ty);
+  doc.text('PAS.', colX.p, ty);
+  doc.text('~4SEM', colX.a, ty);
+  doc.text('TEND.', colX.tr, ty);
+  ty += 11;
+  doc.save().moveTo(M, ty).lineTo(M + colW, ty).lineWidth(0.4).strokeColor(C.line).stroke().restore();
+  ty += 4;
+  const maxMuscleRows = Math.min(allMuscles.length, 11);
+  const mRowH = (row2H - 44) / maxMuscleRows;
+  allMuscles.slice(0, maxMuscleRows).forEach(m => {
+    doc.save().circle(colX.dot + 2.5, ty + 5, 2.8).fill(mColor(m)).restore();
+    doc.fillColor(C.text).fontSize(7.3).font('Helvetica').text(m, colX.m, ty + 1, { width: 90, ellipsis: true });
+    doc.fillColor(C.text).font('Helvetica-Bold').fontSize(7.3).text(String(volThis[m] || 0), colX.t, ty + 1);
+    doc.fillColor(C.dim).font('Helvetica').text(String(volPrev[m] || 0), colX.p, ty + 1);
+    doc.fillColor(C.dim).text(String(vol4avg[m] || 0), colX.a, ty + 1);
     const tr = trendGlyphs(volThis[m] || 0, volPrev[m] || 0);
-    if (tr.dir === 'flat') { doc.save().rect(colX.tr, y + 7, 8, 1.4).fill(tr.c).restore(); }
+    if (tr.dir === 'flat') { doc.save().rect(colX.tr, ty + 5, 7, 1.2).fill(tr.c).restore(); }
     else {
-      triArrow(colX.tr + 4, y + 6, tr.dir, tr.c, 4);
-      if (tr.double) triArrow(colX.tr + 14, y + 6, tr.dir, tr.c, 4);
+      triArrow(colX.tr + 3, ty + 4, tr.dir, tr.c, 3.2);
+      if (tr.double) triArrow(colX.tr + 11, ty + 4, tr.dir, tr.c, 3.2);
     }
-    doc.y = y + 18;
+    ty += mRowH;
   });
-  doc.moveDown(0.3);
 }
 
-// ─── 20. Gráfico de barras con línea de media ────────────────────────────────
-heading('Volumen — esta semana vs pasada');
-sub('Barras normalizadas al músculo con más volumen esta semana · línea discontinua: media 4 semanas');
+// --- Gráfico de barras con línea de media ---
 {
+  const px = M + colW + colGap;
+  doc.fillColor(C.text).fontSize(11).font('Helvetica-Bold').text('Volumen — esta vs pasada', px, row2Y);
+  doc.fillColor(C.dim).fontSize(6.8).font('Helvetica').text('Barra: esta semana / pasada · línea: media 4 sem.', px, row2Y + 14);
+  const chartH = 130;
+  const baseY = row2Y + 30 + chartH;
+  const chartX = px + 22;
+  const chartW = colW - 26;
   const groups = allMuscles.slice(0, 9);
-  const chartH = 140;
-  ensure(chartH + 50);
-  const baseY = doc.y + chartH, chartX = M + 10;
-  const chartW = CW - 20;
   const maxV = Math.max(1, ...groups.map(m => volThis[m] || 0));
-  // Grid horizontal 25/50/75/100%
   [0, 0.25, 0.5, 0.75, 1].forEach(f => {
     const gy = baseY - f * chartH;
-    doc.save().moveTo(chartX, gy).lineTo(chartX + chartW, gy).lineWidth(0.4).strokeColor(C.line).stroke().restore();
-    doc.fillColor(C.faint).fontSize(6.5).font('Helvetica').text(`${Math.round(f * 100)}%`, chartX - 26, gy - 3, { width: 22, align: 'right' });
+    doc.save().moveTo(chartX, gy).lineTo(chartX + chartW, gy).lineWidth(0.35).strokeColor(C.line).stroke().restore();
+    doc.fillColor(C.faint).fontSize(5.8).font('Helvetica').text(`${Math.round(f * 100)}%`, chartX - 22, gy - 2.5, { width: 18, align: 'right' });
   });
   const slot = chartW / groups.length;
   const linePts = [];
   groups.forEach((m, i) => {
     const cx = chartX + slot * i + slot / 2;
-    const bw = 13;
+    const bw = Math.min(10, slot * 0.32);
     const hT = ((volThis[m] || 0) / maxV) * chartH;
     const hP = ((volPrev[m] || 0) / maxV) * chartH;
     doc.save().rect(cx - bw - 1, baseY - hP, bw, hP).fillOpacity(0.55).fill(C.faint).restore();
     doc.fillOpacity(1);
     doc.save().rect(cx + 1, baseY - hT, bw, hT).fill(mColor(m)).restore();
-    doc.fillColor(C.dim).fontSize(6.3).font('Helvetica').text(m, cx - slot / 2, baseY + 5, { width: slot, align: 'center', ellipsis: true });
+    doc.fillColor(C.dim).fontSize(5.3).font('Helvetica').text(m, cx - slot / 2, baseY + 4, { width: slot, align: 'center', ellipsis: true });
     const hA = ((vol4avg[m] || 0) / maxV) * chartH;
     linePts.push([cx, baseY - hA]);
   });
-  // Línea discontinua de media 4 semanas
-  doc.save().dash(3, { space: 2 }).lineWidth(1.3).strokeColor(C.text);
+  doc.save().dash(2.5, { space: 1.8 }).lineWidth(1.1).strokeColor(C.text);
   doc.moveTo(...linePts[0]);
   linePts.slice(1).forEach(p => doc.lineTo(...p));
   doc.stroke().undash().restore();
-  linePts.forEach(p => { doc.save().circle(p[0], p[1], 2).fill(C.text).restore(); });
+  linePts.forEach(p => doc.save().circle(p[0], p[1], 1.6).fill(C.text).restore());
 
-  doc.y = baseY + 18;
-  const legY = doc.y;
-  const legItems = [['esta semana', C.blue], ['semana pasada', C.faint], ['media 4 semanas', C.text]];
+  const legY = baseY + 14;
+  const legItems = [['esta semana', C.blue, 'sq'], ['semana pasada', C.faint, 'sq'], ['media 4 sem.', C.text, 'dash']];
   let lx = chartX;
-  legItems.forEach(([label, col], i) => {
-    if (i === 2) { doc.save().moveTo(lx, legY + 5).lineTo(lx + 10, legY + 5).dash(2, { space: 1.5 }).lineWidth(1.3).strokeColor(col).stroke().undash().restore(); }
-    else { doc.save().rect(lx, legY + 1, 8, 8).fill(col).restore(); }
-    doc.fillColor(C.dim).fontSize(7).font('Helvetica').text(label, lx + 13, legY);
-    lx += 13 + doc.widthOfString(label) + 16;
+  legItems.forEach(([label, col, type]) => {
+    if (type === 'dash') doc.save().moveTo(lx, legY + 4).lineTo(lx + 9, legY + 4).dash(2, { space: 1.5 }).lineWidth(1.1).strokeColor(col).stroke().undash().restore();
+    else doc.save().rect(lx, legY, 7, 7).fill(col).restore();
+    doc.fillColor(C.dim).fontSize(6).font('Helvetica').text(label, lx + 11, legY);
+    lx += 11 + doc.widthOfString(label) + 10;
   });
-  doc.y = legY + 16;
 }
-doc.moveDown(0.4);
+y = row2Y + row2H + 14;
 
-// ─── 21. Franja resumen de porcentajes ───────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// FILA 3 — Tabla de ejercicios (ancho completo, incluye columna de cambio)
+// ═══════════════════════════════════════════════════════════════════════════
+doc.fillColor(C.text).fontSize(11).font('Helvetica-Bold').text('Ejercicios — esta semana vs pasada', M, y);
+doc.fillColor(C.dim).fontSize(7).font('Helvetica').text('Mejor serie de cada ejercicio (kg × reps -> e1RM).', M, y + 14);
+y += 30;
 {
-  ensure(50);
-  const y = doc.y, h = 46;
-  doc.save().roundedRect(M, y, CW, h, 8).fill(C.card2).restore();
-  const cells = [
-    ['esta semana', '100%', C.blue],
-    ['semana pasada', totalThis ? `${Math.round((totalPrev / totalThis) * 100)}%` : '0%', C.dim],
-    ['media 4 semanas', totalThis ? `${Math.round((total4avg / totalThis) * 100)}%` : '0%', C.dim],
-  ];
-  const cw = CW / 3;
-  cells.forEach(([label, val, col], i) => {
-    const cx = M + cw * i;
-    doc.fillColor(col).fontSize(16).font('Helvetica-Bold').text(val, cx, y + 9, { width: cw, align: 'center' });
-    doc.fillColor(C.faint).fontSize(7.5).font('Helvetica').text(label, cx, y + 30, { width: cw, align: 'center' });
-    if (i > 0) doc.save().moveTo(cx, y + 8).lineTo(cx, y + h - 8).lineWidth(0.5).strokeColor(C.line).stroke().restore();
-  });
-  doc.y = y + h + 16;
-}
+  const colX = { m: M, name: M + 90, kgT: M + 300, kgP: M + 365, rm: M + 425, diff: M + 470 };
+  doc.fillColor(C.faint).fontSize(6.8).font('Helvetica-Bold');
+  doc.text('MÚSCULO', colX.m, y);
+  doc.text('EJERCICIO', colX.name, y);
+  doc.text('ESTA', colX.kgT, y);
+  doc.text('PAS.', colX.kgP, y);
+  doc.text('e1RM', colX.rm, y);
+  doc.text('CAMBIO', colX.diff, y);
+  y += 11;
+  doc.save().moveTo(M, y).lineTo(PW - M, y).lineWidth(0.5).strokeColor(C.line).stroke().restore();
+  y += 3;
 
-// ─── 22. Página 2: Ejercicios (tabla + ranking e1RM) ─────────────────────────
-doc.addPage();
-heading('Ejercicios — esta semana vs pasada');
-sub('Mejor serie de cada ejercicio (kg × reps -> e1RM).');
-{
-  const tableW = CW * 0.62;
-  const panelX = M + tableW + 16;
-  const panelW = CW - tableW - 16;
-  const startY = doc.y;
-
-  // --- Tabla (columna izquierda) ---
-  const colX = { n: M, kgT: M + tableW - 150, rm: M + tableW - 95, diff: M + tableW - 45 };
-  doc.fillColor(C.faint).fontSize(7.5).font('Helvetica-Bold');
-  doc.text('EJERCICIO', colX.n, doc.y, { width: tableW - 160 });
-  const hy = doc.y - 9.5;
-  doc.text('KG×REPS', colX.kgT, hy, { width: 55 });
-  doc.text('e1RM', colX.rm, hy, { width: 50 });
-  doc.text('CAMBIO', colX.diff, hy, { width: 40 });
-  doc.moveDown(0.3);
-  doc.save().moveTo(M, doc.y).lineTo(M + tableW, doc.y).lineWidth(0.5).strokeColor(C.line).stroke().restore();
-  doc.moveDown(0.25);
-
+  const availH = PH - M - y;
+  const rowH = Math.max(12, Math.min(16, availH / Math.max(exCompare.length, 1)));
   exCompare.forEach(e => {
-    doc.font('Helvetica-Bold').fontSize(8.5);
-    const nameH = doc.heightOfString(e.name, { width: tableW - 160 });
-    const rowH = nameH + 14 + 14;
-    ensure(rowH + 6);
-    const y = doc.y;
-    doc.fillColor(C.text).text(e.name, colX.n, y, { width: tableW - 160, ellipsis: false });
-    const pillY = y + nameH + 2;
-    pill(colX.n, pillY, e.muscle, mColor(e.muscle));
-    doc.fillColor(C.text).fontSize(8).font('Helvetica').text(`${e.thisW.kg}×${e.thisW.reps}`, colX.kgT, y + 2, { width: 55 });
-    doc.fillColor(C.text).font('Helvetica-Bold').text(`${e.thisW.e1rm}`, colX.rm, y + 2, { width: 50 });
-    if (e.diff === null) doc.fillColor(C.faint).font('Helvetica').fontSize(7.5).text('nuevo', colX.diff, y + 2, { width: 40 });
-    else { const col = e.diff > 0 ? C.green : e.diff < 0 ? C.red : C.dim; doc.fillColor(col).font('Helvetica-Bold').fontSize(8).text(`${e.diff > 0 ? '+' : ''}${e.diff}`, colX.diff, y + 2, { width: 40 }); }
-    doc.y = pillY + 14 + 8;
-    doc.save().moveTo(M, doc.y - 4).lineTo(M + tableW, doc.y - 4).lineWidth(0.3).strokeColor(C.line).stroke().restore();
+    if (y + rowH > PH - M) return; // seguridad: no desbordar la página
+    pill(colX.m, y, e.muscle, mColor(e.muscle), 6);
+    doc.fillColor(C.text).fontSize(7.6).font('Helvetica-Bold').text(e.name, colX.name, y + 2, { width: 205, ellipsis: true });
+    doc.fillColor(C.text).fontSize(7.3).font('Helvetica').text(`${e.thisW.kg}×${e.thisW.reps}`, colX.kgT, y + 2, { width: 60 });
+    doc.fillColor(C.dim).text(e.prevW ? `${e.prevW.kg}×${e.prevW.reps}` : '—', colX.kgP, y + 2, { width: 55 });
+    doc.fillColor(C.text).font('Helvetica-Bold').fontSize(7.6).text(`${e.thisW.e1rm}`, colX.rm, y + 2, { width: 40 });
+    if (e.diff === null) doc.fillColor(C.faint).font('Helvetica').fontSize(7).text('nuevo', colX.diff, y + 2, { width: 50 });
+    else { const col = e.diff > 0 ? C.green : e.diff < 0 ? C.red : C.dim; doc.fillColor(col).font('Helvetica-Bold').fontSize(7.3).text(`${e.diff > 0 ? '+' : ''}${e.diff} kg`, colX.diff, y + 2, { width: 55 }); }
+    y += rowH;
+    doc.save().moveTo(M, y - 2).lineTo(PW - M, y - 2).lineWidth(0.25).strokeColor(C.line).stroke().restore();
   });
-  const tableEndY = doc.y;
-
-  // --- Panel derecho: ranking de cambio de e1RM ---
-  let py = startY;
-  doc.fillColor(C.text).fontSize(11).font('Helvetica-Bold').text('Cambio de e1RM', panelX, py, { width: panelW });
-  py += 14;
-  doc.fillColor(C.dim).fontSize(9).font('Helvetica-Bold').text('por ejercicio', panelX, py, { width: panelW });
-  py += 22;
-  const top = ranked.slice(0, 6);
-  top.forEach((e, i) => {
-    const badgeR = 8;
-    const nameW = panelW - badgeR * 2 - 8;
-    doc.font('Helvetica-Bold').fontSize(8.5);
-    const nameH = doc.heightOfString(e.name, { width: nameW });
-    doc.save().circle(panelX + badgeR, py + badgeR, badgeR).fill(e.diff > 0 ? C.blue : C.line).restore();
-    doc.fillColor(e.diff > 0 ? '#fff' : C.dim).fontSize(8).font('Helvetica-Bold').text(String(i + 1), panelX, py + badgeR - 5, { width: badgeR * 2, align: 'center' });
-    doc.fillColor(C.text).fontSize(8.5).font('Helvetica-Bold').text(e.name, panelX + badgeR * 2 + 8, py, { width: nameW });
-    const col = e.diff > 0 ? C.green : e.diff < 0 ? C.red : C.dim;
-    const arrowY = py + nameH + 6;
-    if (e.diff !== 0) triArrow(panelX + badgeR * 2 + 8 + 4, arrowY, e.diff > 0 ? 'up' : 'down', col, 3.5);
-    doc.fillColor(col).fontSize(8.5).font('Helvetica-Bold').text(`${e.diff > 0 ? '+' : ''}${e.diff}`, panelX + badgeR * 2 + 20, arrowY - 4, { width: nameW });
-    py += Math.max(30, nameH + 22);
-  });
-  // Leyenda
-  py += 6;
-  doc.save().moveTo(panelX, py).lineTo(panelX + panelW, py).lineWidth(0.4).strokeColor(C.line).stroke().restore();
-  py += 10;
-  triArrow(panelX + 4, py, 'up', C.green, 3.5);
-  doc.fillColor(C.dim).fontSize(7.5).font('Helvetica').text('Mejora     — Sin cambio', panelX + 12, py - 4, { width: panelW });
-
-  doc.y = Math.max(tableEndY, py + 20);
 }
 
 doc.end();
 const pdfBuffer = await pdfDone;
 
-// ─── 23. Email con análisis de la IA en el cuerpo ────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Email con análisis de la IA en el cuerpo
+// ═══════════════════════════════════════════════════════════════════════════
 const pdfBase64 = pdfBuffer.toString('base64');
-const dSets = totalThis - totalPrev;
+const dSets2 = totalThis - totalPrev;
 const emailHtml = `
   <div style="font-family:sans-serif;background:#0a0a0a;color:#f2f2f2;padding:24px;border-radius:12px;max-width:640px;margin:0 auto">
     <h2 style="color:#4f8ef7;margin:0 0 4px">Peak Physique — Informe semanal</h2>
     <p style="color:#9ca3af;margin:0 0 16px">Semana ${fmtDate(wkThis.start)} — ${fmtDate(wkThis.end)}</p>
     <ul style="line-height:1.7;padding-left:20px">
       <li><strong>${sThis.length}</strong> sesiones (sem. pasada: ${sPrev.length})</li>
-      <li><strong>${totalThis}</strong> series totales (${dSets >= 0 ? '+' : ''}${dSets} vs pasada)</li>
+      <li><strong>${totalThis}</strong> series totales (${dSets2 >= 0 ? '+' : ''}${dSets2} vs pasada)</li>
       <li><strong>${prs.length}</strong> PRs conseguidos</li>
     </ul>
     <div style="border-top:1px solid #262626;margin:16px 0"></div>
     <h2 style="color:#fbbf24;margin:0 0 8px;font-size:17px">Análisis del entrenador (IA)</h2>
     ${mdToHtml(aiAnalysisMarkdown)}
     <div style="border-top:1px solid #262626;margin:20px 0 12px"></div>
-    <p style="color:#6b7280;font-size:12px">Tablas y gráficos completos en el PDF adjunto. Para ajustar el enfoque de este análisis, edita <code style="color:#9ca3af">scripts/coach-notes.md</code> en el repo.</p>
+    <p style="color:#6b7280;font-size:12px">Informe completo (1 página) en el PDF adjunto. Para ajustar el enfoque de este análisis, edita <code style="color:#9ca3af">scripts/coach-notes.md</code> en el repo.</p>
   </div>`;
 
 const resp = await fetch('https://api.resend.com/emails', {
