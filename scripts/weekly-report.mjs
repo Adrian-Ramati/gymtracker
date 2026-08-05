@@ -28,15 +28,37 @@ const MUSCLE_COLOR = {
 const mColor = (m) => MUSCLE_COLOR[m] || C.blue;
 
 // ─── Landmarks MEV/MAV/MRV (mismos valores por defecto que la app) ──────────
-const DEFAULT_LANDMARKS = {
-  'Pectoral':{mev:8,mav:16,mrv:22}, 'Espalda':{mev:10,mav:18,mrv:25},
-  'Tríceps':{mev:6,mav:12,mrv:18}, 'Bíceps':{mev:8,mav:14,mrv:20},
-  'Glúteos':{mev:4,mav:12,mrv:16}, 'Isquiosurales':{mev:6,mav:12,mrv:16},
-  'Cuádriceps':{mev:8,mav:14,mrv:20}, 'Gemelos':{mev:8,mav:14,mrv:20},
-  'Sóleo':{mev:6,mav:10,mrv:16}, 'Deltoides anterior':{mev:2,mav:8,mrv:12},
-  'Deltoides lateral':{mev:8,mav:18,mrv:26}, 'Deltoides posterior':{mev:6,mav:14,mrv:22},
-  'Aductores':{mev:4,mav:8,mrv:12}, 'Abductores':{mev:4,mav:8,mrv:12},
+// Landmarks de Israetel (MEV/MAV, series/semana) — grupos agregados según tabla del usuario.
+const ISRAETEL_LANDMARKS = {
+  'Cuádriceps':       { mevLo: 8,  mevHi: 12, mavLo: 12, mavHi: 18 },
+  'Isquios':          { mevLo: 6,  mevHi: 10, mavLo: 10, mavHi: 16 },
+  'Glúteos':          { mevLo: 0,  mevHi: 4,  mavLo: 4,  mavHi: 12 },
+  'Pectoral':         { mevLo: 10, mevHi: 12, mavLo: 12, mavHi: 20 },
+  'Espalda':          { mevLo: 10, mevHi: 14, mavLo: 14, mavHi: 22 },
+  'Deltoides':        { mevLo: 6,  mevHi: 8,  mavLo: 16, mavHi: 22 },
+  'Bíceps':           { mevLo: 8,  mevHi: 14, mavLo: 14, mavHi: 20 },
+  'Tríceps':          { mevLo: 6,  mevHi: 10, mavLo: 10, mavHi: 14 },
+  'Trapecio':         { mevLo: 1,  mevHi: 12, mavLo: 12, mavHi: 20 },
+  'Gemelos y Sóleo':  { mevLo: 8,  mevHi: 12, mavLo: 12, mavHi: 16 },
+  'Core':             { mevLo: 1,  mevHi: 15, mavLo: 16, mavHi: 20 },
 };
+// Mapa de los nombres de músculo de la app -> grupo agregado de Israetel
+function israetelGroup(m) {
+  const map = {
+    'Cuádriceps':'Cuádriceps', 'Isquiosurales':'Isquios', 'Isquiotibiales':'Isquios',
+    'Glúteos':'Glúteos', 'Pectoral':'Pectoral', 'Espalda':'Espalda', 'Trapecio':'Trapecio',
+    'Deltoides anterior':'Deltoides', 'Deltoides lateral':'Deltoides', 'Deltoides posterior':'Deltoides',
+    'Hombro posterior':'Deltoides', 'Bíceps':'Bíceps', 'Tríceps':'Tríceps',
+    'Gemelos':'Gemelos y Sóleo', 'Sóleo':'Gemelos y Sóleo', 'Gemelo/Sóleo':'Gemelos y Sóleo',
+    'Abdomen':'Core',
+  };
+  return map[m] || null; // Aductores/Abductores/Antebrazo no están en la tabla de Israetel -> se omiten
+}
+function volumenEstado(series, lm) {
+  if (series < lm.mevLo) return { estado: 'Bajo MEV', color: 'rojo', emoji: '🔴' };
+  if (series < lm.mavLo) return { estado: 'En MEV', color: 'naranja', emoji: '🟠' };
+  return { estado: 'En MAV', color: 'verde', emoji: '🟢' };
+}
 
 // ─── 1. Comprobar hora Madrid (o forzar) ─────────────────────────────────────
 const forceSend = process.env.FORCE_SEND === 'true';
@@ -184,44 +206,43 @@ try { coachNotes = readFileSync(join(__dirname, 'coach-notes.md'), 'utf8'); }
 catch { coachNotes = '(sin notas)'; }
 
 // ─── 12. Payload de datos para la IA ─────────────────────────────────────────
+const volumenIsraetel = Object.keys(ISRAETEL_LANDMARKS).map(grupo => {
+  // Suma el volumen de esta semana de todos los músculos de la app que caen en este grupo agregado
+  let series = 0;
+  allMuscles.forEach(m => { if (israetelGroup(m) === grupo) series += (volThis[m] || 0); });
+  const lm = ISRAETEL_LANDMARKS[grupo];
+  const est = volumenEstado(series, lm);
+  return { grupo, series, mev: `${lm.mevLo}-${lm.mevHi}`, mav: `${lm.mavLo}-${lm.mavHi}`, estado: est.estado, emoji: est.emoji };
+}).filter(v => v.series > 0 || true); // incluye todos los grupos de la tabla, aunque estén a 0
+
 const aiPayload = {
   semana: `${wkThis.start} a ${wkThis.end}`,
-  volumen_por_musculo: allMuscles.map(m => ({
-    musculo: m, esta_semana: volThis[m] || 0, semana_pasada: volPrev[m] || 0, media_4_semanas: vol4avg[m] || 0,
-    mev: DEFAULT_LANDMARKS[m]?.mev ?? null, mav: DEFAULT_LANDMARKS[m]?.mav ?? null, mrv: DEFAULT_LANDMARKS[m]?.mrv ?? null,
-  })),
+  volumen_semanal_israetel: volumenIsraetel,
   ejercicios_esta_semana: exNames.map(name => ({ nombre: name, musculo: exThis[name].muscle, historial_reciente: recentHistory(name) })),
   prs_esta_semana: prs,
 };
 
-// ─── 13. Prompt del entrenador (4 secciones) ─────────────────────────────────
-const SYSTEM_PROMPT = `Actúa como un entrenador personal, biomecánico y especialista en hipertrofia de alto nivel. Tu objetivo es analizar el historial de entrenamiento de esta semana (con contexto de semanas previas) y dar recomendaciones precisas sobre si se debe mantener, modificar o cambiar los ejercicios, ajustar el volumen de trabajo o pulir la selección de ejercicios.
+// ─── 13. Prompt del entrenador (3 secciones) ─────────────────────────────────
+const SYSTEM_PROMPT = `Eres un entrenador personal y especialista en hipertrofia. Analiza el entrenamiento de la semana y responde en el formato EXACTO de abajo. Sé extremadamente breve: prioriza tablas markdown compactas sobre texto corrido, no repitas números que ya están en la tabla, sin frases de relleno ni ánimo genérico. Cada celda de comentario: máximo 8-10 palabras. Responde en español.
 
-MARCO TEÓRICO Y REGLAS DE PROGRESIÓN (aplícalas estrictamente):
+MARCO — Double Progression: la meta es llegar al techo del rango de reps en todas las series manteniendo la carga y RIR 1-2; al lograrlo, sube el peso la próxima sesión. Si un ejercicio no progresa en reps ni peso en 3-4 sesiones, o la progresión es errática, marca CAMBIAR.
 
-Modelo de Progresión (Double Progression): la meta es alcanzar la parte alta del rango objetivo de repeticiones en todas las series de un ejercicio manteniendo la misma carga y un RIR 1-2. Una vez completado el techo de repeticiones con buena técnica, se sube el peso en la siguiente sesión y el conteo de repeticiones vuelve a caer al rango bajo. Si un ejercicio no progresa en repeticiones ni en peso durante 3-4 sesiones consecutivas (o la progresión es errática), proponlo para cambio o sustitución estratégica.
+FORMATO DE SALIDA (usa exactamente esta estructura, con ## para cada título):
 
-Criterio MEV-MAV-MRV (Volumen Efectivo): MEV = volumen mínimo efectivo, MAV = rango adaptativo óptimo, MRV = volumen máximo recuperable. Evalúa si el volumen semanal por grupo muscular está por debajo del MEV, dentro del MEV-MAV (productivo), en zona MAV-MRV (alta fatiga) o por encima del MRV.
+## 1. Análisis de Progresión (Double Progression)
+Tabla markdown con columnas: Ejercicio | Tendencia e1RM | Comentario
+- "Tendencia e1RM": el cambio en kg (ej. "+3.2 kg", "-1 kg", "0 kg") a partir del historial reciente dado.
+- "Comentario": empieza con **MANTENER**, **VIGILAR** o **CAMBIAR** en negrita. Si es VIGILAR o CAMBIAR, añade la razón en 5-8 palabras tras dos puntos. Si es MANTENER, no hace falta razón.
+Una fila por ejercicio trabajado esta semana.
 
-Análisis Biomecánico y Redundancia: a partir del NOMBRE de cada ejercicio, razona qué porción/cabeza muscular trabaja prioritariamente y en qué perfil de resistencia actúa (acortamiento, estiramiento o perfil plano). Identifica redundancias entre ejercicios de la misma semana que enfaticen la misma porción con la misma curva de fuerza, y lagunas de cabezas musculares desatendidas.
+## 2. Volumen Semanal
+Tabla markdown con columnas: Grupo | Series | MEV | MAV | Estado
+Usa directamente los datos de "volumen_semanal_israetel" del JSON (grupo, series, mev, mav, emoji+estado ya calculados) — no recalcules ni reinterpretes el estado, cópialo tal cual viene.
 
-ESTRUCTURA DE TU RESPUESTA (usa exactamente estos 4 apartados, en Markdown simple con ## para cada título):
+## 3. Notas de sustitución
+SOLO incluye esta sección si al menos un ejercicio en la sección 1 recibió **CAMBIAR**. Si no hay ninguno, omite la sección 3 por completo (no escribas el título ni nada). Si hay alguno, para cada ejercicio a cambiar: 1-2 frases con qué tipo de ejercicio sustituto buscar y por qué (variación de ángulo/agarre/perfil de resistencia), sin necesidad de nombrar un ejercicio concreto de una base de datos.
 
-## 1. Análisis de Progresión
-Ejercicio por ejercicio (solo los trabajados esta semana), usando el historial reciente proporcionado. Dictamen directo y en negrita: **MANTENER**, **SUBIR PESO**, o **CAMBIAR/REEMPLAZAR**, justificando brevemente.
-
-## 2. Auditoría Biomecánica y Redundancias
-Desglose breve por grupo muscular trabajado esta semana: énfasis por cabezas/porciones, redundancias si las hay, huecos de estímulo.
-
-## 3. Volumen Semanal (MEV-MAV-MRV)
-Para cada músculo con datos, indica en qué zona está (por debajo de MEV / productivo MEV-MAV / alta fatiga MAV-MRV / por encima de MRV) y si hace falta ajustar.
-
-## 4. Diagnóstico Priorizado
-Lista de 2-4 acciones concretas y priorizadas para la próxima semana, la más importante primero.
-
-Tono: directo, técnico pero claro, sin relleno ni frases de ánimo genéricas. Responde en español. Sé conciso — esto es un informe semanal recurrente, no un audit completo desde cero; ve al grano en cada sección (2-5 frases por ejercicio o músculo, no más).
-
-NOTAS DEL USUARIO (ten en cuenta esto, tiene prioridad sobre el tono/enfoque por defecto):
+NOTAS DEL USUARIO (prioridad sobre el enfoque por defecto):
 ${coachNotes}`;
 
 // ─── 14. Llamar a la API de Claude ───────────────────────────────────────────
@@ -259,22 +280,42 @@ if (!aiAnalysisMarkdown) {
 
 function mdToHtml(md) {
   const lines = md.split('\n');
-  let html = '', inList = false;
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) { if (inList) { html += '</ul>'; inList = false; } continue; }
+  let html = '', inList = false, i = 0;
+  const isTableRow = (l) => l.trim().startsWith('|') && l.trim().endsWith('|');
+  const isSepRow = (l) => /^\|[\s:|-]+\|$/.test(l.trim());
+  while (i < lines.length) {
+    let line = lines[i].trim();
+    if (!line) { if (inList) { html += '</ul>'; inList = false; } i++; continue; }
     if (line.startsWith('## ')) {
       if (inList) { html += '</ul>'; inList = false; }
-      html += `<h3 style="color:#4f8ef7;margin:20px 0 8px;font-size:15px">${line.slice(3)}</h3>`;
+      html += `<h3 style="color:#4f8ef7;margin:18px 0 8px;font-size:14px">${line.slice(3)}</h3>`;
+      i++; continue;
+    }
+    // Tabla markdown: fila de cabecera + fila separadora (---|---) + filas de datos
+    if (isTableRow(line) && lines[i + 1] && isSepRow(lines[i + 1])) {
+      const headerCells = line.split('|').slice(1, -1).map(c => c.trim());
+      i += 2;
+      const bodyRows = [];
+      while (i < lines.length && isTableRow(lines[i])) {
+        bodyRows.push(lines[i].split('|').slice(1, -1).map(c => c.trim()));
+        i++;
+      }
+      html += '<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">';
+      html += '<tr>' + headerCells.map(h => `<th style="text-align:left;padding:5px 8px;border-bottom:1px solid #262626;color:#9ca3af;font-size:10px;text-transform:uppercase">${h}</th>`).join('') + '</tr>';
+      bodyRows.forEach(row => {
+        html += '<tr>' + row.map(c => `<td style="padding:5px 8px;border-bottom:1px solid #1a1a1a;vertical-align:top">${boldify(c)}</td>`).join('') + '</tr>';
+      });
+      html += '</table>';
       continue;
     }
     if (line.startsWith('- ') || line.startsWith('* ')) {
       if (!inList) { html += '<ul style="margin:4px 0;padding-left:20px">'; inList = true; }
       html += `<li style="margin-bottom:4px">${boldify(line.slice(2))}</li>`;
-      continue;
+      i++; continue;
     }
     if (inList) { html += '</ul>'; inList = false; }
     html += `<p style="margin:6px 0;line-height:1.5">${boldify(line)}</p>`;
+    i++;
   }
   if (inList) html += '</ul>';
   return html;
