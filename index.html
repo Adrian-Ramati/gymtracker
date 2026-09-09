@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,38 +11,43 @@
 <title>Peak Physique</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0a0a0a;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
-  --b1:#2a2a2a;--b2:#383838;
-  --t1:#f0f0f0;--t2:#888;--t3:#555;--t4:#333;
-  --blue:#4f8ef7;--bluedim:rgba(79,142,247,.15);
-  --teal:#34d399;--tealdim:rgba(52,211,153,.15);
+  --bg:#000;--s1:#0d0d0f;--s2:#151518;--s3:#1d1d21;
+  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --t1:#f5f5f7;--t2:#9b9ba3;--t3:#5f5f68;--t4:#36363d;
+  --blue:#ff6a3d;--bluedim:rgba(255,106,61,.14);
+  --ember:#ff6a3d;--ember2:#ffb15c;--emberdim:rgba(255,106,61,.14);
+  --teal:#34d399;--tealdim:rgba(52,211,153,.14);
   --red:#f87171;--green:#4ade80;--amber:#fbbf24;
-  --r:10px;--rl:14px;--rxl:20px;
-  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:12px;--rl:18px;--rxl:26px;
+  --font:'Manrope',sans-serif;--mono:'DM Mono',monospace;
+  --glass:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  --ring:0 0 0 1px rgba(255,255,255,.06),0 1px 0 rgba(255,255,255,.04) inset;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--font);font-size:14px}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+.app{background:radial-gradient(120% 60% at 50% -10%,rgba(255,106,61,.10),transparent 60%)}
 .app{display:flex;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto}
 /* HEADER */
 .hdr{padding:max(env(safe-area-inset-top),14px) 16px 0;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;position:relative}
-.hdr-logo{width:34px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.hdr-logo{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 6px 18px rgba(255,106,61,.18)}
 .hdr-logo img{width:100%;height:100%;object-fit:cover}
-.hdr-title{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.hdr-title{font-size:16px;font-weight:800;letter-spacing:-.4px}
 .hdr-right{position:absolute;right:16px;display:flex;gap:6px}
 .ppill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--b1);background:transparent;color:var(--t2);font-family:var(--font);transition:all .2s}
 .ppill.a{background:var(--bluedim);color:var(--blue);border-color:var(--blue)}
 .ppill.b{background:var(--tealdim);color:var(--teal);border-color:var(--teal)}
 /* NAV */
-.bnav{display:flex;padding:8px 4px max(env(safe-area-inset-bottom),8px);gap:2px;flex-shrink:0;border-top:1px solid var(--b1);align-items:flex-end}
+.bnav{display:flex;padding:8px 10px max(env(safe-area-inset-bottom),10px);gap:2px;flex-shrink:0;border-top:1px solid var(--b1);align-items:flex-end;background:linear-gradient(180deg,rgba(13,13,15,.6),#000);backdrop-filter:blur(14px)}
 .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:var(--r);cursor:pointer;color:var(--t3);font-size:10px;font-weight:500;border:none;background:transparent;font-family:var(--font);transition:all .2s}
 .bn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.bn.on{background:var(--s2);color:var(--t1)}
+.bn.on{background:var(--emberdim);color:var(--ember)}
+.bn.on svg{filter:drop-shadow(0 0 6px rgba(255,106,61,.5))}
 /* CONTENT */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .content::-webkit-scrollbar{display:none}
@@ -51,25 +56,33 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .stitle{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;font-family:var(--mono)}
 .stitle-section{font-size:15px;font-weight:600;color:var(--t1);text-align:center;margin-bottom:14px;letter-spacing:-.2px}
 /* CALENDAR */
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cal-month{font-size:15px;font-weight:600}
-.cal-arrow{background:var(--s2);border:1px solid var(--b1);color:var(--t1);border-radius:8px;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;font-size:16px;font-family:var(--font)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
-.cal-dow{font-size:10px;color:var(--t3);text-align:center;padding:4px 0;font-family:var(--mono)}
-.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;position:relative;font-size:13px;color:var(--t2);transition:all .15s;user-select:none}
-.cal-day.has{color:var(--t1);font-weight:500}
-.cal-day.today{color:var(--blue);font-weight:600}
-.cal-day.sel{background:var(--blue);color:#fff!important;font-weight:600}
-.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--blue);position:absolute;bottom:3px}
-.cal-day.sel .cal-dot{background:rgba(255,255,255,.7)}
-.cal-day.other{color:var(--t4)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-month{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.cal-arrow{background:var(--s2);border:1px solid var(--b1);color:var(--t1);border-radius:10px;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;font-size:16px;font-family:var(--font)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:10px}
+.cal-dow{font-size:10px;color:var(--t3);text-align:center;padding:4px 0 6px;font-family:var(--mono)}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;position:relative;font-size:13px;color:var(--t2);transition:transform .12s,background .15s;user-select:none;font-weight:600;font-variant-numeric:tabular-nums}
+.cal-day:active{transform:scale(.92)}
+.cal-day.has{color:#fff;background:linear-gradient(160deg,var(--ember2),var(--ember));box-shadow:0 4px 14px rgba(255,106,61,.28)}
+.cal-day.has.multi{background:linear-gradient(160deg,#ffd166,var(--ember))}
+.cal-day.rest{color:var(--t2);background:var(--s2);border:1px solid var(--b1)}
+.cal-day.rest::after{content:"";width:10px;height:2px;border-radius:2px;background:var(--t3);position:absolute;bottom:5px}
+.cal-day.pastoff{color:var(--t4)}
+.cal-day.today{box-shadow:inset 0 0 0 1.5px var(--ember)}
+.cal-day.today.has{box-shadow:inset 0 0 0 1.5px #fff,0 4px 14px rgba(255,106,61,.28)}
+.cal-day.sel{outline:2px solid var(--t1);outline-offset:2px}
+.cal-tag{position:absolute;bottom:3px;font-size:7.5px;font-family:var(--mono);letter-spacing:.3px;line-height:1;opacity:.85;max-width:90%;overflow:hidden;white-space:nowrap}
+.cal-day.other{color:var(--t4);opacity:.5}
+.cal-legend{display:flex;gap:14px;justify-content:center;margin-bottom:14px;font-size:10px;color:var(--t3);font-family:var(--mono)}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.cal-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 /* DAY PANEL */
-.dpanel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.dpanel{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;margin-bottom:14px;box-shadow:var(--ring)}
 .dpanel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .dpanel-title{font-size:14px;font-weight:600}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0}
 .chip-row{position:relative;display:flex;align-items:stretch}
-.chip{flex:1;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);transition:all .2s;font-family:var(--font);text-align:left;padding-right:28px;position:relative}
+.chip{flex:1;padding:12px 13px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--b2);background:var(--s2);color:var(--t1);transition:all .2s;font-family:var(--font);text-align:left;padding-right:28px;position:relative}
 .chip:hover{border-color:var(--blue);color:var(--blue)}
 .chip.blank{border-style:dashed;color:var(--t3);text-align:center;padding-right:12px;grid-column:1/-1}
 .chip-menu-btn{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--t4);cursor:pointer;padding:2px 4px;font-size:11px;line-height:1;z-index:1;letter-spacing:1px}
@@ -84,7 +97,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .sess-hdr{display:flex;align-items:center;gap:6px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--b1)}
 .sess-name-inp{flex:1;background:transparent;border:none;color:var(--t1);font-size:15px;font-weight:600;font-family:var(--font);outline:none;min-width:0}
 .sess-timer{font-size:12px;color:var(--t3);font-family:var(--mono);white-space:nowrap}
-.finish-btn{padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.finish-btn{color:#000!important;padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap}
 .cancel-btn{padding:7px 10px;background:transparent;border:1px solid var(--b2);color:var(--t3);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .2s}
 .resume-bar{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;background:var(--s2);border:1px solid var(--b1);border-radius:999px;padding:7px 7px 7px 16px;display:none;align-items:center;gap:10px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .resume-bar.show{display:flex}
@@ -98,7 +111,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .resume-bar-finish{background:var(--green);color:#000}
 .cancel-btn:hover{border-color:var(--red);color:var(--red)}
 /* EXERCISE CARD */
-.ec{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:12px;margin-bottom:10px;transition:opacity .2s,border-color .15s}
+.ec{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;margin-bottom:10px;transition:opacity .2s,border-color .15s;box-shadow:var(--ring)}
 .ec.dragging{opacity:.4;border-style:dashed}
 .ec.drag-over{border-color:var(--blue)}
 .ec-head{display:flex;align-items:center;gap:6px;margin-bottom:10px}
@@ -139,9 +152,9 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .add-ex-btn{width:100%;padding:12px;background:transparent;border:1px dashed var(--b2);border-radius:var(--rl);color:var(--t3);font-size:13px;cursor:pointer;font-family:var(--font);margin-top:4px;transition:all .2s}
 .add-ex-btn:hover{border-color:var(--blue);color:var(--blue)}
 /* MODALS */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .overlay.on{display:flex}
-.modal{background:var(--s1);border-radius:var(--rxl) var(--rxl) 0 0;width:100%;max-width:430px;padding:20px 16px max(env(safe-area-inset-bottom),20px);max-height:82vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
+.modal{background:var(--s1);border-top:1px solid var(--b2);border-radius:var(--rxl) var(--rxl) 0 0;width:100%;max-width:430px;padding:20px 16px max(env(safe-area-inset-bottom),20px);max-height:82vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
 @keyframes slideUp{from{transform:translateY(30px);opacity:.5}to{transform:translateY(0);opacity:1}}
 .mhandle{width:36px;height:4px;background:var(--b2);border-radius:2px;margin:0 auto 16px}
 .mtitle{font-size:15px;font-weight:600;margin-bottom:14px}
@@ -149,7 +162,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .mscroll::-webkit-scrollbar{display:none}
 .mf-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .mf{padding:5px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);transition:all .2s;font-family:var(--font)}
-.mf.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.mf.on{background:var(--ember);color:#000;border-color:var(--ember);font-weight:700}
 .ex-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer}
 .ex-item:active{opacity:.6}
 .ex-item-name{font-size:13px;font-weight:500;flex:1}
@@ -161,9 +174,9 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .ctx-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 /* STATS */
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px}
+.sc{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px;box-shadow:var(--ring)}
 .sc-label{font-size:10px;color:var(--t3);margin-bottom:4px;font-family:var(--mono)}
-.sc-val{font-size:22px;font-weight:600;letter-spacing:-.5px}
+.sc-val{font-size:24px;font-weight:800;letter-spacing:-.8px;font-variant-numeric:tabular-nums}
 .sc-sub{font-size:10px;color:var(--t3);margin-top:1px;font-family:var(--mono)}
 .psel{width:100%;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r);font-size:13px;background:var(--s2);color:var(--t1);margin-bottom:12px;font-family:var(--font);appearance:none}
 .cw{position:relative;width:100%;height:200px;margin-bottom:14px}
@@ -184,7 +197,7 @@ input[type=number]:focus{outline:none;border-color:var(--blue)}
 .muscle-pct-bar{height:8px;border-radius:4px;background:var(--s2);margin-bottom:10px;overflow:hidden}
 .muscle-pct-fill{height:100%;border-radius:4px;background:var(--blue)}
 /* PROFILE */
-.profile-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;margin-bottom:12px}
+.profile-card{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;margin-bottom:12px;box-shadow:var(--ring)}
 .profile-card-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 .profile-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0}
 .profile-stat{text-align:center;padding:10px 4px;background:var(--s2);border-radius:var(--r)}
@@ -231,7 +244,60 @@ input[type=date]{color-scheme:dark}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .method-tabs{display:flex;gap:6px;margin-bottom:12px}
 .method-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);transition:all .2s;font-family:var(--font)}
-.method-tab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.method-tab.on{background:var(--ember);color:#000;border-color:var(--ember)}
+/* ═══ PREMIUM ADDITIONS ═══ */
+.dash{margin-top:22px}
+.dash-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dash-title{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.dash-sub{font-size:11px;color:var(--t3);font-family:var(--mono)}
+.wknav{display:flex;align-items:center;gap:4px}
+.wknav button{background:var(--s2);border:1px solid var(--b1);color:var(--t1);border-radius:9px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;font-size:14px;font-family:var(--font)}
+.wknav button:disabled{opacity:.3}
+.wk-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
+.wk-d{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:var(--t3);font-family:var(--mono)}
+.wk-d i{width:100%;height:26px;border-radius:8px;background:var(--s2);border:1px solid var(--b1);display:block}
+.wk-d.on i{background:linear-gradient(160deg,var(--ember2),var(--ember));border-color:transparent;box-shadow:0 3px 10px rgba(255,106,61,.3)}
+.wk-d.rest i{background:repeating-linear-gradient(135deg,var(--s2) 0 4px,var(--s3) 4px 6px)}
+.wk-d.today{color:var(--ember)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.kpi{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:14px;padding:10px 8px;text-align:center;box-shadow:var(--ring)}
+.kpi b{display:block;font-size:19px;font-weight:800;letter-spacing:-.6px;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi small{display:block;font-size:9.5px;color:var(--t3);font-family:var(--mono);margin-top:3px}
+.kpi em{font-style:normal;font-size:10px;font-family:var(--mono);color:var(--t3)}
+.kpi em.up{color:var(--green)}.kpi em.dn{color:var(--red)}
+.card{background:var(--s1);background-image:var(--glass);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;margin-bottom:12px;box-shadow:var(--ring)}
+.card-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card-title span{font-size:10px;color:var(--t3);font-family:var(--mono);font-weight:400}
+.body-wrap{display:flex;gap:6px;justify-content:center;align-items:flex-start}
+.body-wrap svg{width:48%;max-width:190px;height:auto;display:block}
+.body-lbl{display:flex;justify-content:space-around;font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:4px}
+.heat-scale{height:6px;border-radius:3px;margin:12px 4px 4px;background:linear-gradient(90deg,#1a1a1e,#5a2a16,#b34a24,#ff6a3d,#ffb15c,#fff0c2)}
+.heat-scale-lbl{display:flex;justify-content:space-between;font-size:9.5px;color:var(--t3);font-family:var(--mono);padding:0 4px}
+.body-m{transition:fill .5s ease;cursor:pointer;stroke:rgba(255,255,255,.1);stroke-width:1}
+.body-m:active{opacity:.7}
+.body-tip{text-align:center;font-size:11px;color:var(--t2);min-height:16px;margin-top:8px;font-family:var(--mono)}
+.donut-wrap{display:flex;align-items:center;gap:12px}
+.donut-wrap .cw{width:132px;height:132px;flex-shrink:0;margin:0}
+.donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.dl-row{display:flex;align-items:center;gap:7px;font-size:11px}
+.dl-row i{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.dl-row span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)}
+.dl-row b{font-family:var(--mono);font-weight:500;color:var(--t1);font-size:11px}
+.dl-row em{font-style:normal;font-family:var(--mono);color:var(--t3);font-size:10px;width:32px;text-align:right}
+.rest-btn{width:100%;padding:10px;background:transparent;border:1px dashed var(--b2);border-radius:12px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);margin-bottom:12px}
+.rest-btn.on{background:var(--s2);border-style:solid;color:var(--t1)}
+/* GIFs */
+.exthumb{width:44px;height:44px;border-radius:10px;object-fit:cover;background:#fff;flex-shrink:0;border:1px solid var(--b1)}
+.exthumb.sm{width:38px;height:38px;border-radius:9px}
+.exthumb.ph{display:grid;place-items:center;color:var(--t4);font-size:16px;background:var(--s2)}
+.gif-hero{width:100%;aspect-ratio:1;max-width:220px;border-radius:14px;background:#fff;display:block;margin:0 auto 10px;object-fit:cover}
+.gif-attr{font-size:9px;color:var(--t4);font-family:var(--mono);text-align:center;margin-bottom:8px}
+.gif-attr a{color:var(--t3)}
+.gifpick-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1);cursor:pointer}
+.gifpick-item .n{flex:1;font-size:12px;font-weight:600;text-transform:capitalize}
+.gifpick-item .m{font-size:10px;color:var(--t3);font-family:var(--mono)}
+.gifpick-item.cur{background:var(--emberdim);margin:0 -8px;padding:8px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -266,8 +332,34 @@ input[type=date]{color-scheme:dark}
         </div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend"><span><i style="background:linear-gradient(160deg,var(--ember2),var(--ember))"></i>Gym</span><span><i style="background:var(--s2);border:1px solid var(--b2)"></i>Descanso</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--ember)"></i>Hoy</span></div>
       <div id="day-panel"></div>
-      <button onclick="repeatLastSession()" style="width:100%;margin-top:10px;padding:10px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🔁 Repetir última sesión</button>
+      <button onclick="repeatLastSession()" style="width:100%;margin-top:10px;padding:11px;background:var(--s2);border:1px solid var(--b1);border-radius:12px;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">🔁 Repetir última sesión</button>
+      <!-- DASHBOARD SEMANAL -->
+      <div class="dash" id="dash">
+        <div class="dash-head">
+          <div><div class="dash-title" id="dash-title">Esta semana</div><div class="dash-sub" id="dash-sub"></div></div>
+          <div class="wknav"><button onclick="dashMove(-1)">&#8249;</button><button id="dash-next" onclick="dashMove(1)">&#8250;</button></div>
+        </div>
+        <div class="wk-strip" id="wk-strip"></div>
+        <div class="kpis" id="dash-kpis"></div>
+        <div class="card">
+          <div class="card-title">Mapa muscular <span id="heat-sub">series vs. MAV</span></div>
+          <div class="body-wrap" id="body-wrap"></div>
+          <div class="body-lbl"><span>frente</span><span>espalda</span></div>
+          <div class="body-tip" id="body-tip">Toca un músculo</div>
+          <div class="heat-scale"></div>
+          <div class="heat-scale-lbl"><span>sin trabajar</span><span>½ MAV</span><span>MAV</span><span>MRV+</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Entreno por semana <span>últimas 8 · series y sesiones</span></div>
+          <div class="cw" style="height:170px;margin:0"><canvas id="dashWeekChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Series por músculo <span id="donut-sub"></span></div>
+          <div class="donut-wrap"><div class="cw"><canvas id="dashDonut"></canvas></div><div class="donut-legend" id="donut-legend"></div></div>
+        </div>
+      </div>
     </div>
     <!-- SESIÓN ACTIVA -->
     <div id="s-sess" class="scr">
@@ -597,6 +689,20 @@ input[type=date]{color-scheme:dark}
   </div>
 </div>
 <!-- LOGIN OVERLAY — full screen, above everything -->
+<div class="overlay" id="ov-gif" onclick="closeGif(event)" style="align-items:center">
+  <div class="modal" style="border-radius:var(--rxl);max-height:90vh">
+    <div class="mtitle" id="gif-title" style="margin-bottom:10px"></div>
+    <div class="mscroll" id="gif-body"></div>
+  </div>
+</div>
+<div class="overlay" id="ov-gifpick" onclick="closeGifPick(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="gifpick-title">Elegir animación</div>
+    <input id="gifpick-search" type="text" placeholder="Buscar en inglés: incline press, lat pulldown…" oninput="renderGifPick()" style="width:100%;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px">
+    <div class="mscroll" id="gifpick-list"></div>
+  </div>
+</div>
 <div id="login-overlay" style="position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px">
   <div style="text-align:center;margin-bottom:8px">
     <img src="icon-192.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto">
@@ -772,8 +878,13 @@ async function loadExercisesDB(){
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }
-const MC={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Isquiosurales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
-const VC={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Isquiosurales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
+const MC_RAW={'Pectoral':['#1e3a5f','#4f8ef7'],'Espalda':['#0a2e33','#22d3ee'],'Tríceps':['#3a0d0d','#ef4444'],'Bíceps':['#3a1030','#f472b6'],'Glúteos':['#0a2e29','#14b8a6'],'Isquiotibiales':['#1a3010','#86efac'],'Isquiosurales':['#1a3010','#86efac'],'Cuádriceps':['#1a3010','#4ade80'],'Gemelos':['#1e1b4b','#a78bfa'],'Deltoides anterior':['#3d2a00','#fbbf24'],'Deltoides lateral':['#3d2000','#fb923c'],'Hombro posterior':['#36103a','#d946ef'],'Deltoides posterior':['#36103a','#d946ef'],'Sóleo':['#1e1b4b','#a78bfa'],'Aductores':['#1e1e1e','#9ca3af'],'Abductores':['#1e1e1e','#9ca3af']};
+const VC_RAW={'Pectoral':'#4f8ef7','Espalda':'#22d3ee','Tríceps':'#ef4444','Bíceps':'#f472b6','Glúteos':'#14b8a6','Isquiotibiales':'#86efac','Isquiosurales':'#86efac','Cuádriceps':'#4ade80','Gemelos':'#a78bfa','Deltoides anterior':'#fbbf24','Deltoides lateral':'#fb923c','Hombro posterior':'#d946ef','Deltoides posterior':'#d946ef','Sóleo':'#7c6ee6','Aductores':'#9ca3af','Abductores':'#6b7280'};
+// Lookup insensible a mayúsculas/alias (la tabla exercises usa 'Deltoides Anterior', 'Gemelo/Sóleo', etc.)
+function ciProxy(o){return new Proxy(o,{get:(t,k)=>{if(typeof k!=='string'||t[k])return t[k];const lk=k.toLowerCase();const f=Object.keys(t).find(x=>x.toLowerCase()===lk);if(f)return t[f];if(/gemelo|s[oó]leo/.test(lk))return t['Gemelos'];if(/hombro posterior|delt.*poster/.test(lk))return t['Hombro posterior'];if(/isqui/.test(lk))return t['Isquiosurales'];if(/abdom|core/.test(lk))return t['Abdomen'];if(/antebrazo/.test(lk))return t['Antebrazo'];if(/trapecio/.test(lk))return t['Trapecio'];return undefined;}});}
+MC_RAW['Abdomen']=['#2a2a10','#e2e8a0'];MC_RAW['Antebrazo']=['#1e2a2a','#94d3c8'];MC_RAW['Trapecio']=['#2a1a10','#f5b28a'];
+VC_RAW['Abdomen']='#e2e8a0';VC_RAW['Antebrazo']='#94d3c8';VC_RAW['Trapecio']='#f5b28a';
+const MC=ciProxy(MC_RAW),VC=ciProxy(VC_RAW);
 // ═══ VOLUME LANDMARKS (MEV/MAV/MRV, series/semana) ═══
 // Defaults follow RP-style guidelines; editable per muscle via el botón ⚙ de la
 // pestaña Volumen. Overrides live in db.profile.landmarks → sync with the profile.
@@ -1066,7 +1177,7 @@ function showAppScreens(){
   document.getElementById('s-train').classList.add('on');
   document.querySelector('.bnav').style.display='flex';
   document.querySelector('.bn').classList.add('on');
-  renderCal(); renderDayPanel();
+  renderCal(); renderDayPanel(); renderDash();
   updateSyncBadge();
   flushSyncQueue();
   checkRestoreSession();
@@ -1109,6 +1220,7 @@ async function loadDBFromSupabase(){
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
     if(!pRes.error&&pRes.data){
       db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30,username:pRes.data.username};
+      if(pRes.data.settings&&typeof pRes.data.settings==='object'){const st=pRes.data.settings;if(st.restDays)db.profile.restDays=st.restDays;if(st.gifMap)db.profile.gifMap=st.gifMap;if(st.landmarks)db.profile.landmarks=st.landmarks;}
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
     // No seed data — new users start clean
@@ -1298,7 +1410,7 @@ function showScr(n,el){
 }
 function renderCurrentScr(n){
   const a=n||(document.querySelector('.scr.on')?.id?.replace('s-',''));
-  if(a==='train'||a==='sess'){renderCal();renderDayPanel();}
+  if(a==='train'||a==='sess'){renderCal();renderDayPanel();if(a==='train')renderDash();}
   else if(a==='tmpledit'){/* nothing extra to render */}
   else if(a==='stats'){setStatsTab(statsTab);}
   else if(a==='profile'){renderProfileScr();}
@@ -1309,26 +1421,6 @@ function renderCurrentScr(n){
 function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];}
 function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];renderCal();renderDayPanel();}
 function moveMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;}renderCal();}
-function renderCal(){
-  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
-  const grid=document.getElementById('cal-grid');
-  const dows=['L','M','X','J','V','S','D'];
-  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-  const first=new Date(calYear,calMonth,1);
-  const startDow=(first.getDay()+6)%7;
-  const days=new Date(calYear,calMonth+1,0).getDate();
-  const today=new Date().toISOString().split('T')[0];
-  const sDates=new Set((db.sessions||[]).map(s=>s.date));
-  for(let i=0;i<startDow;i++){const d=new Date(calYear,calMonth,-startDow+i+1);html+=`<div class="cal-day other">${d.getDate()}</div>`;}
-  for(let d=1;d<=days;d++){
-    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const cls=['cal-day',sDates.has(ds)?'has':'',ds===today?'today':'',ds===selDate?'sel':''].filter(Boolean).join(' ');
-    const dot=sDates.has(ds)?'<div class="cal-dot"></div>':'';
-    html+=`<div class="${cls}" onclick="selectDate('${ds}')">${d}${dot}</div>`;
-  }
-  grid.innerHTML=html;
-}
 function selectDate(ds){selDate=ds;renderCal();renderDayPanel();}
 function renderDayPanel(){
   const panel=document.getElementById('day-panel');
@@ -1604,6 +1696,7 @@ function renderExCard(ex,ei){
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
       <span class="drag-handle">⠿</span>
+      ${thumbHtml(ex.name,'exthumb sm')}
       <span class="ec-name" data-exn="${esc(ex.name)}" onclick="goToExInBiblioteca(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
@@ -1882,7 +1975,7 @@ function renderPickerList(){
   });
   // data-attrs instead of inline string args: names with quotes/HTML no longer break the handler
   document.getElementById('picker-list').innerHTML=list.length
-    ?list.map(e=>`<div class="ex-item" data-n="${esc(e.name)}" data-m="${esc(e.muscle)}" onclick="selectEx(this.dataset.n,this.dataset.m)"><div><div class="ex-item-name">${esc(e.name)}</div><div class="ex-item-muscle">${esc(e.muscle)}</div></div></div>`).join('')
+    ?list.map(e=>`<div class="ex-item" data-n="${esc(e.name)}" data-m="${esc(e.muscle)}" onclick="selectEx(this.dataset.n,this.dataset.m)" style="gap:10px">${thumbHtml(e.name,'exthumb sm')}<div><div class="ex-item-name">${esc(e.name)}</div><div class="ex-item-muscle">${esc(e.muscle)}</div></div></div>`).join('')
     :'<div class="empty">Sin resultados</div>';
 }
 function closePicker(e){if(!e||e.target===document.getElementById('ov-picker'))document.getElementById('ov-picker').classList.remove('on');}
@@ -1955,12 +2048,14 @@ function renderBiblioteca(){
       const eqIcon={'Poleas':'⚙️','Máquina':'🔩','Peso libre':'🏋️'}[e.equipment]||'';
       const cuesHtml=(e.cues||[]).map(c=>`<li style="margin-bottom:3px">${esc(c)}</li>`).join('');
       return `<div style="border:1px solid var(--b1);border-radius:var(--rl);margin-bottom:8px;overflow:hidden">
-        <div onclick="toggleBibCard(${i})" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--s1)">
-          <div style="flex:1;font-size:13px;font-weight:500">${esc(e.name)}</div>
+        <div onclick="toggleBibCard(${i})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;background:var(--s1)">
+          ${thumbHtml(e.name,'exthumb sm')}
+          <div style="flex:1;font-size:13px;font-weight:600">${esc(e.name)}</div>
           <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono);flex-shrink:0">${esc(e.muscle)}</span>
           ${eqIcon?`<span style="font-size:11px">${eqIcon}</span>`:''}
         </div>
         <div id="bibcard-${i}" style="display:none;padding:10px 12px;border-top:1px solid var(--b1);background:var(--bg)">
+          ${(()=>{const g=getGif(e.name);return g?`<img class="gif-hero" src="${gifUrl(g)}" loading="lazy" alt="" data-gifn="${esc(e.name)}" onclick="openGif(this.dataset.gifn)"><div class="gif-attr">${esc(g.n)} · © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a> · <a href="#" onclick="openGifPick('${esc(e.name).replace(/'/g,"\\'")}');return false">cambiar</a></div>`:`<div class="gif-attr"><a href="#" onclick="openGifPick('${esc(e.name).replace(/'/g,"\\'")}');return false">＋ Asignar animación</a></div>`;})()}
           ${e.reps?`<div style="font-size:11px;color:var(--amber);font-family:var(--mono);margin-bottom:8px">⭐ ${esc(e.reps)}</div>`:''}
           ${e.description?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Descripción</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${esc(e.description)}</div>`:''}
           ${e.execution?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">Realización</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">${esc(e.execution)}</div>`:''}
@@ -3113,6 +3208,306 @@ if(initSupabase()){
   loadDB();showAppScreens();
 }
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ PREMIUM: calendario (gym/descanso), dashboard semanal, mapa muscular, GIFs
+// ═══════════════════════════════════════════════════════════════════════
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function mondayOf(ds){const[y,m,d]=ds.split('-').map(Number);const dt=new Date(y,m-1,d);const dow=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-dow);return dt;}
+function todayStr(){return isoDate(new Date());}
+function restSet(){if(!db.profile)db.profile={};if(!Array.isArray(db.profile.restDays))db.profile.restDays=[];return db.profile.restDays;}
+function isRest(ds){return restSet().includes(ds);}
+function toggleRest(ds){const r=restSet();const i=r.indexOf(ds);if(i>=0)r.splice(i,1);else r.push(ds);saveDB();renderCal();renderDayPanel();renderDash();}
+function tmplTag(name){const n=(name||'').trim();if(!n)return'';const w=n.split(/\s+/);return w.length>1?(w[0][0]+w[w.length-1][0]).toUpperCase():n.slice(0,3).toUpperCase();}
+
+// ─── Calendario ──────────────────────────────────────────────────────
+function renderCal(){
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
+  const grid=document.getElementById('cal-grid');
+  const dows=['L','M','X','J','V','S','D'];
+  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth,1);
+  const startDow=(first.getDay()+6)%7;
+  const days=new Date(calYear,calMonth+1,0).getDate();
+  const today=todayStr();
+  const byDate={};(db.sessions||[]).forEach(s=>{(byDate[s.date]=byDate[s.date]||[]).push(s);});
+  for(let i=0;i<startDow;i++){const d=new Date(calYear,calMonth,-startDow+i+1);html+=`<div class="cal-day other">${d.getDate()}</div>`;}
+  for(let d=1;d<=days;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ss=byDate[ds]||[];const rest=isRest(ds);
+    const cls=['cal-day',ss.length?'has':'',ss.length>1?'multi':'',rest&&!ss.length?'rest':'',(!ss.length&&!rest&&ds<today)?'pastoff':'',ds===today?'today':'',ds===selDate?'sel':''].filter(Boolean).join(' ');
+    const tag=ss.length?`<div class="cal-tag">${esc(ss.length>1?ss.length+'×':tmplTag(ss[0].name))}</div>`:'';
+    html+=`<div class="${cls}" onclick="selectDate('${ds}')" title="${ss.map(s=>esc(s.name)).join(', ')}">${d}${tag}</div>`;
+  }
+  grid.innerHTML=html;
+}
+// Botón de descanso en el panel del día (solo si no hay sesión ese día)
+(function(){
+  const orig=renderDayPanel;
+  renderDayPanel=function(){
+    orig();
+    const panel=document.getElementById('day-panel');
+    if(!selDate||!panel)return;
+    const has=(db.sessions||[]).some(s=>s.date===selDate);
+    if(has)return;
+    const dp=panel.querySelector('.dpanel');if(!dp)return;
+    const btn=document.createElement('button');
+    btn.className='rest-btn'+(isRest(selDate)?' on':'');
+    btn.textContent=isRest(selDate)?'✓ Día de descanso':'Marcar como descanso';
+    btn.onclick=()=>toggleRest(selDate);
+    dp.insertBefore(btn,dp.children[1]||null);
+  };
+})();
+
+// ─── Dashboard semanal ───────────────────────────────────────────────
+let dashOff=0,dashWeekChart=null,dashDonut=null;
+function dashMove(d){dashOff=Math.min(0,dashOff+d);renderDash();}
+function weekRange(off){const mon=mondayOf(todayStr());mon.setDate(mon.getDate()+off*7);const days=[];for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);days.push(isoDate(x));}return days;}
+function weekStats(days){
+  const set=new Set(days);const ss=(db.sessions||[]).filter(s=>set.has(s.date));
+  const by={};let sets=0,ton=0,min=0;
+  ss.forEach(s=>{
+    min+=s.durationMin||(typeof estimateSessDuration==='function'?estimateSessDuration(s):0)||0;
+    s.exercises?.forEach(e=>{const m=normMuscle(e.muscle);e.sets?.forEach(st=>{if(st.done||st.kg){sets++;by[m]=(by[m]||0)+1;ton+=(st.kg||0)*(st.reps||0);}});});
+  });
+  return{sessions:ss,sets,ton,min,by,rest:days.filter(isRest).length};
+}
+function renderDash(){
+  if(!document.getElementById('dash'))return;
+  const days=weekRange(dashOff),prev=weekRange(dashOff-1);
+  const st=weekStats(days),pv=weekStats(prev);
+  const today=todayStr();
+  document.getElementById('dash-next').disabled=dashOff>=0;
+  const mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const f=ds=>{const[y,m,d]=ds.split('-');return `${+d} ${mn[+m-1]}`;};
+  document.getElementById('dash-title').textContent=dashOff===0?'Esta semana':dashOff===-1?'Semana pasada':`Hace ${-dashOff} semanas`;
+  document.getElementById('dash-sub').textContent=`${f(days[0])} – ${f(days[6])}`;
+  // strip
+  const dn=['L','M','X','J','V','S','D'];
+  const sd=new Set(st.sessions.map(s=>s.date));
+  document.getElementById('wk-strip').innerHTML=days.map((ds,i)=>`<div class="wk-d ${sd.has(ds)?'on':isRest(ds)?'rest':''} ${ds===today?'today':''}"><i></i>${dn[i]}</div>`).join('');
+  // kpis
+  const delta=(a,b,f)=>{if(!b&&!a)return'';const d=a-b;if(!d)return'<em>=</em>';return `<em class="${d>0?'up':'dn'}">${d>0?'+':'−'}${f?f(Math.abs(d)):Math.abs(d)}</em>`;};
+  const kt=v=>v>=1000?(v/1000).toFixed(1).replace('.0','')+'t':v+'kg';
+  const tm=v=>v>=60?(v/60).toFixed(1).replace('.0','')+'h':v+'m';
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi"><b>${st.sessions.length}</b><small>sesiones</small>${delta(st.sessions.length,pv.sessions.length)}</div>
+    <div class="kpi"><b>${st.sets}</b><small>series</small>${delta(st.sets,pv.sets)}</div>
+    <div class="kpi"><b>${st.ton>=1000?(st.ton/1000).toFixed(1):st.ton}</b><small>${st.ton>=1000?'toneladas':'kg movidos'}</small>${delta(st.ton,pv.ton,kt)}</div>
+    <div class="kpi"><b>${tm(st.min)}</b><small>tiempo</small>${delta(st.min,pv.min,tm)}</div>`;
+  renderBodyHeat(st.by);
+  renderDashWeekChart();
+  renderDashDonut(st.by,st.sets);
+}
+// Serie temporal 8 semanas
+function renderDashWeekChart(){
+  const labels=[],sets=[],sess=[],bg=[];
+  for(let i=-7;i<=0;i++){
+    const off=dashOff+i;const days=weekRange(off);const s=weekStats(days);
+    const[y,m,d]=days[0].split('-');labels.push(`${+d}/${+m}`);sets.push(s.sets);sess.push(s.sessions.length);
+    bg.push(i===0?'#ff6a3d':'rgba(255,106,61,.42)');
+  }
+  const c=document.getElementById('dashWeekChart');if(!c)return;
+  if(dashWeekChart)dashWeekChart.destroy();
+  dashWeekChart=new Chart(c,{data:{labels,datasets:[
+    {type:'bar',label:'Series',data:sets,backgroundColor:bg,borderRadius:6,borderSkipped:false,yAxisID:'y',order:2},
+    {type:'line',label:'Sesiones',data:sess,borderColor:'#ffb15c',backgroundColor:'#ffb15c',pointRadius:3,pointHoverRadius:4,tension:.35,borderWidth:1.5,yAxisID:'y2',order:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#777',boxWidth:8,boxHeight:8,font:{size:9,family:'DM Mono'},padding:8}},tooltip:{callbacks:{title:i=>'Semana del '+i[0].label}}},
+    scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:9,family:'DM Mono'}}},
+      y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:9,family:'DM Mono'}},beginAtZero:true},
+      y2:{position:'right',grid:{display:false},ticks:{color:'#ffb15c',font:{size:9,family:'DM Mono'},stepSize:1},beginAtZero:true,suggestedMax:6}}}});
+}
+function renderDashDonut(by,total){
+  const c=document.getElementById('dashDonut'),lg=document.getElementById('donut-legend');if(!c)return;
+  const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('donut-sub').textContent=total?`${total} series`:'';
+  if(dashDonut)dashDonut.destroy();
+  if(!ent.length){dashDonut=null;lg.innerHTML='<div style="font-size:11px;color:var(--t3)">Sin series registradas esta semana</div>';c.getContext('2d').clearRect(0,0,c.width,c.height);return;}
+  dashDonut=new Chart(c,{type:'doughnut',data:{labels:ent.map(e=>e[0]),datasets:[{data:ent.map(e=>e[1]),backgroundColor:ent.map(e=>VC[e[0]]||'#9ca3af'),borderColor:'#0d0d0f',borderWidth:2,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.label}: ${i.raw} series (${Math.round(i.raw/total*100)}%)`}}}}});
+  lg.innerHTML=ent.slice(0,9).map(([m,v])=>`<div class="dl-row"><i style="background:${VC[m]||'#9ca3af'}"></i><span>${esc(m)}</span><b>${v}</b><em>${Math.round(v/total*100)}%</em></div>`).join('')+(ent.length>9?`<div class="dl-row"><i style="background:var(--t4)"></i><span>+${ent.length-9} más</span></div>`:'');
+}
+
+// ─── Mapa muscular (SVG) ─────────────────────────────────────────────
+// Cada región tiene un id; MUSCLE_REGIONS asigna músculos de la app a regiones.
+const MUSCLE_REGIONS_RAW={
+  'Pectoral':['f-chest'],'Deltoides anterior':['f-delt'],'Deltoides lateral':['f-delt','b-delt'],'Hombro posterior':['b-delt'],'Deltoides posterior':['b-delt'],
+  'Bíceps':['f-bicep'],'Tríceps':['b-tricep'],'Antebrazo':['f-fore','b-fore'],'Antebrazos':['f-fore','b-fore'],
+  'Espalda':['b-lat','b-upper'],'Dorsal':['b-lat'],'Trapecio':['b-trap','f-trap'],'Lumbar':['b-lower'],
+  'Abdomen':['f-abs'],'Abdominales':['f-abs'],'Core':['f-abs','f-obl'],'Oblicuos':['f-obl'],
+  'Cuádriceps':['f-quad'],'Isquiosurales':['b-ham'],'Isquiotibiales':['b-ham'],'Glúteos':['b-glute'],
+  'Gemelos':['b-calf'],'Gemelo/Sóleo':['b-calf','b-soleus'],'Sóleo':['b-soleus'],'Aductores':['f-add'],'Abductores':['b-abd'],
+};
+const MUSCLE_REGIONS=new Proxy(MUSCLE_REGIONS_RAW,{get:(o,k)=>{if(o[k])return o[k];const lk=String(k).toLowerCase();const f=Object.keys(o).find(x=>x.toLowerCase()===lk);if(f)return o[f];if(/gemelo|s[oó]leo/.test(lk))return['b-calf','b-soleus'];if(/pectoral|pecho/.test(lk))return['f-chest'];if(/espalda|dorsal/.test(lk))return['b-lat','b-upper'];if(/abd|core/.test(lk))return['f-abs'];return[];}});
+function heatColor(t){ // t: 0..1.2 → escala
+  const stops=[[0,[26,26,30]],[.25,[90,42,22]],[.5,[179,74,36]],[.75,[255,106,61]],[1,[255,177,92]],[1.2,[255,240,194]]];
+  t=Math.max(0,Math.min(1.2,t));
+  for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){const[a,ca]=stops[i-1],[b,cb]=stops[i];const k=(t-a)/(b-a);return `rgb(${ca.map((v,j)=>Math.round(v+(cb[j]-v)*k)).join(',')})`;}}
+  return 'rgb(255,240,194)';
+}
+// Figura construida por piezas: partes neutras (cabeza, cuello, manos, rodillas, pies)
+// + regiones musculares coloreables. viewBox 0 0 200 430, simétrica respecto a x=100.
+function bodySvg(side){
+  const N=(d)=>`<path d="${d}" fill="#17171b" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
+  const NE=(cx,cy,rx,ry)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#17171b" stroke="rgba(255,255,255,.08)"/>`;
+  const M=(id,d,label)=>`<path class="body-m" data-id="${id}" data-l="${label}" d="${d}"/>`;
+  const E=(id,cx,cy,rx,ry,label,rot=0)=>`<ellipse class="body-m" data-id="${id}" data-l="${label}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})"/>`;
+  const mirror=(fn)=>fn(1)+fn(-1); // x' = 100 + k*(x-100)
+  const X=(k,x)=>100+k*(x-100);
+  let p='';
+  // partes neutras
+  p+=NE(100,34,21,23)+N('M90 54h20v16q-10 4-20 0z');
+  p+=N('M84 186h32l6 18h-44z'); // pelvis
+  p+=mirror(k=>NE(X(k,30),212,6,8)+NE(X(k,78),304,8,9)+N(`M${X(k,72)} 392h${k*18}q${k*6} 0 ${k*6} 8v6h${-k*24}z`));
+  if(side==='f'){
+    p+=mirror(k=>M('f-trap',`M${X(k,90)} 62L${X(k,62)} 80Q${X(k,84)} 74 ${X(k,100)} 76z`,'Trapecio'));
+    p+=mirror(k=>E('f-delt',X(k,58),88,15,16,'Deltoides'));
+    p+=mirror(k=>M('f-chest',`M${X(k,99)} 78H${X(k,74)}Q${X(k,66)} 78 ${X(k,66)} 92V${104}Q${X(k,66)} 116 ${X(k,80)} 116H${X(k,99)}z`,'Pectoral'));
+    p+=mirror(k=>E('f-bicep',X(k,47),130,10,24,'Bíceps',-k*6));
+    p+=mirror(k=>E('f-fore',X(k,38),180,8,26,'Antebrazo',-k*10));
+    p+=M('f-abs','M84 120h32q4 0 4 4v56q0 4-4 4H84q-4 0-4-4v-56q0-4 4-4z','Abdomen');
+    p+=mirror(k=>E('f-obl',X(k,73),152,7,30,'Oblicuos',k*4));
+    p+=mirror(k=>E('f-add',X(k,92),224,6,26,'Aductores',-k*3));
+    p+=mirror(k=>E('f-quad',X(k,77),250,16,50,'Cuádriceps',k*3));
+    p+=mirror(k=>E('f-tib',X(k,80),352,8,38,'Tibial'));
+  }else{
+    p+=M('b-trap','M100 60L68 84 100 96 132 84z','Trapecio');
+    p+=mirror(k=>E('b-delt',X(k,58),90,15,16,'Deltoides posterior'));
+    p+=M('b-upper','M78 96h44q6 0 6 6v10q0 6-6 6H78q-6 0-6-6v-10q0-6 6-6z','Espalda alta');
+    p+=mirror(k=>M('b-lat',`M${X(k,76)} 118H${X(k,99)}V${162}Q${X(k,86)} 168 ${X(k,74)} 152Q${X(k,66)} 134 ${X(k,76)} 118z`,'Dorsal'));
+    p+=mirror(k=>E('b-tricep',X(k,47),132,10,24,'Tríceps',-k*6));
+    p+=mirror(k=>E('b-fore',X(k,38),182,8,26,'Antebrazo',-k*10));
+    p+=M('b-lower','M86 162h28q4 0 4 4v20q0 4-4 4H86q-4 0-4-4v-20q0-4 4-4z','Lumbar');
+    p+=mirror(k=>E('b-abd',X(k,60),208,7,16,'Abductores',k*10));
+    p+=mirror(k=>E('b-glute',X(k,82),216,17,20,'Glúteos',k*6));
+    p+=mirror(k=>E('b-ham',X(k,78),282,15,46,'Isquiosurales',k*3));
+    p+=mirror(k=>E('b-calf',X(k,80),352,10,30,'Gemelos'));
+    p+=mirror(k=>E('b-soleus',X(k,80),392,7,16,'Sóleo'));
+  }
+  return `<svg viewBox="0 0 200 430" xmlns="http://www.w3.org/2000/svg">${p}</svg>`;
+}
+function renderBodyHeat(by){
+  const wrap=document.getElementById('body-wrap');if(!wrap)return;
+  if(!wrap.dataset.init){wrap.innerHTML=bodySvg('f')+bodySvg('b');wrap.dataset.init='1';
+    wrap.querySelectorAll('.body-m').forEach(el=>el.addEventListener('click',()=>{const t=el.dataset.t;document.getElementById('body-tip').textContent=t||(el.dataset.l+' · sin series');}));}
+  // intensidad por región = max(sets/MAV) de los músculos mapeados
+  const reg={};
+  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const mav=lm.mav||14;const t=v/mav;(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
+  wrap.querySelectorAll('.body-m').forEach(el=>{
+    const r=reg[el.dataset.id];
+    el.style.fill=heatColor(r?r.t:0);
+    el.dataset.t=r?`${r.m}: ${r.v} series · MEV ${r.lm.mev??'–'} / MAV ${r.lm.mav??'–'} / MRV ${r.lm.mrv??'–'}`:'';
+  });
+  const tip=document.getElementById('body-tip');if(tip)tip.textContent=Object.keys(by).length?'Toca un músculo':'Sin entrenos esta semana';
+}
+
+// ─── GIFs (hasaneyldrm/exercises-dataset · media © Gym visual) ───────
+const GIF_BASE='https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/';
+let GIF_DB=null,GIF_AUTO={};
+function gifUrl(e){return `${GIF_BASE}videos/${e.i}-${e.m}.gif`;}
+function gifThumb(e){return `${GIF_BASE}images/${e.i}-${e.m}.jpg`;}
+async function loadGifIndex(){
+  try{const c=localStorage.getItem('exgifs_v1');if(c){GIF_DB=JSON.parse(c);}}catch(e){}
+  try{const r=await fetch('exgifs.json');if(r.ok){GIF_DB=await r.json();try{localStorage.setItem('exgifs_v1',JSON.stringify(GIF_DB));}catch(e){}}}catch(e){}
+  if(!GIF_DB){try{const r=await fetch(GIF_BASE+'data/exercises.json');const d=await r.json();GIF_DB=d.map(e=>({i:e.id,n:e.name,t:e.target,e:e.equipment,m:e.media_id}));}catch(e){}}
+  if(GIF_DB){GIF_AUTO={};refreshGifThumbs();}
+}
+function refreshGifThumbs(){document.querySelectorAll('[data-gifn]').forEach(el=>{const e=getGif(el.dataset.gifn);if(e){if(el.tagName==='IMG'){el.src=gifThumb(e);}else{const img=document.createElement('img');img.className=el.className.replace('ph','');img.src=gifThumb(e);img.loading='lazy';img.dataset.gifn=el.dataset.gifn;el.replaceWith(img);}}});}
+// Diccionario ES→EN de tokens (nombre) y músculo→target
+const GIF_MUS_RAW={'Pectoral':['pectorals'],'Espalda':['lats','upper back'],'Tríceps':['triceps'],'Bíceps':['biceps'],'Glúteos':['glutes'],'Isquiosurales':['hamstrings'],'Isquiotibiales':['hamstrings'],'Cuádriceps':['quads'],'Gemelos':['calves'],'Sóleo':['calves'],'Deltoides anterior':['delts'],'Deltoides lateral':['delts'],'Hombro posterior':['delts','upper back'],'Deltoides posterior':['delts','upper back'],'Aductores':['adductors'],'Abductores':['abductors'],'Abdomen':['abs'],'Abdominales':['abs'],'Core':['abs'],'Antebrazo':['forearms'],'Antebrazos':['forearms'],'Trapecio':['traps','upper back'],'Lumbar':['spine']};
+const GIF_MUS=new Proxy(GIF_MUS_RAW,{get:(o,k)=>o[k]||o[Object.keys(o).find(x=>x.toLowerCase()===String(k).toLowerCase())]||(/gemelo|s[oó]leo/i.test(k)?['calves']:/delt|hombro/i.test(k)?['delts']:/abd|core/i.test(k)?['abs']:undefined)});
+const GIF_EQ={'Poleas':['cable'],'Máquina':['leverage machine','sled machine','smith machine','assisted'],'Peso libre':['dumbbell','barbell','ez barbell','kettlebell','body weight','weighted']};
+const GIF_DICT=[ // [regex ES, tokens EN ('|' = alternativas), peso]
+  [/hip ?thrust|skorcher/,'glute bridge',4],[/peso muerto rumano|pm rumano|rumano|\brdl\b/,'romanian deadlift',4],[/peso muerto|\bpm\b|deadlift/,'deadlift',3],[/sumo/,'sumo',2],[/piernas r[ií]gidas|sldl|stiff/,'stiff leg|straight leg',3],
+  [/b[uú]lgar/,'single leg split squat',4],[/split squat/,'split squat',4],[/zancada|lunge|estocada/,'lunge',3],[/sentadilla|squat/,'squat',3],[/hack/,'hack',3],[/goblet/,'goblet',3],[/pistol/,'pistol',3],[/barra alta|high bar/,'high bar',3],[/barra baja|low bar/,'low bar',3],[/frontal.*sentadilla|front squat/,'front squat',3],[/sissy/,'sissy',4],[/belt/,'belt',2],[/pendulum/,'pendulum',2],[/step ?up/,'step-up',4],
+  [/prensa|leg press/,'leg press',4],[/45/,'45',1.5],[/horizontal/,'horizontal',1.5],[/extensi[oó]n(es)? de cu[aá]d|extensi[oó]n de pierna|leg extension/,'leg extension',4],
+  [/curl femoral|curl de pierna|leg curl|femoral/,'leg curl',4],[/n[oó]rdic/,'nordic|inverse leg curl',3],[/glute ham|ghr/,'glute-ham',4],[/buenos d[ií]as|good morning/,'good morning',4],
+  [/gemelo|calf|pantorrilla|s[oó]leo|puntillas/,'calf',4],[/aduc|adduct/,'hip adduction',4],[/abduc/,'hip abduction',5],[/patada|kick ?back|glute press down/,'kickback|hip extension',3],[/puente|glute bridge/,'glute bridge',3],[/frog/,'frog|glute bridge',3],[/clam/,'clam|hip abduction',3],[/monster|walk/,'walk',3],
+  [/hiperextensi|hyperextension|extensi[oó]n lumbar|back extension|extensiones (en )?banco inclinado|focus gl[uú]teo|focus isqui/,'hyperextension',4],[/reverse glute|reverse hyper/,'reverse hyperextension',4],[/pull ?through/,'pull through',4],
+  [/jal[oó]n|pulldown|dorsalera/,'pulldown',4],[/dominada|pull[- ]?up|chin/,'pull-up',4],[/pull ?over/,'pullover',4],[/rack pull/,'rack pull',4],
+  [/remo al ment[oó]n|upright/,'upright row',4],[/remo|row/,'row',3],[/gironda/,'cable seated row',4],[/pendlay/,'bent over row',2],[/t[- ]?bar|remo en t\b/,'t-bar|t bar',3],[/face ?pull/,'face pull',4],[/encogimiento|shrug/,'shrug',4],[/landmine/,'landmine',3],[/seal row/,'incline row',2],[/meadows|helms|dante/,'row',1],
+  [/press (de )?banca|bench press|press plano|press banca|press.*(m[aá]quina|prono|lateral)/,'bench press|chest press',3],[/inclinad|incline/,'incline',1.9],[/declinad|decline/,'decline',1.9],[/chest press|press de pecho/,'chest press',3],[/hex press|squeeze/,'squeeze|close',1.5],[/press estrecho|agarre estrecho|close[- ]grip/,'close',1.9],
+  [/apertura|fly|flyes|pec[- ]?deck|pec-fly|contractor/,'fly',3],[/cruce|crossover/,'crossover|fly',2],[/fondos|dip/,'dip',4],[/flexi[oó]n(es)|push[- ]?up/,'push-up',3],[/press/,'press',2],
+  [/press (de )?hombro|press militar|shoulder press|overhead press/,'shoulder press',3],[/arnold/,'arnold',3],
+  [/elevaci[oó]n(es)? lateral|evaciones laterales|lateral raise|elev\. laterales|laterales|butterfly/,'lateral raise',4],[/elevaci[oó]n(es)? frontal|front raise/,'front raise',4],[/p[aá]jaro|reverse (cable )?cross|rear delt|delt\.? posterior|hang & swing/,'rear delt|reverse fly',3],[/contractora invertida|reverse pec/,'reverse fly',4],
+  [/curl/,'curl',3],[/martillo|hammer/,'hammer',3],[/predicador|scott|preacher/,'preacher',3],[/concentrad/,'concentration',3],[/bayesian/,'curl',1],[/ara[ñn]a|spider/,'spider',3],[/drag/,'drag',3],[/zottman/,'zottman',3],[/doble b[ií]ceps|double biceps/,'overhead curl',3],
+  [/press franc[eé]s|skull|rompecr[aá]neo|lying triceps/,'lying triceps extension',4],[/tras ?nuca|overhead|por encima|sobre la cabeza/,'overhead',3],[/extensi[oó]n.*polea alta|polea alta.*extensi|pushdown|tr[ií]ceps en polea alta/,'pushdown',4],[/extensi[oó]n(es)? (de )?(tr[ií]ceps|codo)|triceps extension/,'triceps',2.5],[/kaz/,'pushdown|close',2],[/jm press/,'close-grip press|close',2],[/tate/,'tate|lying triceps',2],[/katana/,'triceps extension',2],
+  [/cuerda|rope/,'rope',1.5],
+  [/plancha|plank/,'plank',4],[/crunch|abdominal/,'crunch',3],[/encogimientos de piernas/,'leg raise',3],[/elevaci[oó]n(es)? de piernas|leg raise/,'leg raise',4],[/rueda|wheel|roll ?out|roller/,'roller|wheel',3],[/russian|ruso/,'russian twist',3],[/pallof/,'pallof',4],[/\bv-?ups?\b/,'v-up',4],[/wood ?chop|le[ñn]ador/,'chop|twist',2],[/body saw|stir the pot|saw/,'plank',2.5],[/colgad|hanging/,'hanging',3],
+  [/mu[ñn]eca|wrist/,'wrist curl',3],[/agarre en m[aá]quina|grip machine/,'gripper|gripless',3],[/twist|rotaci[oó]n|rolling/,'twist',2],
+  [/sentad[oa]/,'seated',1],[/de pie|standing/,'standing',1],[/tumbad|lying|acostad/,'lying',1.5],[/unilateral|una mano|un brazo|una pierna|single|one arm/,'one arm|single leg|one leg|unilateral',1.5],[/altern/,'alternate',1.5],[/agarre ancho|wide/,'wide',1.5],[/neutro|neutral|hammer grip/,'neutral|parallel|hammer',1.5],[/supin/,'underhand|reverse',1.5],[/invers|invertid|reverse|reverse grip/,'reverse',1.5],[/torso inclinado|bent over/,'bent over',1.9],[/alto|high/,'high',1.5],[/bajo|low/,'low',1],[/arrodillad|kneeling|cuadrupedia/,'kneeling',1.5],[/d[eé]ficit/,'deficit',1],
+  [/mancuerna|dumb?bell|\bdb\b/,'dumbbell',1.9],[/barra z|ez/,'ez',1.9],[/barra|barbell/,'barbell',1.8],[/polea|cable/,'cable',1.9],[/multipower|\bmp\b|smith/,'smith',1.9],[/m[aá]quina|machine|convergente|plate-loaded/,'lever|machine',1.8],[/kettlebell|pesa rusa/,'kettlebell',1.9],[/goma|banda|band/,'band',1.9],[/trx|anillas|suspensi/,'suspension|suspended',1.9],[/bal[oó]n|ball|fitball/,'ball',1.5],[/lastrad|weighted/,'weighted',1.5],[/en banco|bench/,'bench',.5],
+];
+// Modificadores del nombre EN que penalizan si el nombre ES no los menciona
+const GIF_MODS=[['alternate',/altern/],['one arm',/unilateral|una mano|un brazo|single|one arm/],['single leg',/unilateral|una pierna|single|b[uú]lgar/],['one leg',/unilateral|una pierna|single/],['unilateral',/unilateral|una mano|un brazo|single/],['kneeling',/arrodillad|kneeling|cuadrupedia/],['incline',/inclinad|incline/],['decline',/declinad|decline/],['reverse',/invers|invertid|reverse|supin|revers/],['close',/estrecho|cerrado|close|kaz|jm|hex/],['wide',/ancho|wide/],['seated',/sentad|seated/],['standing',/de pie|standing/],['lying',/tumbad|lying|acostad/],['female',/female/],['v. ',/v\.|v[0-9]/],['assisted',/asistid|assisted/],['band',/goma|banda|band/],['rope',/cuerda|rope/],['hammer',/martillo|hammer|neutro/],['preacher',/predicador|scott|preacher/],['rear',/posterior|p[aá]jaro|rear|reverse/],['front',/frontal|front/],['side',/lateral|side|oblicuo/],['bent over',/inclinado|bent over|pendlay/],['twisting',/rotaci|twist/],['stretch',/estiramiento|stretch/],['jump',/salto|jump/],['pov',/pov/],['chair',/silla|chair/],['l-pull',/\bl-/],['rocky',/rocky/],['bench pull',/bench pull/],['breeding',/breeding/],['concentration',/concentrad|concentration/],['spider',/ara[ñn]a|spider/],['zottman',/zottman/],['overhead',/tras ?nuca|overhead|por encima|sobre la cabeza|doble b[ií]ceps/],['sumo',/sumo/],['high',/alto|high/],['low',/bajo|low/],['march',/march/],['with',/con |with/],['floor',/suelo|floor/],['step',/step|escal/],['inverse',/n[oó]rdic|inverse/],['self',/self/],['(male)',/male/],['narrow',/estrecho|narrow|cerrado/],['gripless',/gripless|sin agarre/],['arm blaster',/blaster/],['sz-bar',/sz|ez|barra z/],['ez',/\bez\b|barra z/],['straight arm',/brazos? rectos?|straight arm/],['pro lat',/pro lat/],['full range',/full range|rango completo/],['bar lateral',/barra/]];
+function gifScore(ex,cand){
+  const q=(ex.name||'').toLowerCase();const cn=cand.n.toLowerCase();
+  let sc=0,hits=0,core=0;const got=[];
+  GIF_DICT.forEach(([re,tok,w])=>{if(re.test(q)){const alt=tok.split('|').find(a=>a.split(' ').every(t=>cn.includes(t)));if(alt){sc+=w;hits++;if(w>=2)core++;got.push(alt);}else sc-=w*.6;}});
+  if(!hits||!core)return -99;
+  const posture=/^(seated|standing|lying|with|floor|bench)$/;
+  GIF_MODS.forEach(([tok,re])=>{if(cn.includes(tok)&&!re.test(q)&&!got.some(g=>g.includes(tok)))sc-=(tok==='stretch'||tok==='female'?4:posture.test(tok)?.6:3);});
+  const tg=GIF_MUS[normMuscle(ex.muscle)]||[];if(tg.includes(cand.t))sc+=2.2;else if(tg.length)sc-=.8;
+  const eq=GIF_EQ[ex.equipment]||[];if(eq.length){if(eq.includes(cand.e))sc+=1;else sc-=.6;}
+  sc-=cn.split(/\s+/).length*.15;
+  return sc;
+}
+function getGif(name){
+  if(!GIF_DB)return null;
+  const ov=db.profile?.gifMap?.[name];
+  if(ov==='none')return null;
+  if(ov){const e=GIF_DB.find(x=>x.i===ov);if(e)return e;}
+  if(name in GIF_AUTO)return GIF_AUTO[name];
+  const ex=ALL_EX.find(e=>e.name===name)||(activeSess?.exercises||[]).find(e=>e.name===name)||{name};
+  let best=null,bs=2.9;
+  for(const c of GIF_DB){const s=gifScore(ex,c);if(s>bs){bs=s;best=c;}}
+  GIF_AUTO[name]=best;return best;
+}
+function thumbHtml(name,cls='exthumb'){const e=getGif(name);return e?`<img class="${cls}" src="${gifThumb(e)}" loading="lazy" data-gifn="${esc(name)}" onclick="openGif(this.dataset.gifn);event.stopPropagation()" alt="">`:`<div class="${cls} ph" data-gifn="${esc(name)}" onclick="openGifPick(this.dataset.gifn);event.stopPropagation()">▶</div>`;}
+function openGif(name){
+  const e=getGif(name);
+  document.getElementById('gif-title').textContent=name;
+  document.getElementById('gif-body').innerHTML=e?`<img class="gif-hero" src="${gifUrl(e)}" alt="">
+    <div style="text-align:center;font-size:12px;color:var(--t2);text-transform:capitalize;margin-bottom:4px">${esc(e.n)}</div>
+    <div class="gif-attr">© <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a> · ${esc(e.t)} · ${esc(e.e)}</div>
+    <button onclick="openGifPick('${esc(name).replace(/'/g,"\\'")}')" style="width:100%;padding:9px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Cambiar animación</button>`
+  :`<div class="empty">Sin animación asignada</div><button onclick="openGifPick('${esc(name).replace(/'/g,"\\'")}')" style="width:100%;padding:9px;background:var(--emberdim);border:1px solid var(--ember);border-radius:10px;color:var(--ember);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Elegir animación</button>`;
+  document.getElementById('ov-gif').classList.add('on');
+}
+function closeGif(e){if(!e||e.target===document.getElementById('ov-gif'))document.getElementById('ov-gif').classList.remove('on');}
+let gifPickName=null;
+function openGifPick(name){
+  if(!GIF_DB){toast('Cargando animaciones…');return;}
+  gifPickName=name;document.getElementById('ov-gif').classList.remove('on');
+  document.getElementById('gifpick-title').textContent=name;
+  const cur=getGif(name);
+  document.getElementById('gifpick-search').value=cur?cur.n:'';
+  renderGifPick();document.getElementById('ov-gifpick').classList.add('on');
+}
+function closeGifPick(e){if(!e||e.target===document.getElementById('ov-gifpick'))document.getElementById('ov-gifpick').classList.remove('on');}
+function renderGifPick(){
+  const q=(document.getElementById('gifpick-search').value||'').toLowerCase().trim();
+  const cur=getGif(gifPickName);const ex=ALL_EX.find(e=>e.name===gifPickName)||{name:gifPickName};
+  let list=q?GIF_DB.filter(e=>q.split(/\s+/).every(t=>e.n.includes(t)||e.t.includes(t)||e.e.includes(t))):[...GIF_DB].map(c=>[gifScore(ex,c),c]).sort((a,b)=>b[0]-a[0]).slice(0,30).map(x=>x[1]);
+  list=list.slice(0,60);
+  document.getElementById('gifpick-list').innerHTML=`<div class="gifpick-item" onclick="setGif('none')"><div class="exthumb sm ph">∅</div><div class="n">Sin animación</div></div>`+
+    list.map(e=>`<div class="gifpick-item ${cur&&cur.i===e.i?'cur':''}" onclick="setGif('${e.i}')"><img class="exthumb sm" src="${gifThumb(e)}" loading="lazy" alt=""><div style="flex:1;min-width:0"><div class="n">${esc(e.n)}</div><div class="m">${esc(e.t)} · ${esc(e.e)}</div></div></div>`).join('')||'<div class="empty">Sin resultados</div>';
+}
+function setGif(id){
+  if(!db.profile)db.profile={};if(!db.profile.gifMap)db.profile.gifMap={};
+  db.profile.gifMap[gifPickName]=id;delete GIF_AUTO[gifPickName];
+  saveDB();closeGifPick();toast(id==='none'?'Animación quitada':'Animación guardada');
+  refreshGifThumbs();
+  if(typeof renderBiblioteca==='function'&&document.getElementById('stats-panel-bib')?.style.display!=='none')renderBiblioteca();
+}
+// ─── Ajustes (descansos, gifs, landmarks) → Supabase profiles.settings (best-effort)
+async function saveSettingsRemote(){
+  if(!useSupabase||!sbClient||!supabaseUser)return;
+  try{const {error}=await sbClient.from('profiles').update({settings:{restDays:db.profile?.restDays||[],gifMap:db.profile?.gifMap||{},landmarks:db.profile?.landmarks||{}}}).eq('id',supabaseUser.id);if(error)console.warn('settings sync (añade columna profiles.settings jsonb):',error.message);}catch(e){}
+}
+(function(){const o=saveDB;saveDB=async function(){await o();saveSettingsRemote();};})();
+document.addEventListener('DOMContentLoaded',()=>{loadGifIndex();});
+
 </script>
 </body>
 </html>
