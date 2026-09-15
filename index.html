@@ -368,7 +368,7 @@ input[type=date]{color-scheme:dark}
 <body>
 <div class="app">
   <div class="hdr" id="hdr">
-    <button class="hdr-btn" id="hdr-back" onclick="navBack()" style="display:none" aria-label="Volver">&#8249;</button>
+    <button class="hdr-btn" id="hdr-back" onclick="navBack()" style="visibility:hidden;pointer-events:none" aria-label="Volver">&#8249;</button>
     <div class="hdr-center" id="hdr-center">
       <div class="hdr-logo" id="hdr-logo"><img src="icon-192.png" alt="logo"></div>
       <span class="hdr-title" id="hdr-title">Peak Physique</span>
@@ -3292,7 +3292,11 @@ function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart
 function mondayOf(ds){const[y,m,d]=ds.split('-').map(Number);const dt=new Date(y,m-1,d);const dow=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-dow);return dt;}
 function todayStr(){return isoDate(new Date());}
 function restSet(){if(!db.profile)db.profile={};if(!Array.isArray(db.profile.restDays))db.profile.restDays=[];return db.profile.restDays;}
-function isRest(ds){return restSet().includes(ds);}
+function isRest(ds){
+  const today=todayStr();
+  if(ds>=today) return restSet().includes(ds);
+  return !(db.sessions||[]).some(s=>s.date===ds);
+}
 function toggleRest(ds){const r=restSet();const i=r.indexOf(ds);if(i>=0)r.splice(i,1);else r.push(ds);saveDB();renderCal();renderDayPanel();renderWeekScr();}
 function tmplTag(name){const n=(name||'').trim();if(!n)return'';const w=n.split(/\s+/);return w.length>1?(w[0][0]+w[w.length-1][0]).toUpperCase():n.slice(0,3).toUpperCase();}
 
@@ -3329,9 +3333,16 @@ function renderCal(){
     if(has)return;
     const dp=panel.querySelector('.dpanel');if(!dp)return;
     const btn=document.createElement('button');
-    btn.className='rest-btn'+(isRest(selDate)?' on':'');
-    btn.textContent=isRest(selDate)?'✓ Día de descanso':'Marcar como descanso';
-    btn.onclick=()=>toggleRest(selDate);
+    const today=todayStr();
+    if(selDate<today){
+      btn.className='rest-btn on';
+      btn.textContent='💤 Día de descanso';
+      btn.style.cssText='cursor:default;opacity:.72;pointer-events:none';
+    } else {
+      btn.className='rest-btn'+(isRest(selDate)?' on':'');
+      btn.textContent=isRest(selDate)?'✓ Día de descanso':'Marcar como descanso';
+      btn.onclick=()=>toggleRest(selDate);
+    }
     dp.insertBefore(btn,dp.children[1]||null);
   };
 })();
@@ -3422,45 +3433,284 @@ function heatColor(t){ // t: 0..1.2 → escala
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){const[a,ca]=stops[i-1],[b,cb]=stops[i];const k=(t-a)/(b-a);return `rgb(${ca.map((v,j)=>Math.round(v+(cb[j]-v)*k)).join(',')})`;}}
   return 'rgb(255,240,194)';
 }
-// Figura construida por piezas: partes neutras (cabeza, cuello, manos, rodillas, pies)
-// + regiones musculares coloreables. viewBox 0 0 200 430, simétrica respecto a x=100.
 function bodySvg(side){
-  const N=(d)=>`<path d="${d}" fill="#17171b" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
-  const NE=(cx,cy,rx,ry)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#17171b" stroke="rgba(255,255,255,.08)"/>`;
-  const M=(id,d,label)=>`<path class="body-m" data-id="${id}" data-l="${label}" d="${d}"/>`;
-  const E=(id,cx,cy,rx,ry,label,rot=0)=>`<ellipse class="body-m" data-id="${id}" data-l="${label}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})"/>`;
-  const mirror=(fn)=>fn(1)+fn(-1); // x' = 100 + k*(x-100)
+  // Figura anatómica estilo Symmetry: silueta blanca sobre negro,
+  // grupos musculares separados por líneas blancas, regiones coloreables.
+  const sk='#ffffff', sw=2.2, bf='#0b0b0e';
+  const M=(id,d,l)=>`<path class="body-m" data-id="${id}" data-l="${l}" d="${d}" fill="${bf}" stroke="${sk}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const N=(d)=>`<path d="${d}" fill="${bf}" stroke="${sk}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const NE=(cx,cy,rx,ry)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bf}" stroke="${sk}" stroke-width="${sw}"/>`;
+  const L=(x1,y1,x2,y2,w=1.4)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sk}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const mirror=(fn)=>fn(1)+fn(-1);
   const X=(k,x)=>100+k*(x-100);
   let p='';
-  // partes neutras
-  p+=NE(100,34,21,23)+N('M90 54h20v16q-10 4-20 0z');
-  p+=N('M84 186h32l6 18h-44z'); // pelvis
-  p+=mirror(k=>NE(X(k,30),212,6,8)+NE(X(k,78),304,8,9)+N(`M${X(k,72)} 392h${k*18}q${k*6} 0 ${k*6} 8v6h${-k*24}z`));
+
   if(side==='f'){
-    p+=mirror(k=>M('f-trap',`M${X(k,90)} 62L${X(k,62)} 80Q${X(k,84)} 74 ${X(k,100)} 76z`,'Trapecio'));
-    p+=mirror(k=>E('f-delt',X(k,58),88,15,16,'Deltoides'));
-    p+=mirror(k=>M('f-chest',`M${X(k,99)} 78H${X(k,74)}Q${X(k,66)} 78 ${X(k,66)} 92V${104}Q${X(k,66)} 116 ${X(k,80)} 116H${X(k,99)}z`,'Pectoral'));
-    p+=mirror(k=>E('f-bicep',X(k,47),130,10,24,'Bíceps',-k*6));
-    p+=mirror(k=>E('f-fore',X(k,38),180,8,26,'Antebrazo',-k*10));
-    p+=M('f-abs','M84 120h32q4 0 4 4v56q0 4-4 4H84q-4 0-4-4v-56q0-4 4-4z','Abdomen');
-    p+=mirror(k=>E('f-obl',X(k,73),152,7,30,'Oblicuos',k*4));
-    p+=mirror(k=>E('f-add',X(k,92),224,6,26,'Aductores',-k*3));
-    p+=mirror(k=>E('f-quad',X(k,77),250,16,50,'Cuádriceps',k*3));
-    p+=mirror(k=>E('f-tib',X(k,80),352,8,38,'Tibial'));
-  }else{
-    p+=M('b-trap','M100 60L68 84 100 96 132 84z','Trapecio');
-    p+=mirror(k=>E('b-delt',X(k,58),90,15,16,'Deltoides posterior'));
-    p+=M('b-upper','M78 96h44q6 0 6 6v10q0 6-6 6H78q-6 0-6-6v-10q0-6 6-6z','Espalda alta');
-    p+=mirror(k=>M('b-lat',`M${X(k,76)} 118H${X(k,99)}V${162}Q${X(k,86)} 168 ${X(k,74)} 152Q${X(k,66)} 134 ${X(k,76)} 118z`,'Dorsal'));
-    p+=mirror(k=>E('b-tricep',X(k,47),132,10,24,'Tríceps',-k*6));
-    p+=mirror(k=>E('b-fore',X(k,38),182,8,26,'Antebrazo',-k*10));
-    p+=M('b-lower','M86 162h28q4 0 4 4v20q0 4-4 4H86q-4 0-4-4v-20q0-4 4-4z','Lumbar');
-    p+=mirror(k=>E('b-abd',X(k,60),208,7,16,'Abductores',k*10));
-    p+=mirror(k=>E('b-glute',X(k,82),216,17,20,'Glúteos',k*6));
-    p+=mirror(k=>E('b-ham',X(k,78),282,15,46,'Isquiosurales',k*3));
-    p+=mirror(k=>E('b-calf',X(k,80),352,10,30,'Gemelos'));
-    p+=mirror(k=>E('b-soleus',X(k,80),392,7,16,'Sóleo'));
+    // ── SILUETA DE FONDO (rellena huecos) ───────────────────────────
+    p+=`<path fill="${bf}" stroke="none" d="
+      M100,6 C88,4 77,12 76,24 C75,36 82,46 94,50
+      C90,52 86,56 82,62 C70,64 56,76 50,94 C46,108 50,120 58,128
+      C50,132 44,146 40,168 L36,194 C34,202 36,212 44,218
+      L40,228 L38,274 C38,306 40,324 42,336
+      L40,400 C40,412 48,420 58,420 L66,420
+      C74,416 78,406 78,394 L76,336 C74,316 76,304 80,294
+      L86,280 L92,312 L92,394 C92,410 96,420 100,420
+      C104,420 108,410 108,394 L108,312 L114,280
+      L120,294 C124,304 126,316 124,336 L122,394
+      C122,406 126,416 134,420 L142,420
+      C152,420 160,412 160,400 L158,336
+      C160,324 162,306 162,274 L160,228
+      L156,218 C164,212 166,202 164,194 L160,168
+      C156,146 150,132 142,128 C150,120 154,108 150,94
+      C144,76 130,64 118,62 C114,56 110,52 106,50
+      C118,46 125,36 124,24 C123,12 112,4 100,6Z"/>`;
+
+    // ── CABEZA & CUELLO ─────────────────────────────────────────────
+    p+=NE(100,24,17,19);
+    p+=N('M93,41 L107,41 L109,58 C103,62 97,62 91,58Z');
+
+    // ── TRAPECIOS (frente) ──────────────────────────────────────────
+    p+=mirror(k=>M('f-trap',
+      `M${X(k,100)},60 C${X(k,88)},64 ${X(k,74)},70 ${X(k,62)},78
+       C${X(k,56)},82 ${X(k,52)},86 ${X(k,52)},86
+       L${X(k,56)},84 C${X(k,62)},80 ${X(k,72)},74 ${X(k,84)},68
+       C${X(k,92)},64 ${X(k,98)},62 ${X(k,100)},62Z`,
+      'Trapecio'));
+
+    // ── DELTOIDES ────────────────────────────────────────────────────
+    p+=mirror(k=>M('f-delt',
+      `M${X(k,52)},86 C${X(k,40)},92 ${X(k,34)},108 ${X(k,36)},126
+       C${X(k,38)},140 ${X(k,48)},148 ${X(k,58)},148
+       C${X(k,66)},146 ${X(k,72)},138 ${X(k,72)},126
+       C${X(k,72)},110 ${X(k,66)},96 ${X(k,56)},88Z`,
+      'Deltoides'));
+
+    // ── PECTORALES ──────────────────────────────────────────────────
+    p+=mirror(k=>M('f-chest',
+      `M${X(k,100)},62 L${X(k,100)},126
+       C${X(k,86)},132 ${X(k,70)},124 ${X(k,62)},110
+       C${X(k,56)},98 ${X(k,60)},84 ${X(k,68)},78
+       C${X(k,76)},70 ${X(k,90)},64 ${X(k,100)},62Z`,
+      'Pectoral'));
+    p+=L(100,62,100,126); // línea esternal
+
+    // ── BÍCEPS ───────────────────────────────────────────────────────
+    p+=mirror(k=>M('f-bicep',
+      `M${X(k,58)},148 C${X(k,44)},154 ${X(k,36)},170 ${X(k,36)},188
+       C${X(k,36)},202 ${X(k,46)},210 ${X(k,56)},208
+       C${X(k,66)},206 ${X(k,72)},196 ${X(k,72)},182
+       C${X(k,72)},166 ${X(k,66)},154 ${X(k,58)},148Z`,
+      'Bíceps'));
+
+    // ── ANTEBRAZOS ──────────────────────────────────────────────────
+    p+=mirror(k=>M('f-fore',
+      `M${X(k,36)},208 C${X(k,24)},218 ${X(k,18)},238 ${X(k,20)},258
+       C${X(k,22)},270 ${X(k,30)},278 ${X(k,40)},276
+       C${X(k,50)},274 ${X(k,58)},262 ${X(k,60)},248
+       C${X(k,64)},232 ${X(k,60)},216 ${X(k,52)},210Z`,
+      'Antebrazo'));
+
+    // ── MANOS (neutro) ──────────────────────────────────────────────
+    p+=mirror(k=>N(
+      `M${X(k,20)},276 C${X(k,14)},284 ${X(k,14)},294 ${X(k,20)},300
+       C${X(k,26)},304 ${X(k,36)},302 ${X(k,40)},296
+       C${X(k,44)},290 ${X(k,42)},280 ${X(k,38)},276Z`));
+
+    // ── ABDOMINALES (cada mitad) ─────────────────────────────────────
+    p+=mirror(k=>M('f-abs',
+      `M${X(k,100)},126 L${X(k,100)},184
+       C${X(k,90)},188 ${X(k,78)},186 ${X(k,74)},180
+       L${X(k,74)},128 C${X(k,82)},122 ${X(k,92)},122 ${X(k,100)},126Z`,
+      'Abdomen'));
+    // grid de abs
+    p+=L(100,126,100,188);
+    p+=mirror(k=>L(X(k,74),142,X(k,100),142));
+    p+=mirror(k=>L(X(k,74),158,X(k,100),158));
+    p+=mirror(k=>L(X(k,74),174,X(k,100),174));
+
+    // ── OBLICUOS ────────────────────────────────────────────────────
+    p+=mirror(k=>M('f-obl',
+      `M${X(k,62)},108 C${X(k,56)},124 ${X(k,54)},148 ${X(k,58)},170
+       C${X(k,62)},186 ${X(k,68)},194 ${X(k,74)},192
+       L${X(k,74)},128 C${X(k,68)},118 ${X(k,64)},112 ${X(k,62)},108Z`,
+      'Oblicuos'));
+
+    // ── CADERA / PELVIS (neutro) ─────────────────────────────────────
+    p+=N(`M74,188 C78,198 100,204 126,198 C122,192 100,190 80,192 Q76,192 74,188Z`);
+    p+=N(`M74,188 C70,196 68,208 68,220 L100,222 L132,220 C132,208 130,196 126,188Z`);
+
+    // ── ADUCTORES ────────────────────────────────────────────────────
+    p+=mirror(k=>M('f-add',
+      `M${X(k,100)},222 C${X(k,92)},226 ${X(k,86)},242 ${X(k,86)},262
+       C${X(k,86)},278 ${X(k,92)},288 ${X(k,100)},290
+       C${X(k,108)},288 ${X(k,114)},278 ${X(k,114)},260
+       C${X(k,114)},242 ${X(k,108)},226 ${X(k,100)},222Z`,
+      'Aductores'));
+
+    // ── CUÁDRICEPS ───────────────────────────────────────────────────
+    p+=mirror(k=>M('f-quad',
+      `M${X(k,70)},220 C${X(k,50)},226 ${X(k,40)},254 ${X(k,40)},282
+       C${X(k,40)},306 ${X(k,52)},326 ${X(k,66)},330
+       C${X(k,78)},332 ${X(k,92)},322 ${X(k,96)},304
+       C${X(k,100)},284 ${X(k,96)},258 ${X(k,86)},238
+       C${X(k,80)},222 ${X(k,76)},218 ${X(k,70)},220Z`,
+      'Cuádriceps'));
+
+    // ── RODILLAS (neutro) ────────────────────────────────────────────
+    p+=mirror(k=>NE(X(k,70),336,14,10));
+
+    // ── TIBIALES ────────────────────────────────────────────────────
+    p+=mirror(k=>M('f-tib',
+      `M${X(k,58)},348 C${X(k,46)},358 ${X(k,40)},380 ${X(k,42)},404
+       C${X(k,44)},416 ${X(k,52)},422 ${X(k,60)},420
+       C${X(k,68)},418 ${X(k,74)},408 ${X(k,76)},396
+       C${X(k,78)},376 ${X(k,72)},356 ${X(k,62)},350Z`,
+      'Tibial'));
+
+    // ── PIES (neutro) ────────────────────────────────────────────────
+    p+=mirror(k=>N(
+      `M${X(k,42)},418 C${X(k,40)},424 ${X(k,44)},428 ${X(k,54)},428
+       C${X(k,64)},428 ${X(k,76)},424 ${X(k,80)},418
+       C${X(k,80)},414 ${X(k,78)},410 ${X(k,76)},408
+       C${X(k,72)},418 ${X(k,62)},422 ${X(k,52)},420
+       C${X(k,46)},418 ${X(k,44)},418 ${X(k,42)},418Z`));
+
+    // ── ZONA LATERAL BRAZO (neutro) ──────────────────────────────────
+    p+=mirror(k=>N(
+      `M${X(k,72)},126 C${X(k,70)},138 ${X(k,70)},158 ${X(k,72)},182
+       L${X(k,74)},192 L${X(k,74)},128Z`));
+
+  } else {
+    // ════════════════════════════════════════════════════════════════
+    // ESPALDA
+    // ════════════════════════════════════════════════════════════════
+    p+=`<path fill="${bf}" stroke="none" d="
+      M100,6 C88,4 77,12 76,24 C75,36 82,46 94,50
+      C90,52 86,56 82,62 C70,64 56,76 50,94 C46,108 50,120 58,128
+      C50,132 44,146 40,168 L36,194 C34,202 36,212 44,218
+      L40,228 L38,274 C38,306 40,324 42,336
+      L40,400 C40,412 48,420 58,420 L66,420
+      C74,416 78,406 78,394 L76,336 C74,316 76,304 80,294
+      L86,280 L92,312 L92,394 C92,410 96,420 100,420
+      C104,420 108,410 108,394 L108,312 L114,280
+      L120,294 C124,304 126,316 124,336 L122,394
+      C122,406 126,416 134,420 L142,420
+      C152,420 160,412 160,400 L158,336
+      C160,324 162,306 162,274 L160,228
+      L156,218 C164,212 166,202 164,194 L160,168
+      C156,146 150,132 142,128 C150,120 154,108 150,94
+      C144,76 130,64 118,62 C114,56 110,52 106,50
+      C118,46 125,36 124,24 C123,12 112,4 100,6Z"/>`;
+
+    p+=NE(100,24,17,19);
+    p+=N('M93,41 L107,41 L109,58 C103,62 97,62 91,58Z');
+
+    // ── TRAPECIO (cometa grande, muy visible) ────────────────────────
+    p+=M('b-trap',
+      `M100,52 C84,56 66,70 56,84 C68,98 84,104 100,106
+       C116,104 132,98 144,84 C134,70 116,56 100,52Z`,
+      'Trapecio');
+
+    // ── DELTOIDES POSTERIOR ──────────────────────────────────────────
+    p+=mirror(k=>M('b-delt',
+      `M${X(k,52)},86 C${X(k,40)},92 ${X(k,34)},110 ${X(k,36)},128
+       C${X(k,38)},144 ${X(k,50)},152 ${X(k,62)},150
+       C${X(k,72)},148 ${X(k,78)},138 ${X(k,76)},126
+       C${X(k,74)},110 ${X(k,66)},94 ${X(k,56)},88Z`,
+      'Hombro posterior'));
+
+    // ── ESPALDA ALTA (romboides/infraespinoso) ───────────────────────
+    p+=M('b-upper',
+      `M64,102 C80,112 100,116 136,102 L132,128 C116,136 100,138 68,128Z`,
+      'Espalda alta');
+
+    // ── DORSALES ────────────────────────────────────────────────────
+    p+=mirror(k=>M('b-lat',
+      `M${X(k,64)},126 L${X(k,100)},134 L${X(k,100)},192
+       C${X(k,86)},200 ${X(k,70)},190 ${X(k,58)},172
+       C${X(k,48)},154 ${X(k,50)},136 ${X(k,60)},126Z`,
+      'Dorsal'));
+
+    // ── TRÍCEPS ─────────────────────────────────────────────────────
+    p+=mirror(k=>M('b-tricep',
+      `M${X(k,62)},150 C${X(k,48)},156 ${X(k,38)},174 ${X(k,38)},192
+       C${X(k,38)},208 ${X(k,48)},216 ${X(k,60)},214
+       C${X(k,70)},212 ${X(k,78)},202 ${X(k,78)},188
+       C${X(k,78)},172 ${X(k,72)},158 ${X(k,62)},150Z`,
+      'Tríceps'));
+
+    // ── ANTEBRAZOS (espalda) ─────────────────────────────────────────
+    p+=mirror(k=>M('b-fore',
+      `M${X(k,38)},214 C${X(k,26)},224 ${X(k,20)},244 ${X(k,22)},264
+       C${X(k,24)},278 ${X(k,34)},286 ${X(k,44)},284
+       C${X(k,54)},282 ${X(k,62)},270 ${X(k,64)},256
+       C${X(k,66)},240 ${X(k,62)},222 ${X(k,52)},216Z`,
+      'Antebrazo'));
+
+    // ── MANOS (neutro) ──────────────────────────────────────────────
+    p+=mirror(k=>N(
+      `M${X(k,22)},284 C${X(k,16)},292 ${X(k,16)},302 ${X(k,22)},308
+       C${X(k,28)},312 ${X(k,38)},310 ${X(k,42)},304
+       C${X(k,46)},298 ${X(k,44)},288 ${X(k,40)},284Z`));
+
+    // ── LUMBAR ──────────────────────────────────────────────────────
+    p+=M('b-lower',
+      `M76,190 C84,200 100,206 124,190 L124,222 C116,230 100,232 76,222Z`,
+      'Lumbar');
+    p+=L(100,104,100,224); // línea columna
+
+    // ── ABDUCTORES (cadera lateral) ──────────────────────────────────
+    p+=mirror(k=>M('b-abd',
+      `M${X(k,100)},224 C${X(k,116)},226 ${X(k,130)},242 ${X(k,132)},262
+       C${X(k,132)},276 ${X(k,124)},284 ${X(k,114)},282
+       C${X(k,102)},278 ${X(k,100)},264 ${X(k,100)},248Z`,
+      'Abductores'));
+
+    // ── GLÚTEOS ─────────────────────────────────────────────────────
+    p+=mirror(k=>M('b-glute',
+      `M${X(k,76)},222 C${X(k,54)},226 ${X(k,42)},248 ${X(k,42)},272
+       C${X(k,42)},294 ${X(k,58)},310 ${X(k,76)},312
+       C${X(k,92)},312 ${X(k,100)},300 ${X(k,100)},282
+       C${X(k,100)},258 ${X(k,92)},236 ${X(k,80)},224Z`,
+      'Glúteos'));
+
+    // ── ISQUIOSURALES ────────────────────────────────────────────────
+    p+=mirror(k=>M('b-ham',
+      `M${X(k,54)},310 C${X(k,38)},318 ${X(k,30)},346 ${X(k,32)},372
+       C${X(k,34)},390 ${X(k,46)},402 ${X(k,58)},402
+       C${X(k,72)},402 ${X(k,84)},392 ${X(k,88)},372
+       C${X(k,92)},348 ${X(k,82)},320 ${X(k,68)},314
+       C${X(k,62)},312 ${X(k,58)},310 ${X(k,54)},310Z`,
+      'Isquiosurales'));
+
+    // ── RODILLAS (neutro) ────────────────────────────────────────────
+    p+=mirror(k=>NE(X(k,70),336,14,10));
+
+    // ── GEMELOS ─────────────────────────────────────────────────────
+    p+=mirror(k=>M('b-calf',
+      `M${X(k,52)},340 C${X(k,38)},352 ${X(k,30)},376 ${X(k,32)},402
+       C${X(k,34)},416 ${X(k,44)},424 ${X(k,56)},422
+       C${X(k,68)},420 ${X(k,78)},410 ${X(k,80)},396
+       C${X(k,82)},376 ${X(k,74)},354 ${X(k,62)},344Z`,
+      'Gemelos'));
+
+    // ── SÓLEO ────────────────────────────────────────────────────────
+    p+=mirror(k=>M('b-soleus',
+      `M${X(k,32)},400 C${X(k,32)},412 ${X(k,38)},420 ${X(k,52)},422
+       C${X(k,60)},422 ${X(k,72)},418 ${X(k,80)},410
+       C${X(k,80)},416 ${X(k,74)},422 ${X(k,60)},424
+       C${X(k,44)},424 ${X(k,34)},418 ${X(k,32)},408Z`,
+      'Sóleo'));
+
+    // ── PIES (neutro) ────────────────────────────────────────────────
+    p+=mirror(k=>N(
+      `M${X(k,32)},418 C${X(k,30)},424 ${X(k,34)},428 ${X(k,46)},428
+       C${X(k,58)},428 ${X(k,72)},424 ${X(k,82)},418
+       C${X(k,84)},414 ${X(k,82)},410 ${X(k,80)},408
+       C${X(k,76)},420 ${X(k,62)},424 ${X(k,48)},422
+       C${X(k,40)},420 ${X(k,34)},418 ${X(k,32)},418Z`));
   }
+
   return `<svg viewBox="0 0 200 430" xmlns="http://www.w3.org/2000/svg">${p}</svg>`;
 }
 function renderBodyHeat(by){
@@ -3595,7 +3845,7 @@ function navBack(){const c=curScr();if(c==='sess'||c==='tmpledit'){return;}let p
 function navHome(){navStack=[];showScr('home',null);document.querySelector('.content').scrollTo(0,0);}
 function updateHdr(n){
   const home=n==='home',sessy=n==='sess'||n==='tmpledit';
-  document.getElementById('hdr-back').style.display=(home||sessy)?'none':'grid';
+  const _hb=document.getElementById('hdr-back');_hb.style.visibility=(home||sessy)?'hidden':'visible';_hb.style.pointerEvents=(home||sessy)?'none':'all';
   document.getElementById('hdr-gear').style.display=(home)?'grid':'none';
   document.getElementById('hdr-logo').style.display=home?'block':'none';
   const t=document.getElementById('hdr-title');t.textContent=SCR_TITLES[n]||'Peak Physique';t.classList.toggle('sub',!home);
