@@ -271,7 +271,7 @@ input[type=date]{color-scheme:dark}
 .body-wrap{display:flex;gap:0;justify-content:center;align-items:flex-start;margin:0 -4px}
 .body-wrap svg{width:50%;height:auto;display:block}
 .body-lbl{display:flex;justify-content:space-around;font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:4px}
-.heat-scale{height:6px;border-radius:3px;margin:12px 4px 4px;background:linear-gradient(90deg,#1a1a1e,#5a2a16,#b34a24,#ff6a3d,#ffb15c,#fff0c2)}
+.heat-scale{height:6px;border-radius:3px;margin:12px 4px 4px;background:linear-gradient(90deg,#2c2c34,#3a7860 30%,#2eb86e 55%,#34d378 75%,#f0be32 88%,#e63946)}
 .heat-scale-lbl{display:flex;justify-content:space-between;font-size:9.5px;color:var(--t3);font-family:var(--mono);padding:0 4px}
 .body-m{fill:#0b0b0e;stroke:#fff;stroke-width:5;stroke-linejoin:round;stroke-linecap:round;transition:fill .5s ease;cursor:pointer}
 .body-m:active{opacity:.75}
@@ -427,12 +427,12 @@ input[type=date]{color-scheme:dark}
           <div class="wknav"><button onclick="dashMove(-1)">&#8249;</button><button id="vol-next" onclick="dashMove(1)">&#8250;</button></div>
         </div>
         <div class="card">
-          <div class="card-title">Mapa muscular <span id="heat-sub">series vs. MAV</span></div>
+          <div class="card-title">Mapa muscular <span id="heat-sub">series vs. MEV/MAV/MRV</span></div>
           <div class="body-wrap" id="body-wrap"></div>
           <div class="body-lbl"><span>frente</span><span>espalda</span></div>
           <div class="body-tip" id="body-tip">Toca un músculo</div>
           <div class="heat-scale"></div>
-          <div class="heat-scale-lbl"><span>sin trabajar</span><span>½ MAV</span><span>MAV</span><span>MRV+</span></div>
+          <div class="heat-scale-lbl"><span>poco estímulo</span><span>óptimo (MEV–MAV)</span><span>sobre MRV</span></div>
         </div>
         <div class="card">
           <div class="card-title">Series por músculo <span id="vol-week-lbl">vs MEV · MAV · MRV</span></div>
@@ -522,6 +522,10 @@ input[type=date]{color-scheme:dark}
         <span class="sess-timer" id="sess-timer">0:00</span>
         <button class="cancel-btn" onclick="cancelSession()" title="Cancelar">✕</button>
         <button class="finish-btn" onclick="finishSession()">Finalizar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px">
+        <span style="font-size:12px;color:var(--t2)">📅 Fecha del entrenamiento</span>
+        <input type="date" id="sess-date" onchange="onSessDate(this.value)" style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:12px;padding:5px 6px;outline:none">
       </div>
       <div id="sess-exs"></div>
       <div style="display:flex;align-items:center;gap:8px;margin:10px 0 2px">
@@ -751,6 +755,7 @@ input[type=date]{color-scheme:dark}
       <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px">🔍</span>
       <input id="picker-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderPickerList()">
     </div>
+    <button onclick="pickerCreateNew()" style="width:100%;margin-bottom:10px;padding:9px;background:var(--s2);border:1px dashed var(--blue);border-radius:var(--r);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Crear nuevo ejercicio</button>
     <div class="mf-row" id="muscle-filters"></div>
     <div class="mf-row" id="picker-eq-filters"></div>
     <div class="mscroll" id="picker-list"></div>
@@ -1531,6 +1536,7 @@ function renderDayPanel(){
       if((s.exercises?.length||0)>3)html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
       html+=`<div style="display:flex;gap:12px;margin-top:6px">
         <button onclick="openSessionDetail(${s.id})" style="background:none;border:none;color:var(--blue);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Ver detalle</button>
+        <button onclick="repeatSession(${s.id})" style="background:none;border:none;color:var(--green);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">🔁 Repetir rutina</button>
         <button onclick="editSession(${s.id})" style="background:none;border:none;color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Editar</button>
         <button onclick="deleteSession(${s.id})" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:var(--font);padding:0">Eliminar</button>
       </div></div>`;
@@ -1668,6 +1674,7 @@ function openSessionDetail(id){
     if(ex.notes)html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${esc(ex.notes)}</div>`;
     html+='</div>';
   });
+  html+=`<button onclick="closeDetail();repeatSession(${sess.id})" style="width:100%;margin-top:12px;padding:11px;background:var(--s2);border:1px solid var(--b1);border-radius:12px;color:var(--green);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">🔁 Repetir rutina</button>`;
   document.getElementById('detail-body').innerHTML=html;
   document.getElementById('detail-edit-btn').onclick=()=>{closeDetail();editSession(id);};
   document.getElementById('ov-detail').classList.add('on');
@@ -1699,8 +1706,8 @@ async function deleteSession(id){
 // ═══ SESSION ═══
 function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;startSess(t.name,t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
-function startSess(name,exercises,rest){
-  activeSess={name,exercises,rest:rest||90,date:selDate||new Date().toISOString().split('T')[0]};
+function startSess(name,exercises,rest,date){
+  activeSess={name,exercises,rest:rest||90,date:date||selDate||new Date().toISOString().split('T')[0]};
   // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
   // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
   sessStartTs=Date.now();
@@ -1739,7 +1746,10 @@ function updateResumeBar(){
   const m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('resume-bar-timer').textContent=m+':'+(s<10?'0':'')+s;
   bar.classList.add('show');
 }
+function onSessDate(v){if(!activeSess||activeSess.isTmplEdit||!v)return;activeSess.date=v;persistActive();toast('Fecha cambiada: '+fmtDate(v));}
 function renderSessExs(){
+  const di=document.getElementById('sess-date');
+  if(di&&activeSess&&!activeSess.isTmplEdit&&di!==document.activeElement)di.value=activeSess.date||todayStr();
   const target=activeSess?.isTmplEdit?'tmpledit-exs':'sess-exs';
   if(!activeSess){document.getElementById(target).innerHTML='';return;}
   document.getElementById(target).innerHTML=activeSess.exercises.map((ex,ei)=>renderExCard(ex,ei)).join('');
@@ -2056,7 +2066,13 @@ function renderPickerList(){
   // data-attrs instead of inline string args: names with quotes/HTML no longer break the handler
   document.getElementById('picker-list').innerHTML=list.length
     ?list.map(e=>`<div class="ex-item" data-n="${esc(e.name)}" data-m="${esc(e.muscle)}" onclick="selectEx(this.dataset.n,this.dataset.m)" style="gap:10px">${thumbHtml(e.name,'exthumb sm')}<div><div class="ex-item-name">${esc(e.name)}</div><div class="ex-item-muscle">${esc(e.muscle)}</div></div></div>`).join('')
-    :'<div class="empty">Sin resultados</div>';
+    :'<div class="empty">Sin resultados<br><button onclick="pickerCreateNew()" style="margin-top:10px;padding:9px 14px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Crear este ejercicio</button></div>';
+}
+// Crear un ejercicio desde el selector: al guardarlo se añade/sustituye directamente
+let pickerCreating=false;
+function pickerCreateNew(){
+  pickerCreating=true;
+  openExEditor(null,(document.getElementById('picker-search')?.value||'').trim());
 }
 function closePicker(e){if(!e||e.target===document.getElementById('ov-picker'))document.getElementById('ov-picker').classList.remove('on');}
 function selectEx(name,muscle){
@@ -2162,7 +2178,7 @@ function toggleBibCard(i){
   if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 let exEditorIdx=null;
-function openExEditor(i){
+function openExEditor(i,prefillName){
   exEditorIdx=i===null?null:Number(i);
   const isNew=exEditorIdx===null;
   document.getElementById('ex-editor-title').textContent=isNew?'Nuevo ejercicio':'Editar ejercicio';
@@ -2170,9 +2186,9 @@ function openExEditor(i){
   msel.innerHTML=MUSCLES.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
   const nameInp=document.getElementById('exed-name');
   if(isNew){
-    nameInp.value='';nameInp.disabled=false;
-    msel.value=MUSCLES[0]||'';
-    document.getElementById('exed-equipment').value='Peso libre';
+    nameInp.value=prefillName||'';nameInp.disabled=false;
+    msel.value=(pickerCreating&&mFilter!=='all'&&MUSCLES.includes(mFilter))?mFilter:(MUSCLES[0]||'');
+    document.getElementById('exed-equipment').value=(pickerCreating&&pickerEqFilter!=='all')?pickerEqFilter:'Peso libre';
     document.getElementById('exed-reps').value='';
     document.getElementById('exed-description').value='';
     document.getElementById('exed-execution').value='';
@@ -2189,9 +2205,10 @@ function openExEditor(i){
   }
   document.getElementById('ov-ex-editor').classList.add('on');
 }
-function closeExEditor(e){if(!e||e.target===document.getElementById('ov-ex-editor'))document.getElementById('ov-ex-editor').classList.remove('on');}
+function closeExEditor(e){if(!e||e.target===document.getElementById('ov-ex-editor')){document.getElementById('ov-ex-editor').classList.remove('on');pickerCreating=false;}}
 async function saveExEditor(){
   const isNew=exEditorIdx===null;
+  const fromPicker=pickerCreating;
   const btn=document.getElementById('exed-save-btn');
   if(isNew){
     const name=document.getElementById('exed-name').value.trim();
@@ -2213,6 +2230,7 @@ async function saveExEditor(){
     ALL_EX.push({name,muscle,equipment,reps,description,execution,cues});
     if(!MUSCLES.includes(muscle))MUSCLES.push(muscle);
     toast('Ejercicio añadido ✓');
+    if(fromPicker)selectEx(name,muscle); // lo añade/sustituye en la rutina y cierra el selector
   }else{
     const e=bibLast[exEditorIdx];
     const description=document.getElementById('exed-description').value.trim();
@@ -3252,6 +3270,13 @@ document.addEventListener('visibilitychange',()=>{
     scheduleRestNotification(restEndTs);
   }
 });
+function repeatSession(id){
+  const src=(db.sessions||[]).find(s=>s.id===id);if(!src)return;
+  if(activeSess){toast('Ya hay un entrenamiento en curso — termínalo o cancélalo primero');return;}
+  const exs=(src.exercises||[]).map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:(ex.sets||[]).map(()=>({kg:null,reps:null,rpe:null,done:false}))}));
+  startSess(src.name||'Entrenamiento',exs,src.rest,todayStr());
+  toast(`Repitiendo: ${src.name} (hoy)`);
+}
 function repeatLastSession(){
   const ss=(db.sessions||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!ss.length){toast('No hay sesiones previas');return;}
@@ -3430,11 +3455,21 @@ const MUSCLE_REGIONS_RAW={
   'Gemelos':['b-calves','f-calves'],'Gemelo/Sóleo':['b-calves','f-calves'],'Sóleo':['b-calves'],'Aductores':['f-adductors','b-adductors'],'Abductores':['b-gluteal'],
 };
 const MUSCLE_REGIONS=new Proxy(MUSCLE_REGIONS_RAW,{get:(o,k)=>{if(o[k])return o[k];const lk=String(k).toLowerCase();const f=Object.keys(o).find(x=>x.toLowerCase()===lk);if(f)return o[f];if(/gemelo|s[oó]leo/.test(lk))return['b-calves','f-calves'];if(/pectoral|pecho/.test(lk))return['f-chest'];if(/espalda|dorsal/.test(lk))return['b-upper-back'];if(/abd|core/.test(lk))return['f-abs'];return[];}});
-function heatColor(t){ // t: 0..1.2 → escala
-  const stops=[[0,[11,11,14]],[.12,[150,62,30]],[.4,[215,95,42]],[.7,[255,106,61]],[1,[255,177,92]],[1.2,[255,240,194]]];
-  t=Math.max(0,Math.min(1.2,t));
+// t (0..1) se calcula respecto a los landmarks del músculo:
+// 0 = sin series (gris) · MEV→MAV = verde (óptimo) · MAV→MRV = ámbar · >MRV = rojo
+function heatT(v,lm){
+  const mev=lm?.mev??6,mav=lm?.mav??14,mrv=lm?.mrv??20;
+  if(!(v>0))return 0;
+  if(v<mev)return .30*(v/Math.max(1,mev));
+  if(v<=mav)return .30+.45*((v-mev)/Math.max(1,mav-mev));
+  if(v<=mrv)return .75+.13*((v-mav)/Math.max(1,mrv-mav));
+  return .88+.12*Math.min(1,(v-mrv)/Math.max(1,mrv*.15));
+}
+function heatColor(t){ // t: 0..1 → gris → verde → rojo
+  const stops=[[0,[44,44,52]],[.30,[58,120,90]],[.55,[46,184,110]],[.75,[52,211,120]],[.88,[240,190,50]],[1,[230,57,70]]];
+  t=Math.max(0,Math.min(1,t));
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){const[a,ca]=stops[i-1],[b,cb]=stops[i];const k=(t-a)/(b-a);return `rgb(${ca.map((v,j)=>Math.round(v+(cb[j]-v)*k)).join(',')})`;}}
-  return 'rgb(255,240,194)';
+  return 'rgb(230,57,70)';
 }
 
 // ─── Figura anatómica ──────────────────────────────────────────────
@@ -3460,7 +3495,7 @@ function renderBodyHeat(by){
     wrap.querySelectorAll('.body-m').forEach(el=>el.addEventListener('click',()=>{const t=el.dataset.t;document.getElementById('body-tip').textContent=t||(el.dataset.l+' · sin series');}));}
   // intensidad por región = max(sets/MAV) de los músculos mapeados
   const reg={};
-  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const mav=lm.mav||14;const t=v/mav;(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
+  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const t=heatT(v,lm);(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
   wrap.querySelectorAll('.body-m').forEach(el=>{
     const r=reg[el.dataset.id];
     el.style.fill=heatColor(r?r.t:0);
@@ -3669,7 +3704,7 @@ function renderHome(){
 }
 function paintBody(wrap,by){
   const reg={};
-  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const mav=lm.mav||14;const t=v/mav;(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
+  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const t=heatT(v,lm);(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
   wrap.querySelectorAll('.body-m').forEach(el=>{const r=reg[el.dataset.id];el.style.fill=heatColor(r?r.t:0);el.dataset.t=r?`${r.m}: ${r.v} series · MEV ${r.lm.mev??'–'} / MAV ${r.lm.mav??'–'} / MRV ${r.lm.mrv??'–'}`:'';});
   return reg;
 }
