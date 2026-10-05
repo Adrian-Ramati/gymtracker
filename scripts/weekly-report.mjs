@@ -60,15 +60,6 @@ function volumenEstado(series, lm) {
   return { estado: 'En MAV', color: 'verde', emoji: '🟢' };
 }
 
-// ─── 1. Comprobar hora Madrid (o forzar) ─────────────────────────────────────
-const forceSend = process.env.FORCE_SEND === 'true';
-const madridHour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(new Date()));
-if (!forceSend && madridHour !== 19) {
-  console.log(`Hora Madrid: ${madridHour}h. No son las 19:00, no se envía.`);
-  process.exit(0);
-}
-if (forceSend) console.log('FORCE_SEND activo: se salta la comprobación de hora.');
-
 // ─── 2. Env + cliente Supabase ───────────────────────────────────────────────
 const {
   SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_USER_ID,
