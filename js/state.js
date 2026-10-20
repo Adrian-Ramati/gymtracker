@@ -1,4 +1,6 @@
 // state.js — Datos estáticos, landmarks, estado global, e1RM, caché de historial y pliegues (Jackson-Pollock).
+// Lógica compartida con el informe semanal (js/core.js)
+const {RTS_PCT,effReps,calcE1RM,DEFAULT_LANDMARKS,normExName,normMuscle,isWorkSet,hasRpe,hardCredit,addDays,daysBetween,f1,hiLabel,HI_W,HI_NAMES,HI_MAJOR}=PPCore;
 // ═══ STATIC DATA ═══
 // ALL_EX se carga desde Supabase en loadExercisesDB(); fallback a lista vacía
 let ALL_EX=[];
@@ -22,27 +24,8 @@ const MC=ciProxy(MC_RAW),VC=ciProxy(VC_RAW);
 // ═══ VOLUME LANDMARKS (MEV/MAV/MRV, series/semana) ═══
 // Defaults follow RP-style guidelines; editable per muscle via el botón ⚙ de la
 // pestaña Volumen. Overrides live in db.profile.landmarks → sync with the profile.
-const DEFAULT_LANDMARKS={
-  'Pectoral':{mev:8,mav:16,mrv:22},
-  'Espalda':{mev:10,mav:18,mrv:25},
-  'Tríceps':{mev:6,mav:12,mrv:18},
-  'Bíceps':{mev:8,mav:14,mrv:20},
-  'Glúteos':{mev:4,mav:12,mrv:16},
-  'Isquiosurales':{mev:6,mav:12,mrv:16},
-  'Cuádriceps':{mev:8,mav:14,mrv:20},
-  'Gemelos':{mev:8,mav:14,mrv:20},
-  'Sóleo':{mev:6,mav:10,mrv:16},
-  'Deltoides anterior':{mev:2,mav:8,mrv:12},
-  'Deltoides lateral':{mev:8,mav:18,mrv:26},
-  'Deltoides posterior':{mev:6,mav:14,mrv:22},
-  'Hombro posterior':{mev:6,mav:14,mrv:22},
-  'Aductores':{mev:4,mav:8,mrv:12},
-  'Abductores':{mev:4,mav:8,mrv:12},
-};
-function getLandmarks(m){
-  const lm={...(DEFAULT_LANDMARKS[m]||{}),...(db.profile?.landmarks?.[m]||{})};
-  return(lm.mev!=null&&lm.mav!=null&&lm.mrv!=null&&lm.mev<=lm.mav&&lm.mav<=lm.mrv)?lm:null;
-}
+// DEFAULT_LANDMARKS vive en js/core.js. Admite nombres con otra capitalización ('Deltoides Anterior').
+function getLandmarks(m){return PPCore.landmarks(db.profile,m);}
 function lmZone(total,lm){
   if(total<lm.mev)return{txt:`&lt; MEV`,detail:`${total} de ${lm.mev} mín.`,color:'#4f8ef7'};
   if(total<=lm.mav)return{txt:`MEV–MAV ✓`,detail:`zona productiva`,color:'#34d399'};
@@ -70,7 +53,6 @@ const volBandsPlugin={id:'volBands',beforeDatasetsDraw(chart,args,opts){
   ctx.fillStyle='rgba(248,113,113,.95)';ctx.fillText('MRV '+lm.mrv,right-4,Y(lm.mrv)-3);
   ctx.restore();
 }};
-function normMuscle(m){return m==='Isquiotibiales'?'Isquiosurales':m;}
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return `${d}/${m}/${y}`;}
 const fmtFull=fmtDate;
@@ -107,21 +89,7 @@ let editTmplId=null,measureTab='perimetros';
 // Beyond 14 effective reps there is no empirical support → return null: high-rep
 // burnout sets get honest silence instead of a fictitious PR (the old linear Epley
 // happily turned 80 kg × 27 into a 176 kg "e1RM").
-const RTS_PCT={1:100,1.5:97.8,2:95.5,2.5:93.9,3:92.2,3.5:90.7,4:89.2,4.5:87.8,5:86.3,5.5:85,6:83.7,6.5:82.4,7:81.1,7.5:79.9,8:78.6,8.5:77.4,9:76.2,9.5:75.1,10:73.9,10.5:72.3,11:70.7,11.5:69.4,12:68,12.5:66.7,13:65.3,13.5:64,14:62.6};
-function effReps(reps,rpe){
-  // Missing RPE → assume max effort (RIR 0), same semantics as the old calc.
-  // RPE clamped to the table's validated 6–10 band.
-  const r=(rpe!=null&&rpe>0)?Math.min(10,Math.max(6,rpe)):10;
-  return reps+(10-r);
-}
-function calcE1RM(kg,reps,rpe){
-  if(!kg||!reps) return null;
-  const er=Math.round(effReps(reps,rpe)*2)/2;
-  if(er>14) return null;
-  const pct=RTS_PCT[Math.max(1,er)];
-  if(!pct) return null;
-  return Math.round(kg/(pct/100)*10)/10;
-}
+// RTS_PCT, effReps y calcE1RM viven en js/core.js
 // Stored best_e1rm on historical rows was computed with the old Epley formula.
 // One in-memory pass on every load keeps the whole series consistent with the
 // current estimator (charts, PRs, cache, session detail) without touching remote
@@ -132,7 +100,6 @@ function recalcAllE1RM(){
     ex.best_e1rm=rms.length?Math.max(...rms):null;
   }));
 }
-function normExName(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');}
 // ═══ EXERCISE HISTORY CACHE ═══
 // getMaxE1RM() ran on EVERY keystroke and getLastEx() re-sorted all sessions per
 // card render — O(full history) each time. Both now read from a cache built in a

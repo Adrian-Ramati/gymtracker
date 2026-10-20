@@ -92,6 +92,6 @@ function setGif(id){
 // ─── Ajustes (descansos, gifs, landmarks) → Supabase profiles.settings (best-effort)
 async function saveSettingsRemote(){
   if(!useSupabase||!sbClient||!supabaseUser)return;
-  try{const {error}=await sbClient.from('profiles').update({settings:{restDays:db.profile?.restDays||[],gifMap:db.profile?.gifMap||{},landmarks:db.profile?.landmarks||{}}}).eq('id',supabaseUser.id);if(error)console.warn('settings sync (añade columna profiles.settings jsonb):',error.message);}catch(e){}
+  try{const {error}=await sbClient.from('profiles').update({settings:{restDays:db.profile?.restDays||[],gifMap:db.profile?.gifMap||{},landmarks:db.profile?.landmarks||{},secMap:db.profile?.secMap||{},mesoLog:db.profile?.mesoLog||[]}}).eq('id',supabaseUser.id);if(error)console.warn('settings sync (añade columna profiles.settings jsonb):',error.message);}catch(e){}
 }
 document.addEventListener('DOMContentLoaded',()=>{loadGifIndex();});

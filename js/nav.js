@@ -37,7 +37,7 @@ function renderHome(){
   const ICO_R='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
   const ICO_C='<svg class="r" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
   document.getElementById('home-cta').innerHTML=nt?`<div class="cta-card">
-    <div class="cta-main" onclick="startFromTmpl('${nt.id}')"><div style="min-width:0"><small>Siguiente Rutina</small><b>${esc(nt.name)}</b><span>${nt.exercises.length} ejercicios · ${tmplSetCount(nt)} series · ⏱ ${nt.rest||90}s</span></div><div class="go"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5.5v13l11-6.5z" fill="#fff"/></svg></div></div>
+    <div class="cta-main" onclick="startFromTmpl('${nt.id}')"><div style="min-width:0"><small>Siguiente Rutina</small><b>${esc(nt.name)}</b><span>${nt.exercises.length} ejercicios · ${PPCore.mesoSets(db.profile,db.templates,nt,todayStr()).reduce((a,b)=>a+b,0)} series · ⏱ ${nt.rest||90}s</span>${mesoChipHtml()}</div><div class="go"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5.5v13l11-6.5z" fill="#fff"/></svg></div></div>
     <div class="cta-row"><button onclick="repeatLastSession()">${ICO_R}Repetir</button><button onclick="openQuickStart()">Otra${ICO_C}</button></div></div>`
   :`<div class="cta-card"><div class="cta-main" onclick="createNewRoutine()"><div><small>Empieza aquí</small><b style="font-size:30px;letter-spacing:-.8px">Crea tu primera rutina</b></div><div class="go">+</div></div></div>`;
   // Semana
@@ -159,7 +159,7 @@ function renderVolScr(){
   document.getElementById('vol-sub').textContent=`${f(days[0])} – ${f(days[6])} · ${st.sets} series · ${st.sessions.length} sesiones`;
   renderBodyHeat(st.by);
   renderVolBars(st.by);
-  renderDashDonut(st.by,st.sets);
+  renderDashDonut(st.byDirect,st.sets);
   renderDashWeekChart();
   renderVol(); // histórico por músculo (chips + bandas)
 }
@@ -180,5 +180,6 @@ function renderPerfil(){
   const t=db.templates||[];
   document.getElementById('perfil-routines').innerHTML=t.map(x=>`<div class="rt-row"><div class="n">${esc(x.name)}<small>${x.exercises.length} ejercicios · ${tmplSetCount(x)} series · ⏱ ${x.rest||90}s</small></div><button class="go" onclick="startFromTmpl('${x.id}')">▶</button><button onclick="openEditTmpl('${x.id}')">Editar</button><button onclick="duplicateTmpl('${x.id}');renderPerfil()">⧉</button><button onclick="deleteTmpl('${x.id}').then(renderPerfil)" style="color:var(--red)">✕</button></div>`).join('')
     +`<button class="rest-btn" style="margin:10px 0 0" onclick="createNewRoutine()">+ Nueva rutina</button>`;
+  renderMesoCard();
   renderBibliotecaInit();
 }

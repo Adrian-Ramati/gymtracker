@@ -53,9 +53,8 @@ function renderVol(){
   const selSet=volSel.size?volSel:null;
   const vbm={};
   week.forEach(s=>s.exercises?.forEach(e=>{
-    const m=normMuscle(e.muscle);
-    if(selSet&&!selSet.has(m))return;
-    vbm[m]=(vbm[m]||0)+(e.sets?.filter(isWorkSet).length||0);
+    const n=e.sets?.filter(isWorkSet).length||0;
+    PPCore.credits(db.profile,e).forEach(({m,w})=>{if(selSet&&!selSet.has(m))return;vbm[m]=(vbm[m]||0)+n*w;});
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
   // MEV/MAV/MRV context: bands + zone card only with a single muscle selected
@@ -75,10 +74,12 @@ function renderVol(){
   sessions.forEach(s=>{
     const wk=wkLabel(new Date(s.date));
     s.exercises?.forEach(e=>{
-      const m=normMuscle(e.muscle);
-      if(selSet&&!selSet.has(m))return;
-      if(!aw[wk])aw[wk]={};
-      aw[wk][m]=(aw[wk][m]||0)+(e.sets?.filter(isWorkSet).length||0);
+      const n=e.sets?.filter(isWorkSet).length||0;
+      PPCore.credits(db.profile,e).forEach(({m,w})=>{
+        if(selSet&&!selSet.has(m))return;
+        if(!aw[wk])aw[wk]={};
+        aw[wk][m]=(aw[wk][m]||0)+n*w;
+      });
     });
   });
   // Always show last 8 calendar weeks, padding with zeros if no data

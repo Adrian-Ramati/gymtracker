@@ -4,9 +4,9 @@
 // sin salir de la sesión.
 const EQ_ES={'leverage machine':'Máquina guiada (de palanca)','sled machine':'Prensa / máquina de trineo','smith machine':'Máquina Smith','cable':'Polea','assisted':'Máquina asistida','barbell':'Barra','olympic barbell':'Barra olímpica','ez barbell':'Barra Z','dumbbell':'Mancuernas','kettlebell':'Kettlebell','body weight':'Peso corporal','weighted':'Lastrado','band':'Banda elástica','resistance band':'Banda elástica','stability ball':'Fitball','medicine ball':'Balón medicinal','bosu ball':'Bosu','rope':'Cuerda','trap bar':'Barra hexagonal','roller':'Rodillo','wheel roller':'Rueda abdominal','hammer':'Martillo','tire':'Neumático','elliptical machine':'Elíptica','stationary bike':'Bicicleta estática','skierg machine':'SkiErg','stepmill machine':'Escaladora','upper body ergometer':'Ergómetro de brazos'};
 const TGT_ES={'pectorals':'Pectoral','lats':'Dorsales','upper back':'Espalda alta','triceps':'Tríceps','biceps':'Bíceps','glutes':'Glúteos','hamstrings':'Isquiosurales','quads':'Cuádriceps','calves':'Gemelos','delts':'Deltoides','abs':'Abdominales','forearms':'Antebrazos','traps':'Trapecio','adductors':'Aductores','abductors':'Abductores','spine':'Lumbares','serratus anterior':'Serrato','cardiovascular system':'Cardio','levator scapulae':'Elevador de la escápula'};
-let exViewName=null;
+let exViewName=null,exViewMuscle='',exvSecEdit=false;
 function openExView(name){
-  if(!name)return;exViewName=name;renderExView();
+  if(!name)return;exViewName=name;exvSecEdit=false;renderExView();
   const ov=document.getElementById('ov-exview');ov.classList.add('on');
   const sc=ov.querySelector('.mscroll');if(sc)sc.scrollTop=0;
 }
@@ -17,13 +17,25 @@ function exHistory(name,n){
     .sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1)).slice(0,n)
     .map(s=>({date:s.date,ex:s.exercises.find(e=>normExName(e.name)===k)}));
 }
+function toggleSecondary(m){
+  if(exViewName==null||!exViewMuscle)return;
+  const cur=PPCore.secondaryFor(db.profile,exViewName,exViewMuscle);
+  db.profile=db.profile||{};db.profile.secMap=db.profile.secMap||{};
+  db.profile.secMap[normExName(exViewName)]=cur.includes(m)?cur.filter(x=>x!==m):[...cur,m];
+  saveDB();renderExView();
+}
+function resetSecondary(){
+  if(exViewName==null||!db.profile?.secMap)return;
+  delete db.profile.secMap[normExName(exViewName)];saveDB();renderExView();
+}
 function exvZoom(){const g=getGif(exViewName);if(!g)return;document.getElementById('exv-zoom-img').src=gifUrl(g);document.getElementById('exv-zoom').classList.add('on');}
 function renderExView(){
   const name=exViewName;if(name==null)return;
   const k=normExName(name);
   const info=ALL_EX.find(e=>normExName(e.name)===k)||{};
   const live=activeSess?.exercises?.find(e=>normExName(e.name)===k);
-  const muscle=info.muscle||live?.muscle||'';
+  const muscle=info.muscle||live?.muscle||exHistory(name,1)[0]?.ex?.muscle||'';
+  exViewMuscle=muscle;
   const g=getGif(name),dn=esc(name);
   document.getElementById('exv-title').textContent=name;
   const mc=MC[muscle]||['#1e1e1e','#9ca3af'];
@@ -41,6 +53,13 @@ function renderExView(){
   if(info.description)h+=sec('Descripción',`<div class="exv-txt">${esc(info.description)}</div>`);
   if(info.execution)h+=sec('Cómo se hace',`<div class="exv-txt">${esc(info.execution)}</div>`);
   if(info.cues?.length)h+=sec('Claves',`<ul class="exv-cues">${info.cues.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`);
+  if(muscle){
+    const secM=PPCore.secondaryFor(db.profile,name,muscle),custom=Array.isArray(db.profile?.secMap?.[k]);
+    const chip=(m,on)=>`<button class="exv-mchip${on?' on':''}" data-m="${esc(m)}" onclick="toggleSecondary(this.dataset.m)">${on?'✓ ':''}${esc(m)}</button>`;
+    const list=exvSecEdit?PPCore.MUSCLES.filter(m=>m!==PPCore.normMuscle(muscle)).map(m=>chip(m,secM.includes(m))).join(''):(secM.map(m=>chip(m,true)).join('')||'<span class="exv-auto">Ninguno</span>');
+    h+=sec('Músculos secundarios · cuentan ½ serie',`<div class="exv-sec2">${list}<button class="exv-mchip edit" onclick="exvSecEdit=!exvSecEdit;renderExView()">${exvSecEdit?'Listo':'✎ Editar'}</button></div>
+      <div class="exv-auto">${custom?'Personalizados · <a href="#" onclick="resetSecondary();return false">volver a los automáticos</a>':'Asignados automáticamente según el ejercicio'}</div>`);
+  }
   let prog=null;try{prog=getProgression(name);}catch(e){}
   const hist=exHistory(name,3),best=getMaxE1RM(name);
   if(hist.length||prog){

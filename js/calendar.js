@@ -44,12 +44,13 @@ function dashMove(d){dashOff=Math.min(0,dashOff+d);const c=curScr();if(c==='trai
 function weekRange(off){const mon=mondayOf(todayStr());mon.setDate(mon.getDate()+off*7);const days=[];for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);days.push(isoDate(x));}return days;}
 function weekStats(days){
   const set=new Set(days);const ss=(db.sessions||[]).filter(s=>set.has(s.date));
-  const by={};let sets=0,ton=0,min=0;
+  const by={},byDirect={};let sets=0,ton=0,min=0;
   ss.forEach(s=>{
     min+=s.durationMin||(typeof estimateSessDuration==='function'?estimateSessDuration(s):0)||0;
-    s.exercises?.forEach(e=>{const m=normMuscle(e.muscle);e.sets?.forEach(st=>{if(st.done||st.kg){ton+=(st.kg||0)*(st.reps||0);if(isWorkSet(st)){sets++;by[m]=(by[m]||0)+1;}}});});
+    s.exercises?.forEach(e=>{const cr=PPCore.credits(db.profile,e);e.sets?.forEach(st=>{if(st.done||st.kg){ton+=(st.kg||0)*(st.reps||0);if(isWorkSet(st)){sets++;cr.forEach(({m,w})=>{by[m]=(by[m]||0)+w;if(w===1)byDirect[m]=(byDirect[m]||0)+1;});}}});});
   });
-  return{sessions:ss,sets,ton,min,by,rest:days.filter(isRest).length};
+  // by: series efectivas (principal 1 + secundarios 0,5) · byDirect: solo series directas
+  return{sessions:ss,sets,ton,min,by,byDirect,rest:days.filter(isRest).length};
 }
 // Serie temporal 8 semanas
 function renderDashWeekChart(){

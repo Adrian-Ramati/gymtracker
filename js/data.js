@@ -128,7 +128,7 @@ async function loadDBFromSupabase(){
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
     if(!pRes.error&&pRes.data){
       db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30,username:pRes.data.username};
-      if(pRes.data.settings&&typeof pRes.data.settings==='object'){const st=pRes.data.settings;if(st.restDays)db.profile.restDays=st.restDays;if(st.gifMap)db.profile.gifMap=st.gifMap;if(st.landmarks)db.profile.landmarks=st.landmarks;}
+      if(pRes.data.settings&&typeof pRes.data.settings==='object'){const st=pRes.data.settings;if(st.restDays)db.profile.restDays=st.restDays;if(st.gifMap)db.profile.gifMap=st.gifMap;if(st.landmarks)db.profile.landmarks=st.landmarks;if(st.secMap)db.profile.secMap=st.secMap;if(Array.isArray(st.mesoLog))db.profile.mesoLog=st.mesoLog;}
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
     // No seed data — new users start clean

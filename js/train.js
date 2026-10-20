@@ -218,7 +218,8 @@ async function deleteSession(id){
 }
 
 // ═══ SESSION ═══
-function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;startSess(t.name,t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
+// Con mesociclo activo, las series de cada ejercicio se ajustan a la semana (más series o descarga)
+function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());startSess(t.name,t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ns[i]||ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
 function startSess(name,exercises,rest,date){
   activeSess={name,exercises,rest:rest||90,date:date||selDate||todayStr()};
@@ -260,8 +261,9 @@ function updateResumeBar(){
   const m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('resume-bar-timer').textContent=m+':'+(s<10?'0':'')+s;
   bar.classList.add('show');
 }
-function onSessDate(v){if(!activeSess||activeSess.isTmplEdit||!v)return;activeSess.date=v;persistActive();toast('Fecha cambiada: '+fmtDate(v));}
+function onSessDate(v){if(!activeSess||activeSess.isTmplEdit||!v)return;activeSess.date=v;persistActive();renderSessMeso();toast('Fecha cambiada: '+fmtDate(v));}
 function renderSessExs(){
+  renderSessMeso();
   const di=document.getElementById('sess-date');
   if(di&&activeSess&&!activeSess.isTmplEdit&&di!==document.activeElement)di.value=activeSess.date||todayStr();
   const target=activeSess?.isTmplEdit?'tmpledit-exs':'sess-exs';
@@ -296,8 +298,9 @@ function renderExCard(ex,ei){
     ${prevMaxRM?`<span class="e1rm-max">máx: ${prevMaxRM} kg</span>`:''}
     <span id="pr-flag_${ei}" style="display:none;color:var(--amber);font-size:11px">🏆 ¡Nuevo PR!</span>
   </div>`;
-  const prog=(activeSess&&!activeSess.isTmplEdit&&!activeSess.editing)?getProgression(ex.name):null;
-  const progRow=prog?`<div class="prog-hint ${prog.action}" onclick="applyProgression(${ei})" title="Toca para rellenar las series vacías">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`:'';
+  const dlw=(activeSess&&!activeSess.isTmplEdit)?mesoNow(activeSess.date):null;
+  const prog=(activeSess&&!activeSess.isTmplEdit&&!activeSess.editing&&!dlw?.deload)?getProgression(ex.name):null;
+  const progRow=dlw?.deload?deloadHintHtml(ex):prog?`<div class="prog-hint ${prog.action}" onclick="applyProgression(${ei})" title="Toca para rellenar las series vacías">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`:'';
   return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
     <div class="ec-head">
       <span class="drag-handle">⠿</span>

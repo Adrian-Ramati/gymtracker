@@ -538,3 +538,37 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
 .hi-method[open] summary span{transform:rotate(90deg)}
 .hi-method ul{margin-top:10px;padding-left:16px;font-size:12px;color:var(--t2);line-height:1.55;display:flex;flex-direction:column;gap:7px}
 .hi-method b{color:var(--t1)}
+/* ═══ Mesociclos ═══ */
+.meso-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--b1);font-size:13px;color:var(--t1)}
+.card-title+.meso-row{border-top:0;padding-top:0}
+.meso-row small{display:block;font-size:10.5px;color:var(--t3);font-family:var(--mono);margin-top:2px}
+.meso-tl{display:flex;gap:6px;margin:4px 0 10px}
+.meso-w{flex:1;min-width:0;text-align:center;padding:8px 2px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.meso-w b{display:block;font-size:15px;font-weight:800}
+.meso-w small{display:block;font-size:9.5px;color:var(--t3);font-family:var(--mono);margin-top:2px;white-space:nowrap}
+.meso-w.past{opacity:.45}
+.meso-w.cur{background:linear-gradient(145deg,rgba(79,124,255,.45),rgba(79,124,255,.18));border-color:rgba(127,162,255,.5)}
+.meso-w.cur small{color:#c7d5ff}
+.meso-w.dl b{color:var(--amber)}
+.meso-now{font-size:12.5px;color:var(--t2);line-height:1.45;margin-bottom:6px}
+.meso-now b{color:#fff}
+.meso-seg{display:flex;gap:4px;flex-shrink:0}
+.meso-seg button{width:38px;padding:7px 0;border-radius:10px;background:var(--s2);border:1px solid var(--b1);color:var(--t2);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font)}
+.meso-seg button.on{background:var(--bluedim);border-color:var(--blue);color:#c7d5ff}
+.meso-btns{display:flex;gap:8px;margin-top:6px}
+.meso-btns button{flex:1;padding:11px;border-radius:12px;background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.meso-off{font-size:12px;color:var(--t2);line-height:1.5}
+.meso-chip{display:inline-block;margin-top:8px;font-style:normal;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--bluedim);color:#c7d5ff;border:1px solid rgba(127,162,255,.35)}
+.meso-chip.dl{background:rgba(251,191,36,.12);color:var(--amber);border-color:rgba(251,191,36,.4)}
+.meso-banner{display:flex;flex-direction:column;gap:2px;padding:10px 12px;margin:0 0 10px;border-radius:12px;background:var(--bluedim);border:1px solid rgba(127,162,255,.35)}
+.meso-banner b{font-size:13px;color:#fff}
+.meso-banner span{font-size:11.5px;color:#c7d5ff}
+.meso-banner.dl{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.4)}
+.meso-banner.dl span{color:var(--amber)}
+/* Ficha: músculos secundarios */
+.exv-sec2{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.exv-mchip{font-size:12px;padding:6px 11px;border-radius:999px;background:var(--s2);border:1px solid var(--b1);color:var(--t2);font-weight:600;cursor:pointer;font-family:var(--font)}
+.exv-mchip.on{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.5);color:#86efac}
+.exv-mchip.edit{border-style:dashed;color:var(--t1)}
+.exv-auto{font-size:11px;color:var(--t3);margin-bottom:14px}
+.exv-auto a{color:var(--t2)}
