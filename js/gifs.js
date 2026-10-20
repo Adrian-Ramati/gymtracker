@@ -8,7 +8,26 @@ async function loadGifIndex(){
   try{const c=localStorage.getItem('exgifs_v1');if(c){GIF_DB=JSON.parse(c);}}catch(e){}
   try{const r=await fetch('exgifs.json');if(r.ok){GIF_DB=await r.json();try{localStorage.setItem('exgifs_v1',JSON.stringify(GIF_DB));}catch(e){}}}catch(e){}
   if(!GIF_DB){try{const r=await fetch(GIF_BASE+'data/exercises.json');const d=await r.json();GIF_DB=d.map(e=>({i:e.id,n:e.name,t:e.target,e:e.equipment,m:e.media_id}));}catch(e){}}
-  if(GIF_DB){GIF_AUTO={};refreshGifThumbs();}
+  if(GIF_DB){GIF_AUTO={};refreshGifThumbs();setTimeout(prefetchRoutineGifs,3000);}
+}
+// ─── Precarga para usar las animaciones sin conexión ────────────────
+// Se guardan en la misma caché que usa sw.js; las que ya están no se vuelven a descargar.
+const GIF_CACHE='pp-gifs-v1';
+async function prefetchGifs(names){
+  try{
+    if(!('caches' in window)||!GIF_DB||navigator.onLine===false||navigator.connection?.saveData)return 0;
+    const urls=[...new Set(names.map(getGif).filter(Boolean).flatMap(e=>[gifUrl(e),gifThumb(e)]))];
+    const c=await caches.open(GIF_CACHE);let n=0;
+    for(const u of urls){if(await c.match(u))continue;try{const r=await fetch(u,{mode:'cors'});if(r.ok){await c.put(u,r);n++;}}catch(e){}}
+    return n;
+  }catch(e){return 0;}
+}
+// Ejercicios de tus rutinas y de tus últimas 12 sesiones
+function prefetchRoutineGifs(){
+  const names=new Set();
+  (db.templates||[]).forEach(t=>t.exercises?.forEach(e=>names.add(e.name)));
+  [...(db.sessions||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12).forEach(s=>s.exercises?.forEach(e=>names.add(e.name)));
+  return prefetchGifs([...names]);
 }
 function refreshGifThumbs(){document.querySelectorAll('[data-gifn]').forEach(el=>{const e=getGif(el.dataset.gifn);if(e){if(el.tagName==='IMG'){el.src=gifThumb(e);}else{const img=document.createElement('img');img.className=el.className.replace('ph','');img.src=gifThumb(e);img.loading='lazy';img.dataset.gifn=el.dataset.gifn;img.onclick=ev=>{ev.stopPropagation();openExView(img.dataset.gifn);};el.replaceWith(img);}}});if(exViewName!=null)renderExView();}
 // Diccionario ES→EN de tokens (nombre) y músculo→target

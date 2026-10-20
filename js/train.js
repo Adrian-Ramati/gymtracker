@@ -222,6 +222,7 @@ async function deleteSession(id){
 function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());startSess(t.name,t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ns[i]||ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
 function startSess(name,exercises,rest,date){
+  prefetchGifs(exercises.map(e=>e.name));
   activeSess={name,exercises,rest:rest||90,date:date||selDate||todayStr()};
   // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
   // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
