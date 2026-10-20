@@ -44,7 +44,7 @@ function renderHyperScr(){
     return `<div class="hi-xrow"><span>${esc(x.name)}</span><b style="color:${c}">${x.st==='up'?'▲':x.st==='down'?'▼':'■'} ${x.pct>0?'+':''}${x.pct.toFixed(1)}%</b><small>${x.n} ses.</small></div>`;}).join('')
     :'<div class="hs-empty">Necesitas 3+ sesiones de un mismo ejercicio en 8 semanas.</div>';
   b.innerHTML=`
-    <div class="card hi-hero">${hiRing(R.score,128,11)}<div style="min-width:0"><div class="hi-big" style="color:${L.c}">${L.t}</div><div class="hi-meta">${fmtDate(R.start)} – ${fmtDate(R.end)} · ${R.sessions} sesiones${R.deloadSessions?` · ${R.deloadSessions} de descarga excluidas`:''}</div>${d!=null?`<div class="hi-delta ${d>=0?'up':'dn'}">${d>=0?'▲ +':'▼ '}${d} vs 28 días anteriores</div>`:''}</div></div>
+    <div class="card hi-hero">${hiRing(R.score,128,11)}<div style="min-width:0"><div class="hi-big" style="color:${L.c}">${L.t}</div><div class="hi-meta">${fmtDate(R.start)} – ${fmtDate(R.end)} · ${R.sessions} sesiones${R.deloadSessions?` · ${R.deloadSessions} de descarga excluidas`:''}</div>${d==null?'':d===0?'<div class="hi-delta">= igual que los 28 días anteriores</div>':`<div class="hi-delta ${d>0?'up':'dn'}">${d>0?'▲ +':'▼ '}${d} vs 28 días anteriores</div>`}</div></div>
     <div class="card"><div class="card-title">Qué cambiar</div><ol class="hi-recs">${R.recs.slice(0,5).map(r=>`<li>${r.t}</li>`).join('')}</ol></div>
     <div class="card"><div class="card-title">Componentes <span>peso en el índice</span></div>${Object.keys(HI_W).map(k=>hiBar(k,R.comp[k],true)).join('')}</div>
     <div class="card"><div class="card-title">Por músculo <span>series duras/sem · días/sem</span></div>${mRows}</div>

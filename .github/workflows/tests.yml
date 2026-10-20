@@ -1,0 +1,59 @@
+name: Tests
+
+# Se ejecuta en cada subida y en cada pull request. Si algo falla, GitHub
+# marca el commit en rojo y te avisa por email. Las capturas quedan como artefacto.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Playwright y Chromium
+        run: |
+          pip install playwright pillow
+          python -m playwright install --with-deps chromium
+
+      - name: Sintaxis de todos los scripts
+        run: for f in js/*.js sw.js scripts/*.mjs tests/*.mjs; do node --check "$f" || exit 1; done
+
+      - name: Núcleo de cálculo (e1RM, volumen, mesociclos, índice)
+        run: node tests/test_core.mjs
+
+      - name: App completa (pantallas, sesiones, calendario, rutinas…)
+        run: python tests/test_app.py
+
+      - name: Músculos secundarios y mesociclos
+        run: python tests/test_features.py
+
+      - name: Modo sin conexión (service worker y GIF)
+        run: python tests/test_offline.py
+
+      - name: Informe semanal en modo prueba
+        run: |
+          npm install --prefix scripts
+          node tests/test_report.mjs
+
+      - name: Guardar capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: tests/shots/
+          if-no-files-found: ignore

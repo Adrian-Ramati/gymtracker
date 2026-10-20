@@ -288,9 +288,11 @@
     R.muscles.filter(x => x.major && x.v >= 4 && x.f > 0 && x.f < 1.5).forEach(x => rec(58, `<b>${esc(x.m)}</b> se entrena ${f1(x.f)} día/sem: reparte sus ${f1(x.v)} series en 2 sesiones.`));
     R.exercises.filter(x => x.st !== 'up' && x.n >= 4).sort((a, b) => a.pct - b.pct).slice(0, 2).forEach(x =>
       rec(x.st === 'down' ? 80 : 55, `<b>${esc(x.name)}</b> ${x.st === 'down' ? 'retrocede' : 'está estancado'} (${x.pct > 0 ? '+' : ''}${x.pct.toFixed(1)}% de e1RM al mes): cambia el rango de reps o la variante.`));
-    const push = V('Pectoral') + V('Deltoides anterior'), pull = V('Espalda');
-    if (push > 4 && pull < .8 * push) rec(50, `Desequilibrio empuje/tirón: ${f1(pull)} series de espalda frente a ${f1(push)} de empuje. Busca un ratio cercano a 1:1.`);
-    if (V('Cuádriceps') > 4 && V('Isquiosurales') < .6 * V('Cuádriceps')) rec(45, `Isquiosurales (${f1(V('Isquiosurales'))} series/sem) muy por detrás de cuádriceps (${f1(V('Cuádriceps'))}).`);
+    // Equilibrios con series DIRECTAS (las indirectas inflarían el empuje: cada press suma medio deltoides anterior)
+    const D = m => (raw[m] || 0) / weeks;
+    const push = D('Pectoral') + D('Deltoides anterior'), pull = D('Espalda');
+    if (push > 4 && pull < .8 * push) rec(50, `Desequilibrio empuje/tirón: ${f1(pull)} series directas de espalda frente a ${f1(push)} de empuje. Busca un ratio cercano a 1:1.`);
+    if (D('Cuádriceps') > 4 && D('Isquiosurales') < .6 * D('Cuádriceps')) rec(45, `Isquiosurales (${f1(D('Isquiosurales'))} series directas/sem) muy por detrás de cuádriceps (${f1(D('Cuádriceps'))}).`);
     const rpeAvg = (a, b) => { let s = 0, n = 0; all.filter(x => x.date >= a && x.date <= b && !isDl(x.date)).forEach(x => x.exercises?.forEach(e => e.sets?.forEach(st => { if (C.isWorkSet(st) && C.hasRpe(st)) { s += +st.rpe; n++; } }))); return n >= 6 ? s / n : null; };
     const rNow = rpeAvg(C.addDays(end, -6), end), rPrev = rpeAvg(start, C.addDays(end, -7));
     if (rNow != null && rPrev != null && rNow - rPrev >= .7 && (R.comp.prog.score ?? 100) < 60)
