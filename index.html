@@ -485,6 +485,77 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
 .px-leg{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:11px;color:#d6dcec}
 .px-leg span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--c)}
 .px-leg b{font-family:var(--mono);font-weight:500;color:var(--t2);margin-left:3px}
+
+/* ═══ Ficha completa del ejercicio ═══ */
+.exv-modal{max-height:94vh}
+.exv-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.exv-title{flex:1;min-width:0;font-size:19px;font-weight:800;letter-spacing:-.4px;line-height:1.2}
+.exv-x{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid var(--b1);color:var(--t1);cursor:pointer;font-size:14px;font-family:var(--font)}
+.exv-media{position:relative;background:#fff;border-radius:18px;overflow:hidden;margin-bottom:6px}
+.exv-media img{display:block;width:100%;height:auto;max-height:54vh;object-fit:contain;margin:0 auto;cursor:zoom-in}
+.exv-zoombtn{position:absolute;right:10px;bottom:10px;padding:6px 11px;border-radius:999px;border:0;background:rgba(7,11,20,.72);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.exv-none{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:180px;background:var(--s2);color:var(--t2);font-size:13px}
+.exv-none button{padding:9px 16px;border-radius:999px;border:1px solid var(--blue);background:var(--bluedim);color:#b9caff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.exv-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+.exv-chip{font-size:12px;padding:6px 11px;border-radius:999px;background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-weight:600}
+.exv-chip.mach{background:var(--bluedim);border-color:rgba(79,124,255,.5);color:#c7d5ff;font-size:13px;font-weight:800}
+.exv-sec{font-size:10.5px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.7px;margin:4px 0 6px}
+.exv-txt{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px}
+.exv-cues{font-size:13px;color:var(--t2);line-height:1.55;padding-left:18px;margin-bottom:14px}
+.exv-hrow{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--b1)}
+.exv-sec+.exv-hrow,.prog-hint+.exv-hrow{border-top:0}
+.exv-hrow span{flex-shrink:0;width:74px;font-size:11px;color:var(--t3);font-family:var(--mono);padding-top:3px}
+.exv-hrow div{display:flex;flex-wrap:wrap;gap:5px}
+.exv-hrow i{font-style:normal;font-size:11.5px;font-family:var(--mono);padding:3px 7px;border-radius:7px;background:var(--s2);color:var(--t1)}
+.exv-best{font-size:12px;color:var(--t2);margin:8px 0 14px}
+.exv-best b{color:var(--amber)}
+.exv-btns{display:flex;gap:8px;margin:12px 0 4px}
+.exv-btns button{flex:1;padding:11px;border-radius:12px;background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.exv-zoom{position:fixed;inset:0;z-index:1000;background:#fff;display:none;align-items:center;justify-content:center;cursor:zoom-out}
+.exv-zoom.on{display:flex}
+.exv-zoom img{width:100%;height:100%;object-fit:contain}
+.exv-zoom span{position:absolute;top:max(env(safe-area-inset-top),14px);right:14px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(7,11,20,.75);color:#fff;font-size:16px}
+.ec-name{cursor:pointer}
+/* ═══ Índice de hipertrofia ═══ */
+.hi-top{display:flex;gap:14px;align-items:center}
+.hi-ringwrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.hi-lab{font-size:12px;font-weight:800;letter-spacing:.2px}
+.hi-bars{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.hi-bar{display:grid;grid-template-columns:minmax(0,1fr) 54px 24px;align-items:center;gap:8px;font-size:11.5px;color:var(--t2)}
+.hi-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hi-bar i,.hi-track{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.hi-bar u,.hi-track u{display:block;height:100%;border-radius:3px}
+.hi-bar b{font-family:var(--mono);font-weight:500;font-size:11px;color:var(--t1);text-align:right}
+.hi-rec1{margin-top:12px;font-size:12px;color:#d6dcec;line-height:1.45;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 11px}
+.hi-rec1 b,.hi-recs b{color:#fff}
+.hi-hero{display:flex;align-items:center;gap:18px}
+.hi-big{font-size:26px;font-weight:800;letter-spacing:-.6px}
+.hi-meta{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:4px}
+.hi-delta{font-size:12.5px;font-weight:700;margin-top:8px}
+.hi-delta.up{color:var(--green)}.hi-delta.dn{color:var(--red)}
+.hi-comp{padding:10px 0;border-top:1px solid var(--b1)}
+.card-title+.hi-comp{border-top:0;padding-top:0}
+.hi-comp-h{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;margin-bottom:7px}
+.hi-comp-h em{font-style:normal;font-size:10px;color:var(--t3);font-family:var(--mono);font-weight:400;margin-left:6px}
+.hi-comp-h b{font-family:var(--mono);font-size:14px}
+.hi-track{height:6px}
+.hi-comp small{display:block;font-size:11.5px;color:var(--t2);margin-top:6px;line-height:1.4}
+.hi-recs{padding-left:18px;display:flex;flex-direction:column;gap:10px;font-size:12.5px;color:#d6dcec;line-height:1.45}
+.hi-mrow,.hi-xrow{display:grid;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--b1);font-size:12px}
+.hi-mrow{grid-template-columns:minmax(0,1fr) 38px 96px 34px}
+.hi-xrow{grid-template-columns:minmax(0,1fr) 74px 44px}
+.card-title+.hi-mrow,.card-title+.hi-xrow{border-top:0}
+.hi-mrow span,.hi-xrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6ebf7}
+.hi-mrow span i{color:var(--t3);font-style:normal}
+.hi-mrow b,.hi-xrow b{font-family:var(--mono);font-weight:500;text-align:right}
+.hi-mrow em{font-style:normal;font-size:10.5px;font-family:var(--mono);text-align:right}
+.hi-mrow small,.hi-xrow small{font-family:var(--mono);color:var(--t2);text-align:right;font-size:11px}
+.hi-method summary{cursor:pointer;font-size:13px;font-weight:700;list-style:none;display:flex;justify-content:space-between}
+.hi-method summary::-webkit-details-marker{display:none}
+.hi-method summary span{color:var(--t2);transition:transform .2s}
+.hi-method[open] summary span{transform:rotate(90deg)}
+.hi-method ul{margin-top:10px;padding-left:16px;font-size:12px;color:var(--t2);line-height:1.55;display:flex;flex-direction:column;gap:7px}
+.hi-method b{color:var(--t1)}
 </style>
 </head>
 <body>
@@ -529,6 +600,10 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
         <div class="hcard-head"><span>Progreso de fuerza</span><i>›</i></div>
         <div class="hs-mini" id="hs-mini"><canvas id="hs-chart"></canvas></div>
         <div class="hs-empty" id="hs-empty" style="display:none">Registra pesos y reps para ver tu e1RM</div>
+      </div>
+      <div class="hcard" onclick="navTo('hyper')">
+        <div class="hcard-head"><span>Índice de hipertrofia</span><em>últimos 28 días</em><i>›</i></div>
+        <div id="hi-mini"></div>
       </div>
     </div>
     <!-- VOLUMEN -->
@@ -678,109 +753,8 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
       </div>
       </div><!-- /stats-panel-prog -->
     </div>
-    <!-- PERFIL -->
-    <div id="s-perfil" class="scr">
-      <div class="card">
-        <div class="card-title">Rutinas <span id="perfil-name"></span></div>
-        <div id="perfil-routines"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Biblioteca de ejercicios</div>
-        <div style="position:relative;margin-bottom:10px">
-          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px">🔍</span>
-          <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
-        </div>
-        <div class="mf-row" id="bib-muscle-filters"></div>
-        <div class="mf-row" id="bib-eq-filters"></div>
-        <button onclick="openExEditor(null)" style="width:100%;margin-bottom:10px;padding:9px;background:var(--s2);border:1px dashed var(--b2);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir nuevo ejercicio</button>
-        <div id="bib-list"></div>
-      </div>
-      <!-- DATOS + PERFILES (merged) -->
-      <div class="card">
-        <div class="card-title">Datos y backup</div>
-<button class="export-btn" onclick="exportJSON()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Hacer backup (JSON)
-        </button>
-        <button class="export-btn" onclick="triggerImportJSON()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Restaurar backup (JSON)
-        </button>
-        <input type="file" id="import-json-input" accept=".json" style="display:none" onchange="importJSON(event)">
-        <button class="export-btn" onclick="exportXLSX()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Descargar historial Excel (.xlsx)
-        </button>
-      </div>
-      <button class="export-btn" onclick="doLogout()" style="color:var(--t3)">Cerrar sesión</button>
-    </div>
-    <div id="s-train" class="scr">
-      <div class="dash" style="margin-top:0">
-        <div class="dash-head">
-          <div><div class="dash-title" id="dash-title">Esta semana</div><div class="dash-sub" id="dash-sub"></div></div>
-          <div class="wknav"><button onclick="dashMove(-1)">&#8249;</button><button id="dash-next" onclick="dashMove(1)">&#8250;</button></div>
-        </div>
-        <div class="wk-strip" id="wk-strip"></div>
-        <div class="kpis" id="dash-kpis"></div>
-        <div id="wk-sessions"></div>
-      </div>
-      <div class="sec-title">Calendario</div>
-      <div class="cal-nav" style="position:relative;display:flex;align-items:center">
-        <button class="cal-arrow" onclick="moveMonth(-1)">&#8249;</button>
-        <span class="cal-month" id="cal-month-label" style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none"></span>
-        <div style="display:flex;gap:4px;margin-left:auto">
-          <button class="cal-arrow" onclick="goToday()" style="font-size:11px;font-weight:600;width:auto;padding:0 10px;font-family:var(--font)">Hoy</button>
-          <button class="cal-arrow" onclick="moveMonth(1)">&#8250;</button>
-        </div>
-      </div>
-      <div class="cal-grid" id="cal-grid"></div>
-      <div class="cal-legend"><span><i style="background:linear-gradient(160deg,var(--ember2),var(--ember))"></i>Gym</span><span><i style="background:var(--s2);border:1px solid var(--b2)"></i>Descanso</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--ember)"></i>Hoy</span></div>
-      <div id="day-panel"></div>
-      <button onclick="repeatLastSession()" style="width:100%;margin-top:10px;padding:11px;background:var(--s2);border:1px solid var(--b1);border-radius:12px;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">🔁 Repetir última sesión</button>
-    </div>
-    <!-- SESIÓN ACTIVA -->
-    <div id="s-sess" class="scr">
-      <div class="sess-hdr">
-        <input class="sess-name-inp" id="sess-name" value="Entrenamiento">
-        <span class="sess-timer" id="sess-timer">0:00</span>
-        <button class="cancel-btn" onclick="cancelSession()" title="Cancelar">✕</button>
-        <button class="finish-btn" onclick="finishSession()">Finalizar</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px">
-        <span style="font-size:12px;color:var(--t2)">📅 Fecha del entrenamiento</span>
-        <input type="date" id="sess-date" onchange="onSessDate(this.value)" style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:12px;padding:5px 6px;outline:none">
-      </div>
-      <div id="sess-exs"></div>
-      <div style="display:flex;align-items:center;gap:8px;margin:10px 0 2px">
-        <span style="font-size:12px;color:var(--t2)">⌚ kcal del reloj <span style="color:var(--t3)">(opcional)</span></span>
-        <input type="number" id="sess-kcal" min="0" max="3000" step="1" placeholder="auto" oninput="onKcalInput(this.value)" style="width:76px;background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:13px;text-align:center;padding:6px 4px;outline:none">
-      </div>
-      <button class="add-ex-btn" onclick="openPicker('add')">+ Añadir ejercicio</button>
-    </div>
-    <!-- EDITAR RUTINA (sin timer, distinta de Nueva Sesión) -->
-    <div id="s-tmpledit" class="scr">
-      <div class="sess-hdr">
-        <input class="sess-name-inp" id="tmpledit-name" value="Rutina">
-        <span class="sess-timer" style="display:flex;align-items:center;gap:4px">⏱<input type="number" id="tmpledit-rest" min="15" max="600" step="15" style="width:48px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;text-align:center;padding:2px">s</span>
-        <button class="cancel-btn" onclick="cancelTmplEdit()" title="Cancelar">✕</button>
-        <button class="finish-btn" onclick="saveTmplEdit()">Guardar</button>
-      </div>
-      <div id="tmpledit-exs"></div>
-      <button class="add-ex-btn" onclick="openPicker('add')">+ Añadir ejercicio</button>
-    </div>
-    <!-- ESTADÍSTICAS -->
-    <div id="s-stats" class="scr">
-      <!-- PROGRESIÓN -->
-      <div id="stats-panel-prog">
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:0">
-        <select class="psel" id="prog-sel" onchange="renderProgChart()" style="flex:1;margin-bottom:0"></select>
-        <button id="prog-hide-few-btn" onclick="toggleProgHideFew()" title="Ocultar ejercicios con 3 o menos récords" style="flex-shrink:0;padding:9px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--s2);color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--font)">🔎3+</button>
-      </div>
-      <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:10px">Epley ajustada por RIR cuando RPE disponible</div>
-      <div class="sg" id="prog-stats"></div>
-      <div class="cw"><canvas id="progChart" role="img"></canvas></div>
-      </div><!-- /stats-panel-prog -->
-    </div>
+    <!-- ÍNDICE DE HIPERTROFIA -->
+    <div id="s-hyper" class="scr"><div id="hyper-body"></div></div>
     <!-- PERFIL -->
     <div id="s-profile" class="scr">
       <!-- PROFILE CARD -->
@@ -1015,6 +989,14 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
     <div class="mscroll" id="gif-body"></div>
   </div>
 </div>
+<!-- FICHA COMPLETA DEL EJERCICIO -->
+<div class="overlay" id="ov-exview" onclick="closeExView(event)">
+  <div class="modal exv-modal">
+    <div class="mhandle"></div>
+    <div class="exv-top"><div class="exv-title" id="exv-title"></div><button class="exv-x" onclick="closeExView()" aria-label="Cerrar">✕</button></div>
+    <div class="mscroll" id="exv-body"></div>
+  </div>
+</div>
 <div class="overlay" id="ov-gifpick" onclick="closeGifPick(event)">
   <div class="modal">
     <div class="mhandle"></div>
@@ -1183,6 +1165,7 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
   <button onclick="restAdd(30)" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t2);font-size:11px;padding:2px 8px;cursor:pointer">+30s</button>
   <button onclick="stopRest()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0">×</button>
 </div>
+<div class="exv-zoom" id="exv-zoom" onclick="this.classList.remove('on')"><img id="exv-zoom-img" alt=""><span>✕</span></div>
 <div class="toast" id="toast"></div>
 <script>
 // ═══ STATIC DATA ═══
@@ -1735,8 +1718,8 @@ function renderCurrentScr(n){
 }
 
 // ═══ CALENDAR ═══
-function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];}
-function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=now.toISOString().split('T')[0];renderCal();renderDayPanel();}
+function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);}
+function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);renderCal();renderDayPanel();}
 function moveMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;}renderCal();}
 function selectDate(ds){selDate=ds;renderCal();renderDayPanel();}
 function renderDayPanel(){
@@ -1935,7 +1918,7 @@ async function deleteSession(id){
 function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;startSess(t.name,t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
 function startSess(name,exercises,rest,date){
-  activeSess={name,exercises,rest:rest||90,date:date||selDate||new Date().toISOString().split('T')[0]};
+  activeSess={name,exercises,rest:rest||90,date:date||selDate||todayStr()};
   // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
   // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
   sessStartTs=Date.now();
@@ -2016,7 +1999,7 @@ function renderExCard(ex,ei){
     <div class="ec-head">
       <span class="drag-handle">⠿</span>
       ${thumbHtml(ex.name,'exthumb sm')}
-      <span class="ec-name" data-exn="${esc(ex.name)}" onclick="goToExInBiblioteca(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
+      <span class="ec-name" data-exn="${esc(ex.name)}" onclick="openExView(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
@@ -2618,7 +2601,7 @@ function renderVol(){
   week.forEach(s=>s.exercises?.forEach(e=>{
     const m=normMuscle(e.muscle);
     if(selSet&&!selSet.has(m))return;
-    vbm[m]=(vbm[m]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
+    vbm[m]=(vbm[m]||0)+(e.sets?.filter(isWorkSet).length||0);
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
   // MEV/MAV/MRV context: bands + zone card only with a single muscle selected
@@ -2641,7 +2624,7 @@ function renderVol(){
       const m=normMuscle(e.muscle);
       if(selSet&&!selSet.has(m))return;
       if(!aw[wk])aw[wk]={};
-      aw[wk][m]=(aw[wk][m]||0)+(e.sets?.filter(s=>s.done||s.kg).length||0);
+      aw[wk][m]=(aw[wk][m]||0)+(e.sets?.filter(isWorkSet).length||0);
     });
   });
   // Always show last 8 calendar weeks, padding with zeros if no data
@@ -2672,9 +2655,9 @@ function wkLabel(d){return d.getFullYear()+'-S'+String(getWk(d)).padStart(2,'0')
 // ═══ PROFILE SCREEN ═══
 function renderProfileScr(){
   const wd=document.getElementById('weight-date');
-  if(!wd.value)wd.value=new Date().toISOString().split('T')[0];
+  if(!wd.value)wd.value=todayStr();
   const md=document.getElementById('measure-date');
-  if(!md.value)md.value=new Date().toISOString().split('T')[0];
+  if(!md.value)md.value=todayStr();
   // Profile stats
   // Last weekly average
   const _weights=db.weights||[];
@@ -2772,7 +2755,7 @@ function getWeekLabel(dateStr){
   return `${d.getFullYear()}-W${String(getWk(d)).padStart(2,'0')}`;
 }
 async function saveMeasures(){
-  const dateStr=document.getElementById('measure-date')?.value||new Date().toISOString().split('T')[0];
+  const dateStr=document.getElementById('measure-date')?.value||todayStr();
   const wk=getWeekLabel(dateStr);
   const entry={week:wk,date:dateStr};
   let any=false;
@@ -2857,7 +2840,7 @@ async function syncAllToSupabase(){
 }
 
 // ═══ BACKUP / RESTORE ═══
-function exportJSON(){const data={profile,db,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`GymTracker_${profile}_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);toast('Backup descargado ✓');}
+function exportJSON(){const data={profile,db,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`GymTracker_${profile}_backup_${todayStr()}.json`;a.click();URL.revokeObjectURL(url);toast('Backup descargado ✓');}
 function triggerImportJSON(){document.getElementById('import-json-input').value='';document.getElementById('import-json-input').click();}
 async function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=async(e)=>{
   try{
@@ -2885,7 +2868,7 @@ function exportXLSX(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Historial',ws);
   const exMap={};sessions.forEach(s=>{(s.exercises||[]).forEach(ex=>{if(!exMap[ex.name])exMap[ex.name]={name:ex.name,muscle:ex.muscle,count:0,maxRM:0};exMap[ex.name].count++;if(ex.best_e1rm)exMap[ex.name].maxRM=Math.max(exMap[ex.name].maxRM,ex.best_e1rm);});});
   XLSX.utils.book_append_sheet(wb,'Resumen',XLSX.utils.aoa_to_sheet([['Ejercicio','Músculo','Sesiones','Mejor e1RM (kg)'],...Object.values(exMap).map(e=>[e.name,e.muscle,e.count,e.maxRM||''])]));
-  XLSX.writeFile(wb,`GymTracker_${profile}_${new Date().toISOString().split('T')[0]}.xlsx`);toast('Descargando Excel…');
+  XLSX.writeFile(wb,`GymTracker_${profile}_${todayStr()}.xlsx`);toast('Descargando Excel…');
 }
 
 // ═══ QUICK START ═══
@@ -3049,7 +3032,7 @@ function gymKcalForDate(dateStr){
 
 function renderActivityScr(){
   const nd=document.getElementById('neat-date');
-  if(!nd.value)nd.value=new Date().toISOString().split('T')[0];
+  if(!nd.value)nd.value=todayStr();
   renderNeatChart();
   renderGetChart();
 }
@@ -3061,7 +3044,7 @@ function renderNeatChart(){
   if(neatView==='daily'){
     // Last 7 days
     const days=[];
-    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(isoDate(d));}
     labels=days.map(d=>fmtDate(d));
     data=days.map(d=>{const s=steps.find(s=>s.date===d);return s?s.steps:0;});
     kcalData=days.map((d,i)=>{
@@ -3075,7 +3058,7 @@ function renderNeatChart(){
       const end=new Date();end.setDate(end.getDate()-i*7);
       const start=new Date(end);start.setDate(start.getDate()-6);
       const wLabel='S'+getWk(end);
-      const weekSteps=steps.filter(s=>s.date>=start.toISOString().split('T')[0]&&s.date<=end.toISOString().split('T')[0]);
+      const weekSteps=steps.filter(s=>s.date>=isoDate(start)&&s.date<=isoDate(end));
       const avg=weekSteps.length?Math.round(weekSteps.reduce((a,b)=>a+b.steps,0)/weekSteps.length):0;
       weeks.push({label:wLabel,avg});
     }
@@ -3083,7 +3066,7 @@ function renderNeatChart(){
     data=weeks.map(w=>w.avg);
     kcalData=weeks.map((w,i)=>{
       const refDate=new Date();refDate.setDate(refDate.getDate()-i*7);
-      const ds=refDate.toISOString().split('T')[0];
+      const ds=isoDate(refDate);
       const wt=getWeightForDate(ds);const h2=db.profile?.height||175;
       return w.avg?stepsToKcal(w.avg,wt,h2):0;
     });
@@ -3114,9 +3097,9 @@ function renderGetChart(){
   const today=new Date();
   let dateRange=[];
   if(getView==='daily'){
-    for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);dateRange.push(d.toISOString().split('T')[0]);}
+    for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);dateRange.push(isoDate(d));}
   } else {
-    for(let i=3;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i*7);dateRange.push(d.toISOString().split('T')[0]);}
+    for(let i=3;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i*7);dateRange.push(isoDate(d));}
   }
 
   const tmbArr=[], neatArr=[], gymArr=[], othersArr=[], labels=[];
@@ -3294,7 +3277,7 @@ function renderPeriChart(){
 
 // Separate save for BF/composition (doesn't touch perimeter inputs)
 async function saveBFMeasures(){
-  const dateStr=document.getElementById('measure-date')?.value||new Date().toISOString().split('T')[0];
+  const dateStr=document.getElementById('measure-date')?.value||todayStr();
   const wk=getWeekLabel(dateStr);
   let entry=(db.measures||[]).find(m=>m.week===wk)||{week:wk,date:dateStr};
   let bf=null;
@@ -3616,7 +3599,7 @@ function weekStats(days){
   const by={};let sets=0,ton=0,min=0;
   ss.forEach(s=>{
     min+=s.durationMin||(typeof estimateSessDuration==='function'?estimateSessDuration(s):0)||0;
-    s.exercises?.forEach(e=>{const m=normMuscle(e.muscle);e.sets?.forEach(st=>{if(st.done||st.kg){sets++;by[m]=(by[m]||0)+1;ton+=(st.kg||0)*(st.reps||0);}});});
+    s.exercises?.forEach(e=>{const m=normMuscle(e.muscle);e.sets?.forEach(st=>{if(st.done||st.kg){ton+=(st.kg||0)*(st.reps||0);if(isWorkSet(st)){sets++;by[m]=(by[m]||0)+1;}}});});
   });
   return{sessions:ss,sets,ton,min,by,rest:days.filter(isRest).length};
 }
@@ -3747,7 +3730,7 @@ async function loadGifIndex(){
   if(!GIF_DB){try{const r=await fetch(GIF_BASE+'data/exercises.json');const d=await r.json();GIF_DB=d.map(e=>({i:e.id,n:e.name,t:e.target,e:e.equipment,m:e.media_id}));}catch(e){}}
   if(GIF_DB){GIF_AUTO={};refreshGifThumbs();}
 }
-function refreshGifThumbs(){document.querySelectorAll('[data-gifn]').forEach(el=>{const e=getGif(el.dataset.gifn);if(e){if(el.tagName==='IMG'){el.src=gifThumb(e);}else{const img=document.createElement('img');img.className=el.className.replace('ph','');img.src=gifThumb(e);img.loading='lazy';img.dataset.gifn=el.dataset.gifn;el.replaceWith(img);}}});}
+function refreshGifThumbs(){document.querySelectorAll('[data-gifn]').forEach(el=>{const e=getGif(el.dataset.gifn);if(e){if(el.tagName==='IMG'){el.src=gifThumb(e);}else{const img=document.createElement('img');img.className=el.className.replace('ph','');img.src=gifThumb(e);img.loading='lazy';img.dataset.gifn=el.dataset.gifn;img.onclick=ev=>{ev.stopPropagation();openExView(img.dataset.gifn);};el.replaceWith(img);}}});if(exViewName!=null)renderExView();}
 // Diccionario ES→EN de tokens (nombre) y músculo→target
 const GIF_MUS_RAW={'Pectoral':['pectorals'],'Espalda':['lats','upper back'],'Tríceps':['triceps'],'Bíceps':['biceps'],'Glúteos':['glutes'],'Isquiosurales':['hamstrings'],'Isquiotibiales':['hamstrings'],'Cuádriceps':['quads'],'Gemelos':['calves'],'Sóleo':['calves'],'Deltoides anterior':['delts'],'Deltoides lateral':['delts'],'Hombro posterior':['delts','upper back'],'Deltoides posterior':['delts','upper back'],'Aductores':['adductors'],'Abductores':['abductors'],'Abdomen':['abs'],'Abdominales':['abs'],'Core':['abs'],'Antebrazo':['forearms'],'Antebrazos':['forearms'],'Trapecio':['traps','upper back'],'Lumbar':['spine']};
 const GIF_MUS=new Proxy(GIF_MUS_RAW,{get:(o,k)=>o[k]||o[Object.keys(o).find(x=>x.toLowerCase()===String(k).toLowerCase())]||(/gemelo|s[oó]leo/i.test(k)?['calves']:/delt|hombro/i.test(k)?['delts']:/abd|core/i.test(k)?['abs']:undefined)});
@@ -3798,17 +3781,8 @@ function getGif(name){
   for(const c of GIF_DB){const s=gifScore(ex,c);if(s>bs){bs=s;best=c;}}
   GIF_AUTO[name]=best;return best;
 }
-function thumbHtml(name,cls='exthumb'){const e=getGif(name);return e?`<img class="${cls}" src="${gifThumb(e)}" loading="lazy" data-gifn="${esc(name)}" onclick="openGif(this.dataset.gifn);event.stopPropagation()" alt="">`:`<div class="${cls} ph" data-gifn="${esc(name)}" onclick="openGifPick(this.dataset.gifn);event.stopPropagation()">▶</div>`;}
-function openGif(name){
-  const e=getGif(name);
-  document.getElementById('gif-title').textContent=name;
-  document.getElementById('gif-body').innerHTML=e?`<img class="gif-hero" src="${gifUrl(e)}" alt="">
-    <div style="text-align:center;font-size:12px;color:var(--t2);text-transform:capitalize;margin-bottom:4px">${esc(e.n)}</div>
-    <div class="gif-attr">© <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a> · ${esc(e.t)} · ${esc(e.e)}</div>
-    <button onclick="openGifPick('${esc(name).replace(/'/g,"\\'")}')" style="width:100%;padding:9px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Cambiar animación</button>`
-  :`<div class="empty">Sin animación asignada</div><button onclick="openGifPick('${esc(name).replace(/'/g,"\\'")}')" style="width:100%;padding:9px;background:var(--emberdim);border:1px solid var(--ember);border-radius:10px;color:var(--ember);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Elegir animación</button>`;
-  document.getElementById('ov-gif').classList.add('on');
-}
+function thumbHtml(name,cls='exthumb'){const e=getGif(name);return e?`<img class="${cls}" src="${gifThumb(e)}" loading="lazy" data-gifn="${esc(name)}" onclick="openGif(this.dataset.gifn);event.stopPropagation()" alt="">`:`<div class="${cls} ph" data-gifn="${esc(name)}" onclick="openExView(this.dataset.gifn);event.stopPropagation()">▶</div>`;}
+function openGif(name){openExView(name);}
 function closeGif(e){if(!e||e.target===document.getElementById('ov-gif'))document.getElementById('ov-gif').classList.remove('on');}
 let gifPickName=null;
 function openGifPick(name){
@@ -3832,7 +3806,7 @@ function setGif(id){
   if(!db.profile)db.profile={};if(!db.profile.gifMap)db.profile.gifMap={};
   db.profile.gifMap[gifPickName]=id;delete GIF_AUTO[gifPickName];
   saveDB();closeGifPick();toast(id==='none'?'Animación quitada':'Animación guardada');
-  refreshGifThumbs();
+  refreshGifThumbs();if(exViewName!=null)renderExView();
   if(typeof renderBiblioteca==='function'&&document.getElementById('stats-panel-bib')?.style.display!=='none')renderBiblioteca();
 }
 // ─── Ajustes (descansos, gifs, landmarks) → Supabase profiles.settings (best-effort)
@@ -3845,7 +3819,7 @@ document.addEventListener('DOMContentLoaded',()=>{loadGifIndex();});
 
 // ═══════════════════════════════════════════════════════════════════════
 // ═══ NAVEGACIÓN (home + drill-downs) ═══
-const SCR_TITLES={home:'Peak Physique',train:'Semana',vol:'Volumen',stats:'Progreso',profile:'Cuerpo',activity:'Actividad',perfil:'Perfil',sess:'Entrenamiento',tmpledit:'Rutina'};
+const SCR_TITLES={home:'Peak Physique',train:'Semana',vol:'Volumen',stats:'Progreso',profile:'Cuerpo',activity:'Actividad',perfil:'Perfil',hyper:'Hipertrofia',sess:'Entrenamiento',tmpledit:'Rutina'};
 let navStack=[];
 function curScr(){return document.querySelector('.scr.on')?.id?.replace('s-','')||'home';}
 function navTo(n){const c=curScr();if(c!==n){navStack.push(c);}showScr(n,null);document.querySelector('.content').scrollTo(0,0);}
@@ -3878,6 +3852,7 @@ function tabGo(n){if(n==='home'){navHome();return;}navStack=[];showScr(n,null);d
     else if(a==='profile')renderProfileScr();
     else if(a==='activity')renderActivityScr();
     else if(a==='perfil')renderPerfil();
+    else if(a==='hyper')renderHyperScr();
   };
   showAppScreens=function(){
     const overlay=document.getElementById('login-overlay');if(overlay)overlay.style.display='none';
@@ -3928,6 +3903,7 @@ function renderHome(){
   document.getElementById('hc-vol-sub').textContent=st.sets?`${st.sets} series · ${ent.length} músculos`:'sin series esta semana';
   // Fuerza
   renderHomeStrength();
+  renderHomeHyper();
 }
 let hsChart=null;
 // ── utilidades de gráfica (línea violeta con degradado, como la maqueta) ──
@@ -4058,6 +4034,242 @@ function renderPerfil(){
   renderBibliotecaInit();
 }
 
+
+// ─── Ficha completa del ejercicio (GIF sin recortar + máquina + técnica + historial) ───
+// Se abre al tocar la miniatura o el nombre de un ejercicio, también durante el entrenamiento,
+// sin salir de la sesión.
+const EQ_ES={'leverage machine':'Máquina guiada (de palanca)','sled machine':'Prensa / máquina de trineo','smith machine':'Máquina Smith','cable':'Polea','assisted':'Máquina asistida','barbell':'Barra','olympic barbell':'Barra olímpica','ez barbell':'Barra Z','dumbbell':'Mancuernas','kettlebell':'Kettlebell','body weight':'Peso corporal','weighted':'Lastrado','band':'Banda elástica','resistance band':'Banda elástica','stability ball':'Fitball','medicine ball':'Balón medicinal','bosu ball':'Bosu','rope':'Cuerda','trap bar':'Barra hexagonal','roller':'Rodillo','wheel roller':'Rueda abdominal','hammer':'Martillo','tire':'Neumático','elliptical machine':'Elíptica','stationary bike':'Bicicleta estática','skierg machine':'SkiErg','stepmill machine':'Escaladora','upper body ergometer':'Ergómetro de brazos'};
+const TGT_ES={'pectorals':'Pectoral','lats':'Dorsales','upper back':'Espalda alta','triceps':'Tríceps','biceps':'Bíceps','glutes':'Glúteos','hamstrings':'Isquiosurales','quads':'Cuádriceps','calves':'Gemelos','delts':'Deltoides','abs':'Abdominales','forearms':'Antebrazos','traps':'Trapecio','adductors':'Aductores','abductors':'Abductores','spine':'Lumbares','serratus anterior':'Serrato','cardiovascular system':'Cardio','levator scapulae':'Elevador de la escápula'};
+let exViewName=null;
+function openExView(name){
+  if(!name)return;exViewName=name;renderExView();
+  const ov=document.getElementById('ov-exview');ov.classList.add('on');
+  const sc=ov.querySelector('.mscroll');if(sc)sc.scrollTop=0;
+}
+function closeExView(e){const ov=document.getElementById('ov-exview');if(!e||e.target===ov){ov.classList.remove('on');exViewName=null;}}
+function exHistory(name,n){
+  const k=normExName(name);
+  return [...(db.sessions||[])].filter(s=>s.exercises?.some(e=>normExName(e.name)===k))
+    .sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1)).slice(0,n)
+    .map(s=>({date:s.date,ex:s.exercises.find(e=>normExName(e.name)===k)}));
+}
+function exvZoom(){const g=getGif(exViewName);if(!g)return;document.getElementById('exv-zoom-img').src=gifUrl(g);document.getElementById('exv-zoom').classList.add('on');}
+function renderExView(){
+  const name=exViewName;if(name==null)return;
+  const k=normExName(name);
+  const info=ALL_EX.find(e=>normExName(e.name)===k)||{};
+  const live=activeSess?.exercises?.find(e=>normExName(e.name)===k);
+  const muscle=info.muscle||live?.muscle||'';
+  const g=getGif(name),dn=esc(name);
+  document.getElementById('exv-title').textContent=name;
+  const mc=MC[muscle]||['#1e1e1e','#9ca3af'];
+  let h='';
+  if(g)h+=`<div class="exv-media"><img src="${gifUrl(g)}" alt="${esc(g.n)}" onclick="exvZoom()"><button class="exv-zoombtn" onclick="exvZoom()">⤢ Ampliar</button></div><div class="gif-attr">Animación: ${esc(g.n)} · © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a></div>`;
+  else h+=`<div class="exv-media exv-none"><span>${GIF_DB?'Sin animación asignada':'Cargando animación…'}</span><button data-n="${dn}" onclick="openGifPick(this.dataset.n)">Elegir animación</button></div>`;
+  const chips=[];
+  if(g)chips.push(`<span class="exv-chip mach">🏋️ ${esc(EQ_ES[g.e]||g.e)}</span>`);
+  if(info.equipment)chips.push(`<span class="exv-chip">${esc(info.equipment)}</span>`);
+  if(muscle)chips.push(`<span class="exv-chip" style="background:${mc[0]};color:${mc[1]};border-color:transparent">${esc(muscle)}</span>`);
+  if(g&&g.t&&(TGT_ES[g.t]||g.t).toLowerCase()!==String(muscle).toLowerCase())chips.push(`<span class="exv-chip">🎯 ${esc(TGT_ES[g.t]||g.t)}</span>`);
+  if(info.reps)chips.push(`<span class="exv-chip">⭐ ${esc(info.reps)}</span>`);
+  if(chips.length)h+=`<div class="exv-chips">${chips.join('')}</div>`;
+  const sec=(t,b)=>`<div class="exv-sec">${t}</div>${b}`;
+  if(info.description)h+=sec('Descripción',`<div class="exv-txt">${esc(info.description)}</div>`);
+  if(info.execution)h+=sec('Cómo se hace',`<div class="exv-txt">${esc(info.execution)}</div>`);
+  if(info.cues?.length)h+=sec('Claves',`<ul class="exv-cues">${info.cues.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`);
+  let prog=null;try{prog=getProgression(name);}catch(e){}
+  const hist=exHistory(name,3),best=getMaxE1RM(name);
+  if(hist.length||prog){
+    let hb='';
+    if(prog)hb+=`<div class="prog-hint ${prog.action}" style="cursor:default">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`;
+    hb+=hist.map(x=>`<div class="exv-hrow"><span>${fmtDate(x.date)}</span><div>${(x.ex.sets||[]).filter(isWorkSet).map(s=>`<i>${s.kg??'–'}×${s.reps??'–'}${s.rpe!=null&&s.rpe!==''?' @'+s.rpe:''}</i>`).join('')||'<i>—</i>'}</div></div>`).join('');
+    if(best)hb+=`<div class="exv-best">🏆 Mejor e1RM: <b>${best} kg</b></div>`;
+    h+=sec('Tu historial',hb);
+  }
+  h+=`<div class="exv-btns"><button data-n="${dn}" onclick="openGifPick(this.dataset.n)">${g?'Cambiar animación':'Elegir animación'}</button>${curScr()!=='sess'?`<button data-n="${dn}" onclick="closeExView();goToExInBiblioteca(this.dataset.n)">Ver en biblioteca</button>`:''}</div>`;
+  document.getElementById('exv-body').innerHTML=h;
+}
+
+// ═══ ÍNDICE DE HIPERTROFIA (IH) ═══════════════════════════════════════
+// Puntúa de 0 a 100 si el entrenamiento de los últimos 28 días está bien orientado a ganar músculo.
+// Componentes: volumen efectivo · proximidad al fallo · frecuencia · sobrecarga progresiva · adherencia.
+const HI_MAJOR=['Pectoral','Espalda','Cuádriceps','Isquiosurales','Glúteos','Deltoides lateral','Bíceps','Tríceps'];
+const HI_W={vol:.30,int:.20,freq:.15,prog:.20,adh:.15};
+const HI_NAMES={vol:'Volumen efectivo',int:'Proximidad al fallo',freq:'Frecuencia',prog:'Sobrecarga progresiva',adh:'Adherencia'};
+// Serie de trabajo: registrada y no marcada como calentamiento
+function isWorkSet(s){return !!s&&!!(s.done||s.kg)&&(s.type||'normal')!=='warmup';}
+const hasRpe=s=>s.rpe!=null&&s.rpe!==''&&!isNaN(+s.rpe);
+// Crédito de "serie dura": 1 si RPE ≥7 (o sin RPE), 0,5 si RPE 6–6,5, 0 si RPE <6; >30 reps cuenta la mitad
+function hardCredit(s){
+  if(!isWorkSet(s))return 0;
+  let c=1;
+  if(hasRpe(s)){const r=+s.rpe;c=r>=7?1:r>=6?.5:0;}
+  if(s.reps>30)c*=.5;
+  return c;
+}
+function addDays(ds,n){const[y,m,d]=ds.split('-').map(Number);const x=new Date(y,m-1,d);x.setDate(x.getDate()+n);return isoDate(x);}
+function daysBetween(a,b){const p=s=>{const[y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d);};return Math.round((p(b)-p(a))/864e5);}
+const f1=v=>String(Math.round(v*10)/10);
+function hiVolScore(v,lm){
+  if(!(v>0))return 0;
+  if(v<lm.mev)return 60*v/lm.mev;
+  if(v<=lm.mav)return 85+15*(v-lm.mev)/Math.max(1,lm.mav-lm.mev);
+  if(v<=lm.mrv)return 100-20*(v-lm.mav)/Math.max(1,lm.mrv-lm.mav);
+  return Math.max(20,80-6*(v-lm.mrv));
+}
+function hiLabel(sc){return sc>=80?{t:'Óptimo',c:'#34d399'}:sc>=65?{t:'Bueno',c:'#4f7cff'}:sc>=50?{t:'Mejorable',c:'#fbbf24'}:{t:'Subóptimo',c:'#f87171'};}
+function computeHyperIndex(end){
+  end=end||todayStr();
+  const start=addDays(end,-27);
+  const all=(db.sessions||[]).filter(s=>s&&s.date);
+  const ss=all.filter(s=>s.date>=start&&s.date<=end);
+  const first=all.length?all.reduce((a,s)=>s.date<a?s.date:a,all[0].date):end;
+  const span=Math.min(28,Math.max(7,daysBetween(first>start?first:start,end)+1));
+  const weeks=span/7;
+  const R={end,start,weeks,sessions:ss.length,comp:{},muscles:[],exercises:[],recs:[],score:null};
+  if(ss.length<2){R.insufficient=true;return R;}
+  // ── Recuento por músculo e intensidad
+  const hard={},dates={},raw={};
+  let work=0,withRpe=0,eff=0,junk=0,fail=0,repsKnown=0,repsOK=0;
+  ss.forEach(s=>s.exercises?.forEach(e=>{const m=normMuscle(e.muscle);(e.sets||[]).forEach(st=>{
+    if(!isWorkSet(st))return;work++;
+    const c=hardCredit(st);hard[m]=(hard[m]||0)+c;raw[m]=(raw[m]||0)+1;
+    if(c>0)(dates[m]=dates[m]||new Set()).add(s.date);
+    if(hasRpe(st)){withRpe++;const r=+st.rpe;if(r>=7)eff++;if(r<6)junk++;if(r>=10)fail++;}
+    else if(st.type==='failure')fail++;
+    if(st.reps>0){repsKnown++;if(st.reps>=5&&st.reps<=30)repsOK++;}
+  });}));
+  const V=m=>(hard[m]||0)/weeks;
+  // 1 · Volumen efectivo vs landmarks (MEV/MAV/MRV)
+  let vs=0,vw=0,inZone=0,nLm=0;
+  new Set([...HI_MAJOR,...Object.keys(hard)]).forEach(m=>{
+    const lm=getLandmarks(m),v=V(m),f=dates[m]?dates[m].size/weeks:0,major=HI_MAJOR.includes(m);
+    if(!lm){if(v>0)R.muscles.push({m,v,f,lm:null,score:null,major});return;}
+    if(!major&&!(v>0))return;
+    const sc=hiVolScore(v,lm),w=major?1:.5;vs+=sc*w;vw+=w;nLm++;
+    if(v>=lm.mev&&v<=lm.mav)inZone++;
+    R.muscles.push({m,v,f,lm,score:sc,major,rv:(raw[m]||0)/weeks});
+  });
+  R.muscles.sort((a,b)=>(b.major-a.major)||(b.v-a.v));
+  R.comp.vol={score:vw?vs/vw:null,detail:`${inZone} de ${nLm} grupos en zona productiva (MEV–MAV)`};
+  // 2 · Proximidad al fallo y rango de reps
+  const cov=work?withRpe/work:0;
+  if(withRpe>=8&&cov>=.3){
+    const effS=eff/withRpe,junkS=junk/withRpe,repS=repsKnown?repsOK/repsKnown:1,failS=work?fail/work:0;
+    R.comp.int={score:Math.max(0,Math.min(100,100*(.8*effS+.2*repS)-40*Math.max(0,failS-.4))),
+      detail:`${Math.round(effS*100)}% de series a RPE 7–10${junkS>=.05?` · ${Math.round(junkS*100)}% demasiado fáciles`:''}`,effS,junkS,failS,cov};
+  }else R.comp.int={score:null,detail:`Sin datos: RPE registrado en el ${Math.round(cov*100)}% de las series`,cov};
+  // 3 · Frecuencia por grupo principal
+  const fm=R.muscles.filter(x=>x.major&&x.v>0);
+  if(fm.length){
+    const sc=fm.map(x=>x.f>=2?100:x.f>=1?50+50*(x.f-1):50*x.f);
+    R.comp.freq={score:sc.reduce((a,b)=>a+b,0)/sc.length,detail:`${f1(fm.reduce((a,x)=>a+x.f,0)/fm.length)} días/semana de media por grupo`};
+  }else R.comp.freq={score:null,detail:'Sin datos'};
+  // 4 · Sobrecarga progresiva: tendencia del e1RM en 8 semanas
+  const pStart=addDays(end,-55),hist={};
+  all.filter(s=>s.date>=pStart&&s.date<=end).forEach(s=>s.exercises?.forEach(e=>{if(+e.best_e1rm>0)(hist[e.name]=hist[e.name]||[]).push({d:s.date,v:+e.best_e1rm});}));
+  Object.entries(hist).forEach(([name,h])=>{
+    if(h.length<3)return;h.sort((a,b)=>a.d.localeCompare(b.d));
+    if(h[h.length-1].d<start)return;
+    const xs=h.map(p=>daysBetween(h[0].d,p.d)),ys=h.map(p=>p.v),n=h.length;
+    const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n,sxx=xs.reduce((a,x)=>a+(x-mx)**2,0);
+    const slope=sxx?xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/sxx:0;
+    const pct=my?slope*28/my*100:0;
+    R.exercises.push({name,n,pct,st:pct>=1?'up':pct<=-1?'down':'flat',last:ys[n-1]});
+  });
+  R.exercises.sort((a,b)=>b.pct-a.pct);
+  if(R.exercises.length>=2){
+    const sc=R.exercises.map(x=>x.st==='up'?100:x.st==='flat'?55:20),wt=R.exercises.map(x=>x.n);
+    R.comp.prog={score:sc.reduce((a,v,i)=>a+v*wt[i],0)/wt.reduce((a,b)=>a+b,0),detail:`${R.exercises.filter(x=>x.st==='up').length} de ${R.exercises.length} ejercicios progresan`};
+  }else R.comp.prog={score:null,detail:'Hacen falta ≥3 sesiones por ejercicio en 8 semanas'};
+  // 5 · Adherencia: sesiones/semana vs plan y series completadas vs planificadas
+  const plan=Math.max(2,Math.min(6,(db.templates||[]).length||3)),spw=ss.length/weeks,fr=Math.min(1,spw/plan);
+  const done=[];
+  ss.forEach(s=>{const t=(db.templates||[]).find(t=>t.name===s.name);if(!t)return;
+    const planned=(t.exercises||[]).reduce((a,e)=>a+(+e.sets||3),0);if(!planned)return;
+    done.push(Math.min(1,(s.exercises||[]).reduce((a,e)=>a+(e.sets||[]).filter(isWorkSet).length,0)/planned));});
+  const cr=done.length?done.reduce((a,b)=>a+b,0)/done.length:null;
+  R.comp.adh={score:100*(cr==null?fr:.5*fr+.5*cr),detail:`${f1(spw)} sesiones/sem de ${plan}${cr!=null?` · ${Math.round(cr*100)}% de series planificadas`:''}`,spw,plan,cr};
+  // ── Índice global (los componentes sin datos no cuentan y su peso se reparte)
+  let tw=0,ts=0;Object.entries(HI_W).forEach(([k,w])=>{const c=R.comp[k];if(c&&c.score!=null){ts+=c.score*w;tw+=w;}});
+  R.score=tw?Math.round(ts/tw):null;
+  // ── Recomendaciones priorizadas
+  const rec=(p,t)=>R.recs.push({p,t});
+  const lows=R.muscles.filter(x=>x.lm&&x.major&&x.v<x.lm.mev).sort((a,b)=>(b.lm.mev-b.v)-(a.lm.mev-a.v));
+  const regNote=x=>x.rv-x.v>=1?` (${f1(x.rv)} registradas)`:'';
+  if(lows.length>=3){const nm=lows.slice(0,3).map(x=>`<b>${esc(x.m)}</b>`);
+    rec(90,`Sube el volumen de ${nm.slice(0,-1).join(', ')} y ${nm[nm.length-1]}${lows.length>3?` (y ${lows.length-3} más)`:''}: están por debajo de su MEV. Añade 2–4 series duras por semana a cada uno.`);}
+  else lows.forEach(x=>{const gap=Math.ceil(x.lm.mev-x.v);
+    rec(92-x.v,`Sube <b>${esc(x.m)}</b>: ${f1(x.v)} series duras/sem${regNote(x)}, por debajo de tu MEV (${x.lm.mev}). Añade ${gap}–${gap+2} series a la semana.`);});
+  R.muscles.filter(x=>x.lm&&x.v>x.lm.mrv).forEach(x=>rec(86,`Baja <b>${esc(x.m)}</b>: ${f1(x.v)} series/sem superan tu MRV (${x.lm.mrv}). Quita ${Math.ceil(x.v-x.lm.mav)} para volver a la zona productiva.`));
+  if(cr!=null&&cr<.9)rec(88,`Completas el ${Math.round(cr*100)}% de las series planificadas: estás recortando sesiones. Haz primero los ejercicios clave o planifica menos series.`);
+  if(spw<plan*.75)rec(72,`Haces ${f1(spw)} sesiones/sem de las ${plan} de tu plan.`);
+  if(R.comp.int.score==null)rec(70,'Registra el RPE en cada serie: sin él no se puede saber cuántas series son realmente efectivas.');
+  else{
+    if(R.comp.int.junkS>.5)rec(96,`El ${Math.round(R.comp.int.junkS*100)}% de tus series están a RPE &lt;6 y no cuentan como series efectivas: llévalas a RPE 7–9 (te quedan 1–3 reps).`);
+    else if(R.comp.int.junkS>.2)rec(76,`El ${Math.round(R.comp.int.junkS*100)}% de tus series están a RPE &lt;6: acércalas a RIR 1–3 o elimínalas.`);
+    if(R.comp.int.failS>.4)rec(62,`Llevas al fallo el ${Math.round(R.comp.int.failS*100)}% de las series: resérvalo para la última serie de aislamientos.`);
+  }
+  R.muscles.filter(x=>x.major&&x.v>=4&&x.f<1.5).forEach(x=>rec(58,`<b>${esc(x.m)}</b> se entrena ${f1(x.f)} día/sem: reparte sus ${f1(x.v)} series en 2 sesiones.`));
+  R.exercises.filter(x=>x.st!=='up'&&x.n>=4).sort((a,b)=>a.pct-b.pct).slice(0,2).forEach(x=>
+    rec(x.st==='down'?80:55,`<b>${esc(x.name)}</b> ${x.st==='down'?'retrocede':'está estancado'} (${x.pct>0?'+':''}${x.pct.toFixed(1)}% de e1RM al mes): cambia el rango de reps o la variante.`));
+  const push=V('Pectoral')+V('Deltoides anterior'),pull=V('Espalda');
+  if(push>4&&pull<.8*push)rec(50,`Desequilibrio empuje/tirón: ${f1(pull)} series de espalda frente a ${f1(push)} de empuje. Busca un ratio cercano a 1:1.`);
+  if(V('Cuádriceps')>4&&V('Isquiosurales')<.6*V('Cuádriceps'))rec(45,`Isquiosurales (${f1(V('Isquiosurales'))} series/sem) muy por detrás de cuádriceps (${f1(V('Cuádriceps'))}).`);
+  const rpeAvg=(a,b)=>{let s=0,n=0;all.filter(x=>x.date>=a&&x.date<=b).forEach(x=>x.exercises?.forEach(e=>e.sets?.forEach(st=>{if(isWorkSet(st)&&hasRpe(st)){s+=+st.rpe;n++;}})));return n>=6?s/n:null;};
+  const rNow=rpeAvg(addDays(end,-6),end),rPrev=rpeAvg(start,addDays(end,-7));
+  if(rNow!=null&&rPrev!=null&&rNow-rPrev>=.7&&(R.comp.prog.score??100)<60)
+    rec(84,`Señales de fatiga: el RPE medio sube (${f1(rPrev)} → ${f1(rNow)}) sin que suba la fuerza. Programa una semana de descarga (−40–50% de series).`);
+  R.recs.sort((a,b)=>b.p-a.p);
+  if(!R.recs.length)rec(0,'Todo en orden: mantén el volumen y sigue subiendo cargas o repeticiones.');
+  return R;
+}
+function hiRing(score,size,stroke){
+  const r=(size-stroke)/2,c=2*Math.PI*r,L=hiLabel(score??0),p=score==null?0:score/100,h=size/2;
+  return `<svg class="hi-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Índice ${score??'—'} de 100"><circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="${stroke}"/><circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="${L.c}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${(c*p).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${h} ${h})"/><text x="${h}" y="${h}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="${Math.round(size*.3)}" font-weight="800" font-family="Manrope,sans-serif">${score==null?'—':score}</text></svg>`;
+}
+function hiBar(k,c,full){
+  const s=c?.score,L=hiLabel(s??0),w=s==null?0:Math.round(s);
+  if(!full)return `<div class="hi-bar"><span>${HI_NAMES[k]}</span><i><u style="width:${w}%;background:${L.c}"></u></i><b>${s==null?'—':w}</b></div>`;
+  return `<div class="hi-comp"><div class="hi-comp-h"><span>${HI_NAMES[k]}<em>${Math.round(HI_W[k]*100)}%</em></span><b style="color:${s==null?'var(--t3)':L.c}">${s==null?'—':w}</b></div><i class="hi-track"><u style="width:${w}%;background:${L.c}"></u></i><small>${c?.detail||''}</small></div>`;
+}
+function renderHomeHyper(){
+  const el=document.getElementById('hi-mini');if(!el)return;
+  const R=computeHyperIndex();
+  if(R.score==null){el.innerHTML='<div class="hs-empty">Registra al menos 2 sesiones para calcular tu índice.</div>';return;}
+  const L=hiLabel(R.score);
+  el.innerHTML=`<div class="hi-top"><div class="hi-ringwrap">${hiRing(R.score,86,8)}<div class="hi-lab" style="color:${L.c}">${L.t}</div></div><div class="hi-bars">${Object.keys(HI_W).map(k=>hiBar(k,R.comp[k])).join('')}</div></div>${R.recs[0]?`<div class="hi-rec1">💡 ${R.recs[0].t}</div>`:''}`;
+}
+const HI_METHOD=`<details class="card hi-method"><summary>Cómo se calcula <span>›</span></summary><ul>
+<li><b>Ventana:</b> últimos 28 días (8 semanas para la progresión). Si llevas menos tiempo registrando, se ajusta a tu historial.</li>
+<li><b>Serie dura:</b> cualquier serie que no sea de calentamiento. Cuenta 1 si va a RPE ≥7 (o no tiene RPE), 0,5 si va a RPE 6–6,5 y 0 si va por debajo de 6. Las series de más de 30 reps cuentan la mitad.</li>
+<li><b>Volumen efectivo (30%):</b> series duras por semana de cada músculo frente a tus landmarks MEV/MAV/MRV (editables en Volumen). Puntúa al máximo entre MEV y MAV, baja por debajo de MEV y por encima de MAV, y cae más rápido pasado el MRV. Los 8 grupos principales pesan el doble.</li>
+<li><b>Proximidad al fallo (20%):</b> % de series a RPE 7–10 (RIR 0–3) y dentro de 5–30 reps. Penaliza ir al fallo en más del 40% de las series.</li>
+<li><b>Frecuencia (15%):</b> días por semana que entrenas cada grupo principal; 2 o más = 100.</li>
+<li><b>Sobrecarga progresiva (20%):</b> tendencia del e1RM de cada ejercicio con 3+ sesiones en 8 semanas. ≥ +1%/mes progresa, ±1% estancado, &lt; −1% retrocede.</li>
+<li><b>Adherencia (15%):</b> sesiones por semana frente al número de rutinas de tu plan, y % de series planificadas que completas.</li>
+<li><b>Escala:</b> ≥80 óptimo · 65–79 bueno · 50–64 mejorable · &lt;50 subóptimo. Los componentes sin datos no cuentan.</li>
+<li><b>Base:</b> metaanálisis de volumen (Schoenfeld et al., 2017; Pelland et al., 2024), frecuencia (Schoenfeld et al., 2016) y proximidad al fallo (Refalo et al., 2023; Robinson et al., 2024), y landmarks de volumen de Renaissance Periodization. Es una guía para tomar decisiones, no una medida directa del crecimiento muscular.</li>
+</ul></details>`;
+function renderHyperScr(){
+  const b=document.getElementById('hyper-body');if(!b)return;
+  const R=computeHyperIndex();
+  if(R.score==null){b.innerHTML=`<div class="card"><div class="hs-empty">Registra al menos 2 sesiones en las últimas 4 semanas para calcular tu índice de hipertrofia.</div></div>${HI_METHOD}`;return;}
+  const P=computeHyperIndex(addDays(R.end,-28)),L=hiLabel(R.score),d=P.score!=null?R.score-P.score:null;
+  const mRows=R.muscles.map(x=>{
+    const z=x.lm?(x.v>0?lmZone(Math.round(x.v),x.lm):{txt:'sin trabajar',color:'#f87171'}):{txt:'sin referencia',color:'var(--t3)'};
+    return `<div class="hi-mrow"><span>${esc(x.m)}${x.major?'':' <i>·</i>'}</span><b>${f1(x.v)}</b><em style="color:${z.color}">${z.txt}</em><small>${f1(x.f)}×</small></div>`;}).join('');
+  const xRows=R.exercises.length?R.exercises.map(x=>{const c=x.st==='up'?'var(--green)':x.st==='down'?'var(--red)':'var(--amber)';
+    return `<div class="hi-xrow"><span>${esc(x.name)}</span><b style="color:${c}">${x.st==='up'?'▲':x.st==='down'?'▼':'■'} ${x.pct>0?'+':''}${x.pct.toFixed(1)}%</b><small>${x.n} ses.</small></div>`;}).join('')
+    :'<div class="hs-empty">Necesitas 3+ sesiones de un mismo ejercicio en 8 semanas.</div>';
+  b.innerHTML=`
+    <div class="card hi-hero">${hiRing(R.score,128,11)}<div style="min-width:0"><div class="hi-big" style="color:${L.c}">${L.t}</div><div class="hi-meta">${fmtDate(R.start)} – ${fmtDate(R.end)} · ${R.sessions} sesiones</div>${d!=null?`<div class="hi-delta ${d>=0?'up':'dn'}">${d>=0?'▲ +':'▼ '}${d} vs 28 días anteriores</div>`:''}</div></div>
+    <div class="card"><div class="card-title">Qué cambiar</div><ol class="hi-recs">${R.recs.slice(0,5).map(r=>`<li>${r.t}</li>`).join('')}</ol></div>
+    <div class="card"><div class="card-title">Componentes <span>peso en el índice</span></div>${Object.keys(HI_W).map(k=>hiBar(k,R.comp[k],true)).join('')}</div>
+    <div class="card"><div class="card-title">Por músculo <span>series duras/sem · días/sem</span></div>${mRows}</div>
+    <div class="card"><div class="card-title">Progresión <span>e1RM al mes · 8 semanas</span></div>${xRows}</div>
+    ${HI_METHOD}`;
+}
 </script>
 </body>
 </html>
