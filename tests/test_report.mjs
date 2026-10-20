@@ -3,7 +3,9 @@
 // Ejecutar: node tests/test_report.mjs
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { inflateSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import PPCore from '../js/core.js';
@@ -13,6 +15,19 @@ const FIX = join(ROOT, 'tests/fixtures/report.json');
 const OUT = join(ROOT, 'scripts/out');
 let ok = 0, fail = 0;
 const t = (name, fn) => { try { fn(); ok++; } catch (e) { fail++; console.log('FAIL ' + name + '\n  ' + e.message); } };
+
+// Texto del PDF (pdfkit con fuentes estándar: flujos deflate y cadenas hex WinAnsi en TJ)
+function pdfText(path) {
+  if (!existsSync(path)) return '';
+  const b = readFileSync(path), s = b.toString('latin1'); let out = '', i = 0;
+  for (;;) {
+    const a = s.indexOf('stream\n', i); if (a < 0) break;
+    const e = s.indexOf('\nendstream', a); if (e < 0) break;
+    try { out += inflateSync(b.subarray(a + 7, e)).toString('latin1'); } catch { }
+    i = e + 10;
+  }
+  return [...out.matchAll(/\[(.*?)\]\s*TJ/g)].map(m => [...m[1].matchAll(/<([0-9a-f]+)>/g)].map(h => Buffer.from(h[1], 'hex').toString('latin1')).join('')).join('\n');
+}
 
 function run(now, extra = {}) {
   rmSync(OUT, { recursive: true, force: true });
@@ -61,6 +76,30 @@ t('R9. Lanzado a mano un miércoles: semana en curso', () => { assert.equal(midw
 // WEEK_OFFSET sigue funcionando
 const prev = run('2026-10-25T23:30:00Z', { WEEK_OFFSET: '-1' });
 t('R10. WEEK_OFFSET=-1 informa de la semana anterior', () => { assert.equal(prev.start, '2026-10-12'); assert.equal(prev.end, '2026-10-18'); });
+
+// Ejercicio renombrado: el historial con el nombre antiguo y el nuevo cuenta como uno solo
+{
+  const base = JSON.parse(readFileSync(FIX, 'utf8')), OLD = 'Peso Muerto Rumano - Rdl', NEW = 'Peso Muerto Rumano - RDL';
+  const ren = (fx, pick) => { fx.sessions.forEach((s, i) => s.exercises.forEach(e => { if (e.name === 'PM Rumano con mancuernas') e.name = pick(i); }));
+    fx.profile.templates.forEach(tp => tp.exercises.forEach(e => { if (e.name === 'PM Rumano con mancuernas') e.name = OLD; })); return fx; };
+  const half = '2026-10-19'; // antiguo hasta la semana anterior, nuevo en la semana del informe
+  const fNew = join(tmpdir(), 'pp-report-new.json'), fMix = join(tmpdir(), 'pp-report-mix.json');
+  writeFileSync(fNew, JSON.stringify(ren(JSON.parse(JSON.stringify(base)), () => NEW)));
+  const mixed = JSON.parse(JSON.stringify(base));
+  mixed.sessions.forEach(s => s.exercises.forEach(e => { if (e.name === 'PM Rumano con mancuernas') e.name = s.date < half ? OLD : NEW; }));
+  writeFileSync(fMix, JSON.stringify(ren(mixed, () => NEW)));
+  const pdf = () => pdfText(join(OUT, 'informe-2026-10-25.pdf'));
+  const a = run('2026-10-25T23:30:00Z', { REPORT_FIXTURE: fNew }), pa = pdf();
+  const b = run('2026-10-25T23:30:00Z', { REPORT_FIXTURE: fMix }), pb = pdf();
+  t('R11. Ejercicio renombrado: el historial con el nombre antiguo cuenta igual que con el nuevo', () => {
+    assert.equal(b.r.status, 0, b.r.stderr);
+    assert.equal(b.score, a.score);
+    assert.ok(!b.html.includes(OLD) && !pb.includes(OLD));
+    assert.ok(pb.includes(NEW));
+    assert.equal(pb, pa); // misma comparación con la semana anterior en el PDF
+  });
+  rmSync(fNew, { force: true }); rmSync(fMix, { force: true });
+}
 
 rmSync(OUT, { recursive: true, force: true });
 console.log(`\n${ok}/${ok + fail} OK`); process.exit(fail ? 1 : 0);

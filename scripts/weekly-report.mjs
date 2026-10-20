@@ -121,8 +121,11 @@ if (DRY) {
   }
 }
 sessions.forEach(s => { if (typeof s.exercises === 'string') s.exercises = JSON.parse(s.exercises); });
+PPCore.canonExList(sessions); // ejercicios renombrados: historial antiguo y nuevo se cuentan juntos
 const profile = { ...(profileRow?.settings || {}) };
+if (profile.secMap) profile.secMap = PPCore.canonExKeys(profile.secMap, true);
 const templates = profileRow?.templates || [];
+PPCore.canonExList(templates);
 // e1RM con la misma tabla que la app (los best_e1rm antiguos se guardaron con Epley)
 sessions.forEach(s => (s.exercises || []).forEach(ex => {
   const rms = (ex.sets || []).filter(x => x.kg && x.reps).map(x => PPCore.calcE1RM(x.kg, x.reps, x.rpe)).filter(Boolean);

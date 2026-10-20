@@ -142,7 +142,7 @@ async function saveExEditor(){
     const cues=document.getElementById('exed-cues').value.split('\n').map(c=>c.trim()).filter(Boolean);
     if(sbClient){
       btn.textContent='Guardando...';btn.disabled=true;
-      const{error}=await sbClient.from('exercises').update({description,execution,cues}).eq('name',e.name);
+      const{error}=await sbClient.from('exercises').update({description,execution,cues}).in('name',PPCore.exNameAliases(e.name));
       btn.textContent='Guardar';btn.disabled=false;
       if(error){toast('Error al guardar: '+error.message);return;}
     }
