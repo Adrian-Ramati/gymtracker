@@ -220,8 +220,8 @@ function renderProgChart(){
   sd.innerHTML=`
     <div class="px-tile best"><small>MEJOR 1RM<u>🏆</u></small><div><b>${best}</b><em>kg</em></div><div class="px-note">último ${last} kg</div></div>
     <div class="px-tile prog"><small>PROGRESIÓN<u>↗</u></small><div><b class="${diff>=0?'up':'dn'}">${diff>=0?'+':''}${diff}</b><em>kg</em></div></div>
-    <div class="px-tile act"><small>Músculo activado</small>${muscleActiveHtml()}</div>`;
-  paintMuscleActive();
+    <div class="px-tile act"><small>Músculo activado</small>${muscleActiveHtml(name)}</div>`;
+  paintMuscleActive(name);
   if(pChart){pChart.destroy();pChart=null;}
   pChart=new Chart(document.getElementById('progChart'),{type:'line',data:{
     labels:pts.map(p=>fmtDate(p.date)),

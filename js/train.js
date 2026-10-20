@@ -198,6 +198,7 @@ function closeDetail(e){if(!e||e.target===document.getElementById('ov-detail'))d
 // ═══ EDIT / DELETE SESSION ═══
 function editSession(id){
   const sess=(db.sessions||[]).find(s=>s.id===id);if(!sess)return;
+  if(sessBusy())return;
   // Do NOT remove the original here — it stays intact until finishSession
   // replaces it in-place (canceling or an app kill no longer loses the session).
   activeSess={...JSON.parse(JSON.stringify(sess)),editing:true,originalId:id};
@@ -221,7 +222,10 @@ async function deleteSession(id){
 // Con mesociclo activo, las series de cada ejercicio se ajustan a la semana (más series o descarga)
 function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());startSess(t.name,t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ns[i]||ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
 function startBlank(){startSess('Entrenamiento',[]);}
+// Ahora se puede salir al inicio con un entrenamiento abierto: no se puede empezar otro encima
+function sessBusy(){if(!sessCanLeave())return false;toast('Ya hay un entrenamiento en curso — termínalo o cancélalo primero');resumeSession();return true;}
 function startSess(name,exercises,rest,date){
+  if(sessBusy())return;
   prefetchGifs(exercises.map(e=>e.name));
   activeSess={name,exercises,rest:rest||90,date:date||selDate||todayStr()};
   // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
