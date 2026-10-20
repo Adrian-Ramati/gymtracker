@@ -1,0 +1,2686 @@
+{
+ "sessions": [
+  {
+   "id": 1,
+   "date": "2026-09-28",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 55.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 55.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 55.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 40.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "date": "2026-09-29",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 90.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 90.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 90.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 26.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 140.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 140.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 140.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 50.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 50.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 50.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "date": "2026-10-01",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 55.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 55.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 55.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 40.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "date": "2026-10-02",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 90.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 90.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 90.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 26.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 140.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 140.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 140.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 50.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 50.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 50.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 60.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 60.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "date": "2026-10-05",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 56.1,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 56.1,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 56.1,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.3,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.3,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.3,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 40.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "date": "2026-10-06",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 91.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 91.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 91.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 26.5,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.5,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.5,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.9,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.9,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.9,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 142.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 142.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 142.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 51.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 51.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 51.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "date": "2026-10-08",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 56.1,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 56.1,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 56.1,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.3,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.3,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.3,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 40.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 40.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "date": "2026-10-09",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 91.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 91.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 91.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 26.5,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.5,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 26.5,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.9,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.9,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 45.9,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 142.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 142.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 142.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 51.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 51.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 51.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 61.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 61.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "date": "2026-10-12",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 57.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 57.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 57.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 41.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 41.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 41.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.5,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.5,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.5,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "date": "2026-10-13",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 93.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 93.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 93.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 27.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 46.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 46.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 46.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 145.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 145.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 145.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 52.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 52.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 52.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "date": "2026-10-15",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 57.2,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 57.2,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 57.2,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 41.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 41.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 41.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.5,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.5,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.5,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "date": "2026-10-16",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 93.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 93.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 93.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 27.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 46.8,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 46.8,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 46.8,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 145.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 145.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 145.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 52.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 52.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 52.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 62.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 62.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "date": "2026-10-19",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 63.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 58.3,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 58.3,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 58.3,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.9,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.9,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.9,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 63.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 42.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 42.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 42.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.7,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.7,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.7,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "date": "2026-10-20",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 95.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 95.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 95.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 27.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 47.7,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 47.7,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 47.7,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 148.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 148.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 148.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 53.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 53.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 53.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Gemelo de pie",
+     "muscle": "Gemelos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 63.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "date": "2026-10-22",
+   "name": "Upper A",
+   "exercises": [
+    {
+     "name": "Press inclinado en máquina convergente",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 30.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 63.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Remo en Máquina Neutro",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 58.3,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 58.3,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 58.3,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Aperturas en polea baja",
+     "muscle": "Pectoral",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 15.9,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.9,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 15.9,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Jalón en polea agarre ancho",
+     "muscle": "Espalda",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 63.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 63.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Kaz Press",
+     "muscle": "Tríceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 42.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 42.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 42.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Crucifix Curl",
+     "muscle": "Bíceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 12.7,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.7,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 12.7,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "date": "2026-10-23",
+   "name": "Lower",
+   "exercises": [
+    {
+     "name": "Hip-thrust en máquina",
+     "muscle": "Glúteos",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 45.0,
+       "reps": 12,
+       "rpe": 5,
+       "done": true,
+       "type": "warmup"
+      },
+      {
+       "kg": 95.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 95.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 95.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "PM Rumano con mancuernas",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 27.6,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.6,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 27.6,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Curl femoral sentado",
+     "muscle": "Isquiotibiales",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 47.7,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 47.7,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 47.7,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Prensa 45º",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 148.4,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 148.4,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 148.4,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    },
+    {
+     "name": "Extensión de cuádriceps",
+     "muscle": "Cuádriceps",
+     "notes": "",
+     "sets": [
+      {
+       "kg": 53.0,
+       "reps": 10,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 53.0,
+       "reps": 9,
+       "rpe": 8.0,
+       "done": true
+      },
+      {
+       "kg": 53.0,
+       "reps": 9,
+       "rpe": 8.5,
+       "done": true
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "profile": {
+  "templates": [
+   {
+    "id": "ua",
+    "name": "Upper A",
+    "rest": 90,
+    "exercises": [
+     {
+      "name": "Press inclinado en máquina convergente",
+      "muscle": "Pectoral",
+      "sets": 3
+     },
+     {
+      "name": "Remo en Máquina Neutro",
+      "muscle": "Espalda",
+      "sets": 3
+     },
+     {
+      "name": "Aperturas en polea baja",
+      "muscle": "Pectoral",
+      "sets": 3
+     },
+     {
+      "name": "Jalón en polea agarre ancho",
+      "muscle": "Espalda",
+      "sets": 3
+     },
+     {
+      "name": "Kaz Press",
+      "muscle": "Tríceps",
+      "sets": 3
+     },
+     {
+      "name": "Crucifix Curl",
+      "muscle": "Bíceps",
+      "sets": 3
+     }
+    ]
+   },
+   {
+    "id": "lo",
+    "name": "Lower",
+    "rest": 90,
+    "exercises": [
+     {
+      "name": "Hip-thrust en máquina",
+      "muscle": "Glúteos",
+      "sets": 3
+     },
+     {
+      "name": "PM Rumano con mancuernas",
+      "muscle": "Isquiotibiales",
+      "sets": 3
+     },
+     {
+      "name": "Curl femoral sentado",
+      "muscle": "Isquiotibiales",
+      "sets": 3
+     },
+     {
+      "name": "Prensa 45º",
+      "muscle": "Cuádriceps",
+      "sets": 3
+     },
+     {
+      "name": "Extensión de cuádriceps",
+      "muscle": "Cuádriceps",
+      "sets": 3
+     },
+     {
+      "name": "Gemelo de pie",
+      "muscle": "Gemelos",
+      "sets": 3
+     }
+    ]
+   }
+  ],
+  "settings": {
+   "landmarks": {},
+   "secMap": {},
+   "mesoLog": []
+  }
+ }
+}

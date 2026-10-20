@@ -5,10 +5,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 import PDFDocument from 'pdfkit';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { LOGO_BASE64 } from './logo.js';
+import PPCore from '../js/core.js'; // misma lógica que la app: e1RM, músculos, secundarios, mesociclos, índice
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -67,16 +68,22 @@ const {
   ANTHROPIC_API_KEY,
 } = process.env;
 
+// Modo prueba: REPORT_DRY_RUN=1 + REPORT_FIXTURE=datos.json → no lee Supabase, no llama a la IA ni envía
+// el email; deja el HTML y el PDF en scripts/out/. REPORT_NOW fija la fecha (para pruebas).
+const DRY = process.env.REPORT_DRY_RUN === '1';
 for (const [k, v] of Object.entries({ SUPABASE_URL, SUPABASE_SERVICE_KEY, RESEND_API_KEY, REPORT_EMAIL_TO, REPORT_EMAIL_FROM, ANTHROPIC_API_KEY }))
-  if (!v) { console.error(`Falta la variable ${k}`); process.exit(1); }
+  if (!v && !DRY) { console.error(`Falta la variable ${k}`); process.exit(1); }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+const supabase = DRY ? null : createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
 // ─── 3. Semanas lunes→domingo (hora Madrid), con offset opcional ────────────
 function madridYMD(d) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
-const todayYMD = madridYMD(new Date());
+// El cron (domingo 23:30 UTC) se ejecuta ya en lunes en Madrid: restando 6 h se informa de la
+// semana que acaba de terminar y no de la nueva, que aún está vacía.
+const NOW = process.env.REPORT_NOW ? new Date(process.env.REPORT_NOW) : new Date();
+const todayYMD = madridYMD(new Date(NOW.getTime() - 6 * 3600 * 1000));
 const [ty, tm, td] = todayYMD.split('-').map(Number);
 const todayMid = new Date(Date.UTC(ty, tm - 1, td));
 const dow = todayMid.getUTCDay();
@@ -95,11 +102,32 @@ const wkPrev = { start: ymd(monPrev), end: ymd(sunPrev) };
 const win4 = { start: ymd(mon4), end: ymd(sunPrev) };
 
 // ─── 4. Cargar sesiones ──────────────────────────────────────────────────────
-let query = supabase.from('sessions').select('*').order('date', { ascending: true });
-if (SUPABASE_USER_ID) query = query.eq('user_id', SUPABASE_USER_ID);
-const { data: allSessions, error } = await query;
-if (error) { console.error('Error Supabase:', error.message); process.exit(1); }
-const sessions = allSessions || [];
+let sessions = [], profileRow = null;
+if (DRY) {
+  const fx = JSON.parse(readFileSync(process.env.REPORT_FIXTURE, 'utf8'));
+  sessions = fx.sessions || []; profileRow = fx.profile || null;
+} else {
+  let query = supabase.from('sessions').select('*').order('date', { ascending: true });
+  if (SUPABASE_USER_ID) query = query.eq('user_id', SUPABASE_USER_ID);
+  const { data: allSessions, error } = await query;
+  if (error) { console.error('Error Supabase:', error.message); process.exit(1); }
+  sessions = allSessions || [];
+  // Rutinas y ajustes (landmarks, músculos secundarios, mesociclos) para el índice de hipertrofia
+  if (SUPABASE_USER_ID) {
+    let r = await supabase.from('profiles').select('templates,settings').eq('id', SUPABASE_USER_ID).single();
+    if (r.error) r = await supabase.from('profiles').select('templates').eq('id', SUPABASE_USER_ID).single(); // sin columna settings
+    if (!r.error) profileRow = r.data;
+    else console.warn('No se pudo leer el perfil (el índice usará valores por defecto):', r.error.message);
+  }
+}
+sessions.forEach(s => { if (typeof s.exercises === 'string') s.exercises = JSON.parse(s.exercises); });
+const profile = { ...(profileRow?.settings || {}) };
+const templates = profileRow?.templates || [];
+// e1RM con la misma tabla que la app (los best_e1rm antiguos se guardaron con Epley)
+sessions.forEach(s => (s.exercises || []).forEach(ex => {
+  const rms = (ex.sets || []).filter(x => x.kg && x.reps).map(x => PPCore.calcE1RM(x.kg, x.reps, x.rpe)).filter(Boolean);
+  ex.best_e1rm = rms.length ? Math.max(...rms) : null;
+}));
 
 const inRange = (s, r) => s.date >= r.start && s.date <= r.end;
 const sThis = sessions.filter(s => inRange(s, wkThis));
@@ -107,33 +135,30 @@ const sPrev = sessions.filter(s => inRange(s, wkPrev));
 const s4 = sessions.filter(s => inRange(s, win4));
 
 // ─── 5. e1RM ─────────────────────────────────────────────────────────────────
-function calcE1RM(kg, reps, rpe) {
-  if (!kg || !reps) return null;
-  const rir = rpe ? Math.max(0, 10 - rpe) : 0;
-  const eff = reps + rir;
-  if (eff <= 1) return Math.round(kg * 10) / 10;
-  return Math.round(kg * (1 + eff / 30) * 10) / 10;
-}
-function normMuscle(m) { return m === 'Isquiotibiales' ? 'Isquiosurales' : (m || 'Otro'); }
+const calcE1RM = PPCore.calcE1RM; // tabla RTS, igual que en la app
+function normMuscle(m) { return PPCore.normMuscle(m) || 'Otro'; }
 
 // ─── 6. Volumen por músculo ──────────────────────────────────────────────────
+// Series de trabajo (sin calentamientos); los músculos secundarios suman 0,5 por serie, como en la app.
 function volByMuscle(list) {
   const v = {};
   list.forEach(s => (s.exercises || []).forEach(ex => {
-    const m = normMuscle(ex.muscle);
-    v[m] = (v[m] || 0) + (ex.sets || []).filter(st => st.done || st.kg).length;
+    const n = (ex.sets || []).filter(PPCore.isWorkSet).length;
+    PPCore.credits(profile, ex).forEach(({ m, w }) => { v[m] = (v[m] || 0) + n * w; });
   }));
+  Object.keys(v).forEach(k => { v[k] = Math.round(v[k] * 10) / 10; });
   return v;
 }
+const workSets = list => list.reduce((a, s) => a + (s.exercises || []).reduce((b, ex) => b + (ex.sets || []).filter(PPCore.isWorkSet).length, 0), 0);
 const volThis = volByMuscle(sThis);
 const volPrev = volByMuscle(sPrev);
 const vol4raw = volByMuscle(s4);
 const vol4avg = {}; Object.keys(vol4raw).forEach(m => vol4avg[m] = Math.round((vol4raw[m] / 4) * 10) / 10);
 const allMuscles = [...new Set([...Object.keys(volThis), ...Object.keys(volPrev), ...Object.keys(vol4avg)])]
   .sort((a, b) => (volThis[b] || 0) - (volThis[a] || 0));
-const totalThis = Object.values(volThis).reduce((a, b) => a + b, 0);
-const totalPrev = Object.values(volPrev).reduce((a, b) => a + b, 0);
-const total4avg = Object.values(vol4avg).reduce((a, b) => a + b, 0);
+const totalThis = workSets(sThis);
+const totalPrev = workSets(sPrev);
+const total4avg = Math.round(workSets(s4) / 4 * 10) / 10;
 
 // (trendGlyphs definida más abajo junto a las utilidades de dibujo)
 
@@ -191,6 +216,30 @@ function recentHistory(name, n = 6) {
     .filter(h => h.rm);
 }
 
+// ─── 10b. Índice de hipertrofia (misma fórmula que la app) ──────────────────
+const hiEnd = wkThis.end < todayYMD ? wkThis.end : todayYMD;
+const HI = PPCore.computeHyperIndex({ sessions, templates, profile, end: hiEnd });
+const HIprev = PPCore.computeHyperIndex({ sessions, templates, profile, end: PPCore.addDays(hiEnd, -7) });
+const stripTags = t => t.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+function hyperIndexHtml() {
+  if (HI.score == null) return `<p style="color:#9ca3af">Índice de hipertrofia: hacen falta al menos 2 sesiones en las últimas 4 semanas.</p>`;
+  const L = PPCore.hiLabel(HI.score), d = HIprev.score != null ? HI.score - HIprev.score : null;
+  const bars = Object.keys(PPCore.HI_W).map(k => {
+    const c = HI.comp[k], s = c?.score, w = s == null ? 0 : Math.round(s), col = s == null ? '#6b7280' : PPCore.hiLabel(s).c;
+    return `<tr><td style="padding:3px 8px 3px 0;color:#d1d5db;font-size:12px;white-space:nowrap">${PPCore.HI_NAMES[k]}</td>
+      <td style="padding:3px 0;width:100%"><div style="background:#262626;border-radius:3px;height:6px"><div style="width:${w}%;background:${col};height:6px;border-radius:3px"></div></div></td>
+      <td style="padding:3px 0 3px 8px;color:${col};font-size:12px;font-weight:700;text-align:right">${s == null ? '—' : w}</td></tr>`;
+  }).join('');
+  return `<h2 style="color:#a855f7;margin:0 0 8px;font-size:17px">Índice de hipertrofia</h2>
+    <table style="border-collapse:collapse;margin-bottom:6px"><tr>
+      <td style="font-size:42px;font-weight:800;color:${L.c};padding-right:14px;line-height:1">${HI.score}</td>
+      <td style="font-size:13px;color:#f2f2f2"><strong style="color:${L.c}">${L.t}</strong>${d == null ? '' : d === 0 ? ' · igual que la semana anterior' : ` · <span style="color:${d > 0 ? '#34d399' : '#f87171'}">${d > 0 ? '▲ +' : '▼ '}${d}</span> vs semana anterior`}<br>
+        <span style="color:#9ca3af;font-size:12px">Últimos 28 días (${fmtDate(HI.start)} — ${fmtDate(HI.end)}) · ${HI.sessions} sesiones${HI.deloadSessions ? ` · ${HI.deloadSessions} de descarga excluidas` : ''}</span></td></tr></table>
+    <table style="width:100%;border-collapse:collapse;margin:6px 0 10px">${bars}</table>
+    <p style="margin:8px 0 4px;color:#9ca3af;font-size:12px;text-transform:uppercase">Qué cambiar</p>
+    <ol style="margin:0;padding-left:20px;line-height:1.5;font-size:13px">${HI.recs.slice(0, 3).map(r => `<li style="margin-bottom:6px">${r.t}</li>`).join('')}</ol>`;
+}
+
 // ─── 11. Leer notas de feedback del usuario ──────────────────────────────────
 let coachNotes = '';
 try { coachNotes = readFileSync(join(__dirname, 'coach-notes.md'), 'utf8'); }
@@ -211,6 +260,11 @@ const aiPayload = {
   volumen_semanal_israetel: volumenIsraetel,
   ejercicios_esta_semana: exNames.map(name => ({ nombre: name, musculo: exThis[name].muscle, historial_reciente: recentHistory(name) })),
   prs_esta_semana: prs,
+  indice_hipertrofia: HI.score == null ? null : {
+    puntuacion: HI.score, etiqueta: PPCore.hiLabel(HI.score).t,
+    componentes: Object.fromEntries(Object.entries(HI.comp).map(([k, c]) => [PPCore.HI_NAMES[k], c.score == null ? null : Math.round(c.score)])),
+    recomendaciones: HI.recs.slice(0, 3).map(r => stripTags(r.t)),
+  },
 };
 
 // ─── 13. Prompt del entrenador (3 secciones) ─────────────────────────────────
@@ -237,9 +291,9 @@ NOTAS DEL USUARIO (prioridad sobre el enfoque por defecto):
 ${coachNotes}`;
 
 // ─── 14. Llamar a la API de Claude ───────────────────────────────────────────
-let aiAnalysisMarkdown = null;
+let aiAnalysisMarkdown = DRY ? '_(Modo prueba: sin análisis de la IA.)_' : null;
 let aiErrorDetail = null;
-try {
+if (!DRY) try {
   const aiResp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
@@ -584,11 +638,21 @@ const emailHtml = `
       <li><strong>${prs.length}</strong> PRs conseguidos</li>
     </ul>
     <div style="border-top:1px solid #262626;margin:16px 0"></div>
+    ${hyperIndexHtml()}
+    <div style="border-top:1px solid #262626;margin:16px 0"></div>
     <h2 style="color:#fbbf24;margin:0 0 8px;font-size:17px">Análisis del entrenador (IA)</h2>
     ${mdToHtml(aiAnalysisMarkdown)}
     <div style="border-top:1px solid #262626;margin:20px 0 12px"></div>
     <p style="color:#6b7280;font-size:12px">Informe completo (1 página) en el PDF adjunto. Para ajustar el enfoque de este análisis, edita <code style="color:#9ca3af">scripts/coach-notes.md</code> en el repo.</p>
   </div>`;
+
+if (DRY) {
+  const out = join(__dirname, 'out'); mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, 'informe.html'), `<!doctype html><meta charset="utf-8"><body style="background:#000;margin:0;padding:16px">${emailHtml}</body>`);
+  writeFileSync(join(out, `informe-${wkThis.end}.pdf`), pdfBuffer);
+  console.log(`Modo prueba: semana ${wkThis.start} a ${wkThis.end} · ${sThis.length} sesiones · índice ${HI.score ?? '—'} → scripts/out/`);
+  process.exit(0);
+}
 
 const resp = await fetch('https://api.resend.com/emails', {
   method: 'POST',
