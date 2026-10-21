@@ -20,13 +20,7 @@ function renderBodyHeat(by){
   const wrap=document.getElementById('body-wrap');if(!wrap)return;
   if(!wrap.dataset.init){wrap.innerHTML=bodySvg('f')+bodySvg('b');wrap.dataset.init='1';
     wrap.querySelectorAll('.body-m').forEach(el=>el.addEventListener('click',()=>{const t=el.dataset.t;document.getElementById('body-tip').textContent=t||(el.dataset.l+' · sin series');}));}
-  // intensidad por región = max(sets/MAV) de los músculos mapeados
-  const reg={};
-  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const t=heatT(v,lm);(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
-  wrap.querySelectorAll('.body-m').forEach(el=>{
-    const r=reg[el.dataset.id];
-    el.style.fill=heatColor(r?r.t:0);
-    el.dataset.t=r?`${r.m}: ${r.v} series · MEV ${r.lm.mev??'–'} / MAV ${r.lm.mav??'–'} / MRV ${r.lm.mrv??'–'}`:'';
-  });
+  paintVolFigure(wrap,by); // 5 zonas: sin entrenar, < MEV, MEV–MAV, MAV–MRV, > MRV
+  const lg=document.getElementById('vol-legend');if(lg&&!lg.innerHTML)lg.innerHTML=volLegendHtml();
   const tip=document.getElementById('body-tip');if(tip)tip.textContent=Object.keys(by).length?'Toca un músculo':'Sin entrenos esta semana';
 }

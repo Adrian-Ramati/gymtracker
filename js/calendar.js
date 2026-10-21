@@ -92,19 +92,31 @@ const MUSCLE_REGIONS_RAW={
   'Gemelos':['b-calves','f-calves'],'Gemelo/Sóleo':['b-calves','f-calves'],'Sóleo':['b-calves'],'Aductores':['f-adductors','b-adductors'],'Abductores':['b-gluteal'],
 };
 const MUSCLE_REGIONS=new Proxy(MUSCLE_REGIONS_RAW,{get:(o,k)=>{if(o[k])return o[k];const lk=String(k).toLowerCase();const f=Object.keys(o).find(x=>x.toLowerCase()===lk);if(f)return o[f];if(/gemelo|s[oó]leo/.test(lk))return['b-calves','f-calves'];if(/pectoral|pecho/.test(lk))return['f-chest'];if(/espalda|dorsal/.test(lk))return['b-upper-back'];if(/abd|core/.test(lk))return['f-abs'];return[];}});
-// t (0..1) se calcula respecto a los landmarks del músculo:
-// 0 = sin series (gris) · MEV→MAV = verde (óptimo) · MAV→MRV = ámbar · >MRV = rojo
-function heatT(v,lm){
+// Zona de volumen de cada músculo respecto a sus landmarks (mismos cortes y colores que las barras):
+// 0 sin entrenar · 1 por debajo de MEV · 2 MEV–MAV · 3 MAV–MRV (cerca del máximo) · 4 por encima de MRV
+const VOL_ZONES=[
+  {c:'#343c4f',t:'Sin entrenar'},
+  {c:'#4f8ef7',t:'Por debajo de MEV'},
+  {c:'#34d399',t:'MEV–MAV'},
+  {c:'#fbbf24',t:'Cerca del máximo (MAV–MRV)'},
+  {c:'#f43f5e',t:'Por encima de MRV'}];
+function volZone(v,lm){
   const mev=lm?.mev??6,mav=lm?.mav??14,mrv=lm?.mrv??20;
   if(!(v>0))return 0;
-  if(v<mev)return .30*(v/Math.max(1,mev));
-  if(v<=mav)return .30+.45*((v-mev)/Math.max(1,mav-mev));
-  if(v<=mrv)return .75+.13*((v-mav)/Math.max(1,mrv-mav));
-  return .88+.12*Math.min(1,(v-mrv)/Math.max(1,mrv*.15));
+  if(v<mev)return 1;
+  if(v<=mav)return 2;
+  if(v<=mrv)return 3;
+  return 4;
 }
-function heatColor(t){ // t: 0..1 → gris → verde → rojo
-  const stops=[[0,[44,44,52]],[.30,[58,120,90]],[.55,[46,184,110]],[.75,[52,211,120]],[.88,[240,190,50]],[1,[230,57,70]]];
-  t=Math.max(0,Math.min(1,t));
-  for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){const[a,ca]=stops[i-1],[b,cb]=stops[i];const k=(t-a)/(b-a);return `rgb(${ca.map((v,j)=>Math.round(v+(cb[j]-v)*k)).join(',')})`;}}
-  return 'rgb(230,57,70)';
+// Pinta una figura: cada región toma la zona más alta de los músculos que la forman
+function paintVolFigure(wrap,by){
+  const reg={};
+  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const z=volZone(v,lm);(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].z<z||(reg[r].z===z&&reg[r].v<v))reg[r]={z,m,v,lm};});});
+  wrap.querySelectorAll('.body-m').forEach(el=>{
+    const r=reg[el.dataset.id];
+    el.style.fill=VOL_ZONES[r?r.z:0].c;el.dataset.z=r?r.z:0;
+    el.dataset.t=r?`${r.m}: ${f1(r.v)} series · ${VOL_ZONES[r.z].t} (MEV ${r.lm.mev??'–'} / MAV ${r.lm.mav??'–'} / MRV ${r.lm.mrv??'–'})`:'';
+  });
+  return reg;
 }
+function volLegendHtml(){return VOL_ZONES.map(z=>`<span><i style="background:${z.c}"></i>${z.t}</span>`).join('');}

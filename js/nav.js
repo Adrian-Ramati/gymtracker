@@ -5,11 +5,14 @@ const SCR_TITLES={home:'Peak Physique',train:'Semana',vol:'Volumen',stats:'Progr
 let navStack=[];
 function curScr(){return document.querySelector('.scr.on')?.id?.replace('s-','')||'home';}
 function navTo(n){const c=curScr();if(c!==n){navStack.push(c);}showScr(n,null);document.querySelector('.content').scrollTo(0,0);}
-function navBack(){const c=curScr();if(c==='sess'||c==='tmpledit'){return;}let p=navStack.pop()||'home';if(p===c)p='home';if(p==='sess'||p==='tmpledit')p='home';showScr(p,null);}
+// Durante un entrenamiento, ‹ vuelve al inicio sin cortar la sesión (sigue el cronómetro y la barra "Continuar")
+function sessCanLeave(){return !!(activeSess&&!activeSess.isTmplEdit);}
+function navBack(){const c=curScr();if(c==='sess'&&sessCanLeave()){navHome();toast('El entrenamiento sigue en marcha');return;}if(c==='sess'||c==='tmpledit'){return;}let p=navStack.pop()||'home';if(p===c)p='home';if(p==='sess'||p==='tmpledit')p='home';showScr(p,null);}
 function navHome(){navStack=[];showScr('home',null);document.querySelector('.content').scrollTo(0,0);}
 function updateHdr(n){
   const home=n==='home',sessy=n==='sess'||n==='tmpledit';
-  const _hb=document.getElementById('hdr-back');_hb.style.visibility=(home||sessy)?'hidden':'visible';_hb.style.pointerEvents=(home||sessy)?'none':'all';
+  const noBack=home||n==='tmpledit'||(n==='sess'&&!sessCanLeave());
+  const _hb=document.getElementById('hdr-back');_hb.style.visibility=noBack?'hidden':'visible';_hb.style.pointerEvents=noBack?'none':'all';
   document.getElementById('hdr-gear').style.display=(home)?'grid':'none';
   document.getElementById('hdr-logo').style.display=home?'block':'none';
   const t=document.getElementById('hdr-title');t.textContent=SCR_TITLES[n]||'Peak Physique';t.classList.toggle('sub',!home);
@@ -52,46 +55,34 @@ function renderHome(){
   paintBody(hb,st.by);
   const ent=Object.entries(st.by).sort((a,b)=>b[1]-a[1]);
   document.getElementById('hc-vol-sub').textContent=st.sets?`${st.sets} series · ${ent.length} músculos`:'sin series esta semana';
-  // Fuerza
-  renderHomeStrength();
   renderHomeHyper();
 }
-let hsChart=null;
 // ── utilidades de gráfica (línea violeta con degradado, como la maqueta) ──
 function purpleDS(data,pr){return{data,borderColor:'#c084fc',borderWidth:2.5,pointRadius:pr,pointHoverRadius:pr+1,pointBackgroundColor:'#e9d5ff',pointBorderColor:'#a855f7',pointBorderWidth:2,fill:true,tension:.4,
   backgroundColor:c=>{const a=c.chart.chartArea;if(!a)return 'rgba(168,85,247,.25)';const g=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);g.addColorStop(0,'rgba(168,85,247,.55)');g.addColorStop(1,'rgba(168,85,247,0)');return g;}};}
 function niceAxis(vals){const mn=Math.min(...vals),mx=Math.max(...vals);const range=Math.max(mx-mn,1);const st=[.5,1,2,5,10,20,50].find(x=>range/x<=6)||100;return{min:Math.floor((mn-range*.05)/st)*st,max:Math.ceil((mx+range*.05)/st)*st,step:st};}
-function bestHistory(){
-  const hist={};
-  [...(db.sessions||[])].sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>s.exercises?.forEach(e=>{if(e.best_e1rm){(hist[e.name]=hist[e.name]||[]).push({d:s.date,v:e.best_e1rm,m:e.muscle});}}));
-  return Object.entries(hist).filter(([,h])=>h.length>=2).sort((a,b)=>b[1][b[1].length-1].d.localeCompare(a[1][a[1].length-1].d)||b[1].length-a[1].length)[0]||null;
-}
-function renderHomeStrength(){
-  if(hsChart){hsChart.destroy();hsChart=null;}
-  const cv=document.getElementById('hs-chart'),em=document.getElementById('hs-empty'),box=document.getElementById('hs-mini');
-  const cand=bestHistory();
-  if(!cand||typeof Chart==='undefined'){box.style.display='none';em.style.display='block';return;}
-  box.style.display='block';em.style.display='none';
-  const h=cand[1].slice(-10);
-  hsChart=new Chart(cv,{type:'line',data:{labels:h.map(x=>fmtDate(x.d)),datasets:[purpleDS(h.map(x=>x.v),3.5)]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},events:[],layout:{padding:{top:8,right:8,bottom:2,left:8}},
-      plugins:{legend:{display:false},tooltip:{enabled:false}},
-      scales:{x:{display:false},y:{grid:{color:'rgba(255,255,255,.07)'},ticks:{display:false},border:{display:false}}}}});
-}
 // ── Pantalla Progreso: tarjetas inferiores y "Músculo activado" ──────
+// "Músculo activado" muestra los músculos del ejercicio elegido en el selector:
+// el principal al 100% y los secundarios al 50% (cuentan media serie, como en el volumen).
 const MUS_COLORS=['#34d399','#38bdf8','#4f7cff','#a855f7'];
-function muscleActiveData(){
-  const st=weekStats(weekRange(0));
-  return Object.entries(st.by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([m,v],i)=>{const mav=(getLandmarks(m)||{}).mav||14;return{m,v,pct:Math.max(6,Math.min(100,Math.round(v/mav*100))),c:MUS_COLORS[i]};});
+function exMuscleOf(name){
+  const ss=[...(db.sessions||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  for(const s of ss){const e=s.exercises?.find(x=>x.name===name);if(e?.muscle)return e.muscle;}
+  return ALL_EX.find(x=>x.name===name)?.muscle||'';
 }
-function muscleActiveHtml(){
-  const d=muscleActiveData();
-  if(!d.length)return '<div class="px-mempty">Sin series esta semana</div>';
-  return `<div class="px-mus"><div class="px-mrows">${d.map(x=>`<div class="px-mrow"><span>${esc(x.m)}</span><i><u style="width:${x.pct}%;background:${x.c}"></u></i></div>`).join('')}</div><div class="hc-body px-fig" id="px-fig"></div></div>`;
+function muscleActiveData(name){
+  if(!name)return[];
+  const muscle=exMuscleOf(name);if(!muscle)return[];
+  return PPCore.credits(db.profile,{name,muscle}).slice(0,4).map((x,i)=>({m:x.m,pct:Math.round(x.w*100),c:MUS_COLORS[i],sec:x.w<1}));
 }
-function paintMuscleActive(){
+function muscleActiveHtml(name){
+  const d=muscleActiveData(name);
+  if(!d.length)return '<div class="px-mempty">Sin músculo asignado</div>';
+  return `<div class="px-mus"><div class="px-mrows">${d.map(x=>`<div class="px-mrow"><span>${esc(x.m)}${x.sec?' <small>½</small>':''}</span><i><u style="width:${x.pct}%;background:${x.c}"></u></i></div>`).join('')}</div><div class="hc-body px-fig" id="px-fig"></div></div>`;
+}
+function paintMuscleActive(name){
   const fig=document.getElementById('px-fig');if(!fig)return;
-  const regs={};muscleActiveData().forEach(x=>(MUSCLE_REGIONS[x.m]||[]).forEach(r=>{if(!regs[r])regs[r]=x.c;}));
+  const regs={};muscleActiveData(name).forEach(x=>(MUSCLE_REGIONS[x.m]||[]).forEach(r=>{if(!regs[r])regs[r]=x.c;}));
   const ids=Object.keys(regs),back=ids.filter(r=>r.startsWith('b-')).length>ids.length/2;
   fig.innerHTML=bodySvg(back?'b':'f');
   fig.querySelectorAll('.body-m').forEach(el=>{el.style.fill=regs[el.dataset.id]||'rgb(28,36,56)';});
@@ -116,12 +107,7 @@ function renderProgExtras(){
   }
   document.getElementById('px-comp').innerHTML=`<i class="chev">›</i><div class="px-ctitle">Cuerpo</div>${body}`;
 }
-function paintBody(wrap,by){
-  const reg={};
-  Object.entries(by).forEach(([m,v])=>{const lm=getLandmarks(m)||{};const t=heatT(v,lm);(MUSCLE_REGIONS[m]||[]).forEach(r=>{if(!reg[r]||reg[r].t<t)reg[r]={t,m,v,lm};});});
-  wrap.querySelectorAll('.body-m').forEach(el=>{const r=reg[el.dataset.id];el.style.fill=heatColor(r?r.t:0);el.dataset.t=r?`${r.m}: ${r.v} series · MEV ${r.lm.mev??'–'} / MAV ${r.lm.mav??'–'} / MRV ${r.lm.mrv??'–'}`:'';});
-  return reg;
-}
+function paintBody(wrap,by){return paintVolFigure(wrap,by);}
 function strengthRows(n){
   const hist={};
   [...(db.sessions||[])].sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>s.exercises?.forEach(e=>{if(e.best_e1rm){(hist[e.name]=hist[e.name]||[]).push({d:s.date,v:e.best_e1rm});}}));

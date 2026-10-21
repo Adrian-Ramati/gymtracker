@@ -12,6 +12,52 @@
   C.normExName = fold;
   C.f1 = v => String(Math.round(v * 10) / 10);
 
+  // ── Ejercicios renombrados (corrección de erratas en la tabla exercises, oct-2026) ──
+  // El historial, las rutinas y los ajustes guardan el nombre antiguo: se traducen al cargar
+  // para que todo siga enlazado (progreso, GIF elegido, músculos secundarios…).
+  C.EX_RENAMES = {
+    'Dumbell Twist Press': 'Dumbbell Twist Press',
+    'Incline Bench Dumbell Row': 'Incline Bench Dumbbell Row',
+    'Elevaciones Laterales y en Polea': 'Elevaciones Laterales en Y en Polea',
+    'Evaciones Laterales en Polea Baja Estilo Egipcio': 'Elevaciones Laterales en Polea Baja Estilo Egipcio',
+    'Rompecraneos - Skullcrusher con Barra': 'Rompecráneos - Skullcrusher con Barra',
+    'Jm Press': 'JM Press',
+    'Extensiones desde Polea Alta Alta con Barra V3': 'Extensiones desde Polea Alta con Barra V3',
+    'Extensión Unilateral/ Patada en Polea Alta': 'Extensión Unilateral / Patada en Polea Alta',
+    'Patada de Triceps desde Polea Baja': 'Patada de Tríceps desde Polea Baja',
+    'Patada de Triceps desde Polea Alta Tumbado': 'Patada de Tríceps desde Polea Alta Tumbado',
+    'Extension de Muñeca con Barra en Banco': 'Extensión de Muñeca con Barra en Banco',
+    'Ab-roll Out/ab-wheel': 'Ab Roll Out / Ab Wheel',
+    'Peso Muerto Rumano - Rdl': 'Peso Muerto Rumano - RDL',
+    'Copenaghen Adductions': 'Copenhagen Adductions',
+    'Leg Extensions (Maquina con Discos)': 'Leg Extensions (Máquina con Discos)',
+  };
+  const RENAME_F = Object.fromEntries(Object.entries(C.EX_RENAMES).map(([o, n]) => [fold(o), n]));
+  C.canonExName = n => (typeof n === 'string' && RENAME_F[fold(n)]) || n;
+  // Nombre actual + antiguos (para buscar en la tabla exercises antes y después de aplicar el SQL)
+  C.exNameAliases = n => [n, ...Object.keys(C.EX_RENAMES).filter(o => C.EX_RENAMES[o] === n)];
+  // Traduce en sitio los nombres de una lista de sesiones/rutinas. Devuelve cuántos cambió.
+  C.canonExList = list => {
+    let ch = 0;
+    (list || []).forEach(s => (s?.exercises || []).forEach(e => {
+      const c = C.canonExName(e?.name);
+      if (e && c !== e.name) { e.name = c; ch++; }
+    }));
+    return ch;
+  };
+  // Traduce las claves de un mapa por nombre (gifMap: nombre exacto; secMap: nombre normalizado).
+  // Si ya existe la clave nueva, se respeta la nueva.
+  C.canonExKeys = (map, norm) => {
+    if (!map || typeof map !== 'object') return map;
+    const out = {};
+    Object.keys(map).forEach(k => {
+      const c = C.canonExName(k), nk = norm ? fold(c) : c;
+      if (nk !== k && nk in map) return; // ya hay un ajuste con el nombre nuevo: manda ese
+      out[nk] = map[k];
+    });
+    return out;
+  };
+
   // Fechas como 'YYYY-MM-DD' (sin zonas horarias: se opera en UTC sobre la fecha local ya formateada)
   const p = ds => { const [y, m, d] = ds.split('-').map(Number); return Date.UTC(y, m - 1, d); };
   const fmt = t => new Date(t).toISOString().slice(0, 10);

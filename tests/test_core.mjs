@@ -151,5 +151,34 @@ t('índice: sin datos suficientes', () => {
   assert.equal(R.score, null); assert.equal(R.insufficient, true);
 });
 
+// ── Ejercicios renombrados (erratas corregidas en la tabla exercises) ──
+t('nombres: el antiguo se traduce al nuevo; el nuevo y los demás no cambian', () => {
+  assert.equal(C.canonExName('Jm Press'), 'JM Press');
+  assert.equal(C.canonExName('jm  press'), 'JM Press');
+  assert.equal(C.canonExName('JM Press'), 'JM Press');
+  assert.equal(C.canonExName('Patada de Triceps desde Polea Baja'), 'Patada de Tríceps desde Polea Baja');
+  assert.equal(C.canonExName('Press banca'), 'Press banca');
+  assert.equal(C.canonExName(undefined), undefined);
+  Object.values(C.EX_RENAMES).forEach(n => assert.equal(C.canonExName(n), n, n));
+  assert.equal(Object.keys(C.EX_RENAMES).length, 15);
+});
+t('nombres: alias para buscar en la tabla antes y después del SQL', () => {
+  assert.deepEqual(C.exNameAliases('Copenhagen Adductions'), ['Copenhagen Adductions', 'Copenaghen Adductions']);
+  assert.deepEqual(C.exNameAliases('Press banca'), ['Press banca']);
+});
+t('nombres: sesiones, rutinas y mapas de ajustes quedan con el nombre nuevo', () => {
+  const ss = [{ exercises: [{ name: 'Jm Press' }, { name: 'Press banca' }] }, { exercises: [{ name: 'JM Press' }] }, {}];
+  assert.equal(C.canonExList(ss), 1);
+  assert.deepEqual(ss.flatMap(s => (s.exercises || []).map(e => e.name)), ['JM Press', 'Press banca', 'JM Press']);
+  assert.deepEqual(C.canonExKeys({ 'Jm Press': '0001', 'Press banca': '0002' }, false), { 'JM Press': '0001', 'Press banca': '0002' });
+  // si ya hay ajuste con el nombre nuevo, manda el nuevo
+  assert.deepEqual(C.canonExKeys({ 'Jm Press': 'viejo', 'JM Press': 'nuevo' }, false), { 'JM Press': 'nuevo' });
+  assert.deepEqual(C.canonExKeys({ 'patada de triceps desde polea baja': ['Deltoides posterior'] }, true), { 'patada de triceps desde polea baja': ['Deltoides posterior'] });
+  assert.deepEqual(C.canonExKeys({ 'ab-roll out/ab-wheel': ['Lumbar'] }, true), { 'ab roll out / ab wheel': ['Lumbar'] });
+  // secundarios personalizados siguen aplicando con el nombre nuevo
+  const prof = { secMap: C.canonExKeys({ 'ab-roll out/ab-wheel': ['Lumbar'] }, true) };
+  assert.deepEqual(C.secondaryFor(prof, 'Ab Roll Out / Ab Wheel', 'Abdomen'), ['Lumbar']);
+});
+
 console.log(`\n${ok}/${ok + fail} OK`);
 process.exit(fail ? 1 : 0);

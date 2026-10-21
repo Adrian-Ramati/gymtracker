@@ -42,6 +42,12 @@ jobs:
       - name: Músculos secundarios y mesociclos
         run: python tests/test_features.py
 
+      - name: Ajustes de portada, progreso, volumen y entrenamiento
+        run: python tests/test_ajustes.py
+
+      - name: Textos de ejercicios corregidos y nombres renombrados
+        run: python tests/test_textos.py
+
       - name: Modo sin conexión (service worker y GIF)
         run: python tests/test_offline.py
 

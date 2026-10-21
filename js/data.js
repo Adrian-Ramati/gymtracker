@@ -105,6 +105,7 @@ function loadDB(){
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
   // No seed data — start clean for new users
+  canonExNames();
   recalcAllE1RM();
 }
 
@@ -139,7 +140,14 @@ async function loadDBFromSupabase(){
     console.warn('Supabase load failed, using localStorage:', e);
     loadDB();
   }
+  canonExNames();
   recalcAllE1RM();
+}
+// Ejercicios renombrados: el historial y los ajustes guardados con el nombre antiguo siguen enlazados
+function canonExNames(){
+  PPCore.canonExList(db.sessions);PPCore.canonExList(db.templates);
+  if(db.profile?.gifMap)db.profile.gifMap=PPCore.canonExKeys(db.profile.gifMap,false);
+  if(db.profile?.secMap)db.profile.secMap=PPCore.canonExKeys(db.profile.secMap,true);
 }
 
 async function saveDB(){
@@ -291,6 +299,7 @@ async function checkRestoreSession(){
   let stash=null;
   try{stash=JSON.parse(localStorage.getItem(activeKey()));}catch(e){}
   if(!stash?.sess)return;
+  PPCore.canonExList([stash.sess]);
   const mins=Math.max(0,Math.round((Date.now()-(stash.startedAt||Date.now()))/60000));
   const nm=stash.sess.name||'Entrenamiento';
   if(await dlgConfirm(`Tienes un entrenamiento sin terminar: «${nm}» (empezado hace ${mins} min). ¿Quieres continuarlo?`)){
