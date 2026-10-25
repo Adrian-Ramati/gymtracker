@@ -88,7 +88,7 @@ async function doLogout(){
 }
 function showAppScreens(){
   const overlay=document.getElementById('login-overlay');if(overlay)overlay.style.display='none';
-  navHome();updateSyncBadge();flushSyncQueue();checkRestoreSession();
+  navHome();updateSyncBadge();flushSyncQueue();checkRestoreSession();hcAutoSync();
   setTimeout(()=>{if(GIF_DB)prefetchRoutineGifs();},4000);
 }
 

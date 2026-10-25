@@ -36,6 +36,9 @@ jobs:
       - name: Núcleo de cálculo (e1RM, volumen, mesociclos, índice)
         run: node tests/test_core.mjs
 
+      - name: IHO igual que la referencia en Python
+        run: node tests/test_iho_oracle.mjs
+
       - name: App completa (pantallas, sesiones, calendario, rutinas…)
         run: python tests/test_app.py
 
@@ -47,6 +50,15 @@ jobs:
 
       - name: Textos de ejercicios corregidos y nombres renombrados
         run: python tests/test_textos.py
+
+      - name: Registro de series (objetivo de un toque, RIR, descansos, tiempo y check-in, teclado propio)
+        run: python tests/test_registro.py
+
+      - name: Modelo de datos v2 (escritura doble, biometría, IndexedDB)
+        run: python tests/test_v2.py
+
+      - name: Reloj vía Health Connect (puente Android simulado)
+        run: python tests/test_health.py
 
       - name: Modo sin conexión (service worker y GIF)
         run: python tests/test_offline.py

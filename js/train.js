@@ -183,7 +183,7 @@ function openSessionDetail(id){
       <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;margin-bottom:4px"><span style="font-size:10px;color:var(--t3);width:60px;font-family:var(--mono)">Serie</span><span style="font-size:10px;color:var(--t3);font-family:var(--mono)">Peso / Reps / RPE</span></div>`;
     (ex.sets||[]).filter(s=>s.kg||s.reps).forEach((s,si)=>{
       const rm=calcE1RM(s.kg,s.reps,s.rpe);
-      html+=`<div class="detail-set-row"><div class="detail-set-num">${si+1}</div><div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${s.rpe?' @'+s.rpe:''}${rm?` <span style="color:var(--blue);font-size:10px">e1RM ${rm}</span>`:''}</div></div>`;
+      html+=`<div class="detail-set-row"><div class="detail-set-num">${si+1}</div><div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${s.rpe?' @'+s.rpe:''}${rm?` <span style="color:var(--blue);font-size:10px">e1RM ${rm}</span>`:''}${s.restS!=null?` <span style="color:var(--t3);font-size:10px">⏱ ${Math.floor(s.restS/60)}:${String(s.restS%60).padStart(2,'0')}</span>`:''}${s.hr?` <span style="color:var(--red);font-size:10px">❤ ${s.hr.avg}/${s.hr.max}</span>`:''}</div></div>`;
     });
     if(ex.notes)html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${esc(ex.notes)}</div>`;
     html+='</div>';

@@ -167,5 +167,6 @@ function renderPerfil(){
   document.getElementById('perfil-routines').innerHTML=t.map(x=>`<div class="rt-row"><div class="n">${esc(x.name)}<small>${x.exercises.length} ejercicios · ${tmplSetCount(x)} series · ⏱ ${x.rest||90}s</small></div><button class="go" onclick="startFromTmpl('${x.id}')">▶</button><button onclick="openEditTmpl('${x.id}')">Editar</button><button onclick="duplicateTmpl('${x.id}');renderPerfil()">⧉</button><button onclick="deleteTmpl('${x.id}').then(renderPerfil)" style="color:var(--red)">✕</button></div>`).join('')
     +`<button class="rest-btn" style="margin:10px 0 0" onclick="createNewRoutine()">+ Nueva rutina</button>`;
   renderMesoCard();
+  renderHealthCard();
   renderBibliotecaInit();
 }

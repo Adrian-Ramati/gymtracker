@@ -324,6 +324,44 @@
     return { session, entries, sets };
   };
 
+  // ── Health Connect → biometría diaria ──
+  // samples por tipo tal como los devuelve @capgo/capacitor-health. Día = fecha local (el sueño cuenta el día en que te despiertas).
+  const median = a => { const v = a.filter(x => x != null && isFinite(x)).sort((x, y) => x - y), n = v.length; return n ? (n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2) : null; };
+  C.healthDaily = byType => {
+    const out = {}, day = iso => C.isoDate(new Date(iso)), get = d => (out[d] = out[d] || { date: d });
+    const sl = {};
+    (byType.sleep || []).forEach(x => {
+      const st = Date.parse(x.startDate), en = Date.parse(x.endDate); if (!(en > st)) return;
+      const stages = Array.isArray(x.stages) && x.stages.length ? x.stages : null;
+      const asleep = stages ? stages.filter(g => !['awake', 'inBed'].includes(g.stage)).reduce((a, g) => a + (+g.durationMinutes || 0), 0)
+        : (x.sleepState === 'awake' || x.sleepState === 'inBed') ? 0 : (+x.value || (en - st) / 60000);
+      const d = day(x.endDate); (sl[d] = sl[d] || []).push({ asleep, bed: (en - st) / 60000 });
+    });
+    Object.entries(sl).forEach(([d, a]) => {
+      const tot = a.reduce((s, x) => s + x.asleep, 0), main = a.reduce((m, x) => x.bed > m.bed ? x : m, a[0]);
+      if (tot > 0) { const o = get(d); o.sleepMin = Math.round(tot); o.sleepEff = main.bed ? Math.round(Math.min(1, main.asleep / main.bed) * 100) / 100 : null; }
+    });
+    const per = (list, f) => { const g = {}; (list || []).forEach(x => { const v = +x.value; if (isFinite(v) && v > 0) (g[day(x.startDate)] = g[day(x.startDate)] || []).push({ v, h: new Date(x.startDate).getHours(), t: Date.parse(x.startDate), src: x.sourceId || x.sourceName || '?' }); }); Object.entries(g).forEach(([d, a]) => f(d, a)); };
+    per(byType.restingHeartRate, (d, a) => { get(d).rhr = Math.round(median(a.map(x => x.v)) * 10) / 10; });
+    per(byType.heartRateVariability, (d, a) => { const night = a.filter(x => x.h < 10); get(d).hrv = Math.round(median((night.length ? night : a).map(x => x.v)) * 10) / 10; });
+    per(byType.weight, (d, a) => { get(d).weight = Math.round(a.reduce((m, x) => x.t > m.t ? x : m).v * 100) / 100; });
+    // pasos: suma por fuente y se queda la fuente con más pasos (el móvil y la pulsera no se suman dos veces)
+    per(byType.steps, (d, a) => { const bySrc = {}; a.forEach(x => { bySrc[x.src] = (bySrc[x.src] || 0) + x.v; }); get(d).steps = Math.round(Math.max(...Object.values(bySrc))); });
+    return Object.values(out).sort((a, b) => a.date.localeCompare(b.date));
+  };
+  // Frecuencia cardiaca de cada serie (con su hora): media y máxima desde ~3 s por repetición + 10 s antes hasta 5 s después
+  C.attachSetHr = (sessions, hrSamples) => {
+    const hr = (hrSamples || []).map(x => ({ t: Date.parse(x.startDate), v: +x.value })).filter(x => isFinite(x.t) && x.v > 0).sort((a, b) => a.t - b.t);
+    let changed = 0;
+    if (!hr.length) return changed;
+    (sessions || []).forEach(s => (s.exercises || []).forEach(e => (e.sets || []).forEach(st => {
+      if (!st.doneAt || st.hr) return;
+      const from = st.doneAt - ((+st.reps || 8) * 3 + 10) * 1000, to = st.doneAt + 5000, v = hr.filter(x => x.t >= from && x.t <= to).map(x => x.v);
+      if (v.length) { st.hr = { avg: Math.round(v.reduce((a, b) => a + b, 0) / v.length), max: Math.max(...v) }; s._hrChanged = true; changed++; }
+    })));
+    return changed;
+  };
+
   // ── IHO · Índice de Hipertrofia Optimizado (0–100) ──
   // IHO = clip(β·Σ w·C − Φ, 0, 100) con dos puertas de calidad. Referencia: auditoría (claude/Auditoria_Peak_Physique.md)
   // y su implementación Python, que sirve de oráculo en tests/test_iho_oracle.mjs.

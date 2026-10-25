@@ -265,5 +265,32 @@ t('v2: sesión de la app → filas por serie (tipos, serie madre, esfuerzo, hora
   assert.deepEqual(again.sets.map(x => x.id), S.map(x => x.id), 'los ids no cambian al volver a guardar');
 });
 
+// ── Health Connect → biometría diaria (zona horaria de Madrid) ──
+t('salud: sueño al día en que te despiertas, sin fases despierto; pulso, HRV nocturna, peso y pasos sin duplicar', () => {
+  const tz = process.env.TZ; process.env.TZ = 'Europe/Madrid'; // el día y la «noche» dependen de la hora local
+  try {
+  const D = C.healthDaily({
+    sleep: [{ startDate: '2026-10-24T22:30:00Z', endDate: '2026-10-25T06:00:00Z', value: 450,
+      stages: [{ stage: 'light', durationMinutes: 240 }, { stage: 'deep', durationMinutes: 90 }, { stage: 'rem', durationMinutes: 80 }, { stage: 'awake', durationMinutes: 40 }] }],
+    restingHeartRate: [{ startDate: '2026-10-25T05:00:00Z', value: 54 }, { startDate: '2026-10-25T20:00:00Z', value: 58 }],
+    heartRateVariability: [{ startDate: '2026-10-25T03:00:00Z', value: 48 }, { startDate: '2026-10-25T04:00:00Z', value: 52 }, { startDate: '2026-10-25T15:00:00Z', value: 30 }],
+    weight: [{ startDate: '2026-10-25T06:10:00Z', value: 78.4 }, { startDate: '2026-10-25T19:00:00Z', value: 79.1 }],
+    steps: [{ startDate: '2026-10-25T10:00:00Z', value: 5000, sourceId: 'mi' }, { startDate: '2026-10-25T16:00:00Z', value: 4000, sourceId: 'mi' }, { startDate: '2026-10-25T10:00:00Z', value: 8500, sourceId: 'phone' }],
+  });
+  assert.equal(D.length, 1);
+  const d = D[0];
+  assert.equal(d.date, '2026-10-25'); assert.equal(d.sleepMin, 410); assert.equal(d.sleepEff, .91);
+  assert.equal(d.rhr, 56); assert.equal(d.hrv, 50); assert.equal(d.weight, 79.1); assert.equal(d.steps, 9000);
+  } finally { if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz; }
+});
+t('salud: pulso de cada serie con su hora', () => {
+  const t0 = Date.parse('2026-10-25T18:00:00Z');
+  const ss = [{ exercises: [{ sets: [{ kg: 80, reps: 8, done: true, doneAt: t0 }, { kg: 80, reps: 8, done: true }] }] }];
+  const hr = [-40, -20, -5, 3, 60].map((s, i) => ({ startDate: new Date(t0 + s * 1000).toISOString(), value: 120 + i * 10 }));
+  assert.equal(C.attachSetHr(ss, hr), 1);
+  assert.deepEqual(ss[0].exercises[0].sets[0].hr, { avg: 140, max: 150 }); // −20 s, −5 s y +3 s (la de −40 s queda fuera)
+  assert.equal(ss[0].exercises[0].sets[1].hr, undefined);
+});
+
 console.log(`\n${ok}/${ok + fail} OK`);
 process.exit(fail ? 1 : 0);
