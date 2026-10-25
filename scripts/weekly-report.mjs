@@ -227,6 +227,13 @@ function recentHistory(name, n = 6) {
 const hiEnd = wkThis.end < todayYMD ? wkThis.end : todayYMD;
 const HI = PPCore.computeHyperIndex({ sessions, templates, profile, biometrics, end: hiEnd });
 const HIprev = PPCore.computeHyperIndex({ sessions, templates, profile, biometrics, end: PPCore.addDays(hiEnd, -7) });
+// Historial del IHO (tabla iho_snapshots del modelo v2; si aún no existe, se ignora)
+if (!DRY && SUPABASE_USER_ID && HI.score != null) {
+  const comps = Object.fromEntries(Object.entries(HI.comp).map(([k, c]) => [k, c.score == null ? null : Math.round(c.score * 10) / 10]));
+  const { error } = await supabase.from('iho_snapshots').upsert({ user_id: SUPABASE_USER_ID, window_end: hiEnd, model_version: PPCore.IHO_VERSION,
+    score: HI.score, label: HI.label, risk: HI.risk, components: { ...comps, beta: HI.beta, phi: HI.phi, readiness: HI.readiness } });
+  if (error) console.warn('No se guardó el historial del IHO (¿falta sql/2026-10-25-modelo-v2.sql?):', error.message);
+}
 const stripTags = t => t.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 function hyperIndexHtml() {
   if (HI.score == null) return `<p style="color:#9ca3af">Índice de hipertrofia: hacen falta al menos 2 sesiones en las últimas 4 semanas.</p>`;

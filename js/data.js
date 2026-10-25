@@ -93,6 +93,10 @@ function showAppScreens(){
 }
 
 // ═══ STORAGE ═══
+// IndexedDB: copia de respaldo de la base local (sin el límite de ~5 MB de localStorage)
+function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open('peak-physique',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function idbPut(k,v){try{const d=await idbOpen();await new Promise((res,rej)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(JSON.parse(JSON.stringify(v)),k);t.oncomplete=res;t.onerror=()=>rej(t.error);});d.close();}catch(e){}}
+async function idbGet(k){try{const d=await idbOpen();const v=await new Promise((res,rej)=>{const r=d.transaction('kv').objectStore('kv').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});d.close();return v??null;}catch(e){return null;}}
 function lsKey(){return 'gtv6_'+(supabaseUser?.id||'local');}
 
 function loadDB(){
@@ -104,6 +108,7 @@ function loadDB(){
   if(!db.measures)db.measures=[];
   if(!db.profile)db.profile={height:null,sex:'male',age:30};
   if(!db.steps)db.steps=[];
+  if(!db.biometrics)db.biometrics=[];
   // No seed data — start clean for new users
   canonExNames();
   recalcAllE1RM();
@@ -115,16 +120,22 @@ async function loadDBFromSupabase(){
   try {
     const uid = supabaseUser.id;
     // Load all tables in parallel
-    const [sessRes, wRes, stRes, mRes, pRes] = await Promise.all([
+    let prevBio=[];try{prevBio=JSON.parse(localStorage.getItem(lsKey()))?.biometrics||[];}catch(e){}
+    const bioFrom=addDays(todayStr(),-120);
+    const [sessRes, wRes, stRes, mRes, pRes, bRes] = await Promise.all([
       sbClient.from('sessions').select('*').eq('user_id',uid).order('date',{ascending:false}),
       sbClient.from('weights').select('*').eq('user_id',uid).order('date'),
       sbClient.from('steps').select('*').eq('user_id',uid).order('date'),
       sbClient.from('measures').select('*').eq('user_id',uid).order('week'),
       sbClient.from('profiles').select('*').eq('id',uid).single(),
+      // Modelo v2 (sql/2026-10-25-modelo-v2.sql): si la tabla no existe aún, la app sigue como antes
+      sbClient.from('biometric_daily').select('*').eq('user_id',uid).gte('day',bioFrom).then(r=>r,e=>({error:e})),
     ]);
+    v2Ready=!bRes?.error;
     // Initialise db
-    db = {sessions:[],weights:[],steps:[],measures:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
-    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({id:r.id, date:r.date, name:r.name, dayName:r.day_name, durationMin:r.duration_min??null, kcalWatch:r.kcal_watch??null, exercises:typeof r.exercises==='string'?JSON.parse(r.exercises):(r.exercises||[])}));
+    db = {sessions:[],weights:[],steps:[],measures:[],biometrics:[],templates:DEFAULT_TEMPLATES,profile:{height:null,sex:'male',age:30}};
+    if(!sessRes.error) db.sessions = (sessRes.data||[]).map(r=>({...sessMetaIn(r.meta), id:r.id, date:r.date, name:r.name, dayName:r.day_name, durationMin:r.duration_min??null, kcalWatch:r.kcal_watch??null, exercises:typeof r.exercises==='string'?JSON.parse(r.exercises):(r.exercises||[])}));
+    db.biometrics = mergeBiometrics(prevBio, v2Ready ? (bRes.data||[]).map(bioFromRow) : []);
     if(!wRes.error) db.weights = (wRes.data||[]).map(r=>({date:r.date,kg:parseFloat(r.kg)}));
     if(!stRes.error) db.steps = (stRes.data||[]).map(r=>({date:r.date,steps:r.steps}));
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
@@ -139,6 +150,8 @@ async function loadDBFromSupabase(){
   } catch(e) {
     console.warn('Supabase load failed, using localStorage:', e);
     loadDB();
+    // Sin conexión y sin copia en localStorage (p. ej. lleno o borrado): se recupera de IndexedDB
+    if(!(db.sessions||[]).length){const b=await idbGet(lsKey());if(b&&(b.sessions||[]).length){db=b;if(!db.biometrics)db.biometrics=[];}}
   }
   canonExNames();
   recalcAllE1RM();
@@ -152,8 +165,9 @@ function canonExNames(){
 
 async function saveDB(){
   invalidateExCache();
-  // Always save to localStorage first (fast, offline-safe)
-  try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){}
+  // Always save to localStorage first (fast, offline-safe) + copia sin límite de tamaño en IndexedDB
+  try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){console.warn('localStorage lleno: queda la copia de IndexedDB',e);}
+  idbPut(lsKey(),db);
   // Then sync to Supabase if connected
   if(!useSupabase||!sbClient||!supabaseUser) return;
   const uid = supabaseUser.id;
@@ -172,13 +186,52 @@ async function saveDB(){
 // otherwise RLS/network failures are silently swallowed. Failed ops go to a pending
 // sync queue that is retried when connectivity/auth returns.
 async function saveSession(sess){
+  if(v2Ready)PPCore.ensureV2Ids(sess); // ids estables de sesión, ejercicio y serie para las tablas v2
   saveDB();
   if(!useSupabase||!sbClient||!supabaseUser) return;
   const row={id:sess.id, user_id:supabaseUser.id, date:sess.date, name:sess.name, day_name:sess.dayName, duration_min:sess.durationMin??null, kcal_watch:sess.kcalWatch??null, exercises:sess.exercises};
+  if(v2Ready)row.meta=sessMetaOut(sess);
   try {
     const {error} = await sbClient.from('sessions').upsert(row);
     if(error) throw error;
-  } catch(e){ queueSync({t:'upsert',table:'sessions',row}); console.warn('Session save error:', e); }
+  } catch(e){ queueSync({t:'upsert',table:'sessions',row}); console.warn('Session save error:', e); return; }
+  await saveSessionV2(sess);
+}
+// ═══ MODELO V2 (una fila por serie) ═══
+// Escritura doble: la tabla sessions (jsonb) sigue siendo la fuente de verdad de la app; las tablas v2
+// (workout_sessions · exercise_entries · set_entries) se reemplazan enteras en cada guardado. Si algo falla,
+// volver a ejecutar sql/2026-10-25-modelo-v2.sql rellena los huecos desde sessions.
+let v2Ready=false;
+const SESS_META=['uid','plannedSets','readiness','timeBudget','timePlan'];
+function sessMetaOut(s){const m={};SESS_META.forEach(k=>{if(s[k]!=null)m[k]=s[k];});return Object.keys(m).length?m:null;}
+function sessMetaIn(m){const o={};if(m&&typeof m==='object')SESS_META.forEach(k=>{if(m[k]!=null)o[k]=m[k];});return o;}
+function exIdOf(name){const k=normExName(name);return ALL_EX.find(e=>normExName(e.name)===k)?.id??null;}
+async function saveSessionV2(sess){
+  if(!v2Ready||!useSupabase||!sbClient||!supabaseUser)return;
+  try{
+    const uid=supabaseUser.id,v=PPCore.toV2Rows(sess,uid,exIdOf);
+    let r=await sbClient.from('workout_sessions').delete().eq('user_id',uid).eq('legacy_session_id',sess.id);if(r.error)throw r.error;
+    r=await sbClient.from('workout_sessions').insert(v.session);if(r.error)throw r.error;
+    if(v.entries.length){r=await sbClient.from('exercise_entries').insert(v.entries);if(r.error)throw r.error;}
+    if(v.sets.length){r=await sbClient.from('set_entries').insert(v.sets);if(r.error)throw r.error;}
+  }catch(e){console.warn('Modelo v2: no se pudo escribir la sesión (se recupera re-ejecutando la migración):',e);}
+}
+// Biometría diaria: {date, hrv, rhr, sleepMin, sleepEff, steps, weight, subj:{sleep,soreness,energy}, src:{...}}
+function bioFromRow(x){return{date:x.day,hrv:x.hrv_rmssd_ms!=null?+x.hrv_rmssd_ms:null,rhr:x.resting_hr_bpm!=null?+x.resting_hr_bpm:null,sleepMin:x.sleep_min??null,sleepEff:x.sleep_efficiency!=null?+x.sleep_efficiency:null,steps:x.steps??null,weight:x.weight_kg!=null?+x.weight_kg:null,
+  subj:(x.subj_sleep||x.subj_soreness||x.subj_energy)?{sleep:x.subj_sleep,soreness:x.subj_soreness,energy:x.subj_energy}:null,src:x.sources||{}};}
+function bioToRow(b,uid){return{user_id:uid,day:b.date,hrv_rmssd_ms:b.hrv??null,resting_hr_bpm:b.rhr??null,sleep_min:b.sleepMin!=null?Math.round(b.sleepMin):null,sleep_efficiency:b.sleepEff??null,steps:b.steps??null,weight_kg:b.weight??null,
+  subj_sleep:b.subj?.sleep??null,subj_soreness:b.subj?.soreness??null,subj_energy:b.subj?.energy??null,sources:b.src||{},updated_at:new Date().toISOString()};}
+// La nube manda en los campos que trae; lo local se conserva en el resto (y los días que la nube aún no tiene)
+function mergeBiometrics(local,remote){
+  const by={};(local||[]).forEach(b=>{if(b?.date)by[b.date]={...b};});
+  (remote||[]).forEach(b=>{const o=by[b.date]||{};Object.entries(b).forEach(([k,v])=>{if(v!=null&&!(k==='src'&&!Object.keys(v).length))o[k]=v;});by[b.date]=o;});
+  return Object.values(by).sort((a,b)=>a.date.localeCompare(b.date));
+}
+async function saveBiometricRemote(b){
+  saveDB();
+  if(!v2Ready||!useSupabase||!sbClient||!supabaseUser||!b?.date)return;
+  try{const{error}=await sbClient.from('biometric_daily').upsert(bioToRow(b,supabaseUser.id));if(error)throw error;}
+  catch(e){console.warn('Biometría: no se pudo guardar en la nube (queda en local):',e);}
 }
 async function deleteSessionRemote(id){
   saveDB();
@@ -187,6 +240,7 @@ async function deleteSessionRemote(id){
     const {error} = await sbClient.from('sessions').delete().eq('id',id).eq('user_id',supabaseUser.id);
     if(error) throw error;
   } catch(e){ queueSync({t:'delete',table:'sessions',match:{id,user_id:supabaseUser.id}}); console.warn('Session delete error:', e); }
+  if(v2Ready){try{await sbClient.from('workout_sessions').delete().eq('user_id',supabaseUser.id).eq('legacy_session_id',id);}catch(e){}}
 }
 async function saveWeightRemote(kg, date){
   saveDB();

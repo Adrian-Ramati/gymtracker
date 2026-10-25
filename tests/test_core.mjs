@@ -244,5 +244,26 @@ t('IHO: densidad con la hora de cada serie', () => {
   assert.ok(R.recs.some(r => /Descansas poco/.test(r.t)));
 });
 
+// ── Modelo v2 ──
+t('v2: UUID v7 válido y ordenado por tiempo', () => {
+  const a = C.uuid7(1e12), b = C.uuid7(1e12 + 1);
+  assert.ok(C.isUuid(a) && C.isUuid(b) && a < b && a[14] === '7' && '89ab'.includes(a[19]), a);
+});
+t('v2: sesión de la app → filas por serie (tipos, serie madre, esfuerzo, hora, descanso)', () => {
+  const s = { id: 5, date: '2026-10-25', name: 'T', durationMin: 30, plannedSets: 3, exercises: [{ name: 'Curl', muscle: 'Bíceps', sets: [
+    { kg: 10, reps: 12, rpe: 5, done: true, type: 'warmup' }, { kg: 20, reps: 10, rpe: 9, done: true, effortSrc: 'logged', doneAt: Date.UTC(2026, 9, 25, 18) },
+    { kg: 15, reps: 8, done: true, type: 'dropset', restS: 10 }, { kg: 20, reps: 6, done: true, type: 'failure' }, { kg: 20, reps: 8, rpe: 8, done: true, effortSrc: 'copied' }] }] };
+  const r = C.toV2Rows(s, 'u', () => 3), S = r.sets;
+  assert.equal(r.session.id, s.uid); assert.equal(r.session.legacy_session_id, 5); assert.equal(r.session.planned_hard_sets, 3);
+  assert.deepEqual(S.map(x => x.set_type), ['warmup', 'working', 'drop', 'working', 'working']);
+  assert.equal(S[2].parent_set_id, S[1].id);
+  assert.deepEqual(S.map(x => x.rir), [null, 1, null, 0, 2]);
+  assert.deepEqual(S.map(x => x.effort_source), [null, 'logged', null, 'legacy', 'copied_prev']);
+  assert.equal(S[1].completed_at, '2026-10-25T18:00:00.000Z'); assert.equal(S[2].rest_before_s, 10);
+  assert.equal(r.entries[0].exercise_id, 3); assert.equal(r.entries[0].kind, 'isolation');
+  const again = C.toV2Rows(s, 'u');
+  assert.deepEqual(again.sets.map(x => x.id), S.map(x => x.id), 'los ids no cambian al volver a guardar');
+});
+
 console.log(`\n${ok}/${ok + fail} OK`);
 process.exit(fail ? 1 : 0);

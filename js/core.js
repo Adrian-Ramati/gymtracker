@@ -273,6 +273,57 @@
   C.readinessAdvice = r => r == null ? null : r >= 0.6 ? { key: 'full', t: 'Sesión completa', f: 1 } : r >= 0.4 ? { key: 'reduce_20', t: 'Quita un 20 % de las series', f: 0.8 } : { key: 'reduce_40', t: 'Quita un 40 % de las series y no vayas al fallo', f: 0.6 };
   function clip01(x) { return Math.max(0, Math.min(1, x)); }
 
+  // ── Modelo de datos v2 (una fila por serie) ──
+  // UUID v7: 48 bits de milisegundos + aleatorio → único entre dispositivos y ordenable por tiempo
+  C.uuid7 = (ms = Date.now()) => {
+    const r = new Uint8Array(10);
+    const g = typeof globalThis !== 'undefined' && globalThis.crypto;
+    if (g && g.getRandomValues) g.getRandomValues(r); else for (let i = 0; i < 10; i++) r[i] = Math.floor(Math.random() * 256);
+    const h = ms.toString(16).padStart(12, '0').slice(-12), x = [...r].map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-7${x.slice(0, 3)}-${(8 + (r[2] & 3)).toString(16)}${x.slice(5, 8)}-${x.slice(8, 20)}`;
+  };
+  C.isUuid = v => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
+  // Ids estables para la escritura en v2: sesión (meta.uid), ejercicio (eid) y serie (sid). Muta `sess`.
+  C.ensureV2Ids = sess => {
+    if (!C.isUuid(sess.uid)) sess.uid = C.uuid7();
+    (sess.exercises || []).forEach(e => { if (!C.isUuid(e.eid)) e.eid = C.uuid7(); (e.sets || []).forEach(st => { if (!C.isUuid(st.sid)) st.sid = C.uuid7(); }); });
+    return sess;
+  };
+  // Tipos de serie de la app → v2. Drop set y rest-pause cuelgan de la serie anterior del mismo ejercicio.
+  const V2_TYPE = { warmup: 'warmup', dropset: 'drop', restpause: 'rest_pause' };
+  // Sesión de la app → filas de workout_sessions / exercise_entries / set_entries
+  C.toV2Rows = (sess, userId, exIdOf = () => null) => {
+    C.ensureV2Ids(sess);
+    const iso = ms => ms ? new Date(ms).toISOString() : null;
+    const startMs = Math.min(...(sess.exercises || []).flatMap(e => (e.sets || []).map(st => st.doneAt || Infinity)));
+    const started = isFinite(startMs) ? iso(startMs - 60000) : `${sess.date}T12:00:00Z`;
+    const session = {
+      id: sess.uid, user_id: userId, local_date: sess.date, started_at: started,
+      ended_at: sess.durationMin ? new Date(Date.parse(started) + sess.durationMin * 60000).toISOString() : null,
+      status: 'completed', template_name: sess.name || null, is_deload: false,
+      time_budget_min: sess.timeBudget || null, planned_hard_sets: +sess.plannedSets || null,
+      readiness: sess.readiness || null, legacy_session_id: sess.id, revision: 0,
+    };
+    const entries = [], sets = [];
+    (sess.exercises || []).forEach((e, ord) => {
+      const kind = C.exKind(e);
+      entries.push({ id: e.eid, session_id: sess.uid, user_id: userId, exercise_id: exIdOf(e.name) ?? null, name_snapshot: e.name, ord, kind,
+        prescription: null, notes: e.notes || null });
+      (e.sets || []).forEach((st, idx) => {
+        const t0 = st.type || 'normal', prev = e.sets[idx - 1];
+        let type = V2_TYPE[t0] || 'working', parent = null;
+        if ((type === 'drop' || type === 'rest_pause')) { if (prev) parent = prev.sid; else type = 'working'; }
+        const warm = type === 'warmup', rpe = C.hasRpe(st) ? +st.rpe : (t0 === 'failure' ? 10 : null);
+        const src = warm || rpe == null ? null : st.effortSrc === 'copied' ? 'copied_prev' : st.effortSrc === 'logged' ? 'logged' : 'legacy';
+        sets.push({ id: st.sid, entry_id: e.eid, session_id: sess.uid, user_id: userId, idx, set_type: type, parent_set_id: parent,
+          load_kg: st.kg ?? null, reps: st.reps ?? null, rir: warm || rpe == null ? null : Math.max(0, 10 - rpe), rpe: warm ? null : rpe,
+          effort_source: src, completed: !!(st.done || st.kg), completed_at: iso(st.doneAt), rest_before_s: st.restS ?? null,
+          input_method: null, revision: 0 });
+      });
+    });
+    return { session, entries, sets };
+  };
+
   // ── IHO · Índice de Hipertrofia Optimizado (0–100) ──
   // IHO = clip(β·Σ w·C − Φ, 0, 100) con dos puertas de calidad. Referencia: auditoría (claude/Auditoria_Peak_Physique.md)
   // y su implementación Python, que sirve de oráculo en tests/test_iho_oracle.mjs.
