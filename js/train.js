@@ -114,7 +114,7 @@ function renderEditTmplBody(){
   const t=(db.templates||[]).find(t=>t.id===editTmplId);if(!t)return;
   const body=document.getElementById('edit-tmpl-body');
   body.innerHTML=`<div class="tmpl-card"><input class="tmpl-name-inp" value="${esc(t.name)}" onchange="renameTmpl('${t.id}',this.value)">
-    <div style="display:flex;align-items:center;gap:8px;margin:8px 0"><span style="font-size:12px;color:var(--t2)">⏱ Descanso (seg)</span><input type="number" class="tmpl-sets-inp" style="width:64px" value="${t.rest||90}" min="15" max="600" step="15" onchange="tmplRest('${t.id}',this.value)"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0"><span style="font-size:12px;color:var(--t2)" title="Pesados +60 s · aislamientos −30 s (mín. 60)">⏱ Descanso multiarticulares (seg)</span><input type="number" class="tmpl-sets-inp" style="width:64px" value="${t.rest||90}" min="15" max="600" step="15" onchange="tmplRest('${t.id}',this.value)"></div>
     ${t.exercises.map((ex,ei)=>`<div class="tmpl-ex-row"><span style="display:flex;flex-direction:column;gap:1px"><button onclick="tmplMove('${t.id}',${ei},-1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▲</button><button onclick="tmplMove('${t.id}',${ei},1)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:9px;padding:0;line-height:1">▼</button></span><span class="tmpl-ex-name">${esc(ex.name)}</span><input type="number" class="tmpl-sets-inp" value="${ex.sets||3}" min="1" max="10" onchange="tmplSets('${t.id}',${ei},this.value)"><button class="tmpl-del-btn" onclick="tmplDel('${t.id}',${ei})">×</button></div>`).join('')}
     <button class="tmpl-add-btn" onclick="pickerTarget={type:'tmpl',tid:'${t.id}'};openPicker('tmpl')">+ Añadir ejercicio</button></div>`;
 }
@@ -220,7 +220,20 @@ async function deleteSession(id){
 
 // ═══ SESSION ═══
 // Con mesociclo activo, las series de cada ejercicio se ajustan a la semana (más series o descarga)
-function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());startSess(t.name,t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:ns[i]||ex.sets||3},()=>({kg:null,reps:null,rpe:null,done:false}))})),t.rest);}
+// Antes de empezar: tiempo disponible y check-in de recuperación (js/registro.js) → startFromTmplNow
+function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;if(sessBusy())return;openPreSess(tid);}
+function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());
+  const f=opt.loadFactor||1;
+  let exs=t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round((ns[i]||ex.sets||3)*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
+  const plan=opt.timeBudget?planTimeBudget(exs,t.rest,opt.timeBudget):null;
+  if(plan)exs=plan.exs;
+  startSess(t.name,exs,t.rest);
+  if(!activeSess)return;
+  activeSess.plannedSets=t.exercises.reduce((a,ex,i)=>a+(ns[i]||ex.sets||3),0);
+  if(opt.timeBudget){activeSess.timeBudget=opt.timeBudget;activeSess.timePlan=plan?{estMin:plan.estMin,cut:plan.cut}:null;}
+  if(opt.readiness)activeSess.readiness=opt.readiness;
+  renderSessExs();
+}
 function startBlank(){startSess('Entrenamiento',[]);}
 // Ahora se puede salir al inicio con un entrenamiento abierto: no se puede empezar otro encima
 function sessBusy(){if(!sessCanLeave())return false;toast('Ya hay un entrenamiento en curso — termínalo o cancélalo primero');resumeSession();return true;}
@@ -250,7 +263,7 @@ async function cancelSession(){
   const wasEdit=!!activeSess?.editing;
   const msg=wasEdit?'¿Descartar los cambios de esta sesión?':'¿Cancelar el entrenamiento? No se guardará nada.';
   if(!await dlgConfirm(msg))return;
-  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();releaseWakeLock();
+  clearInterval(timerIv);activeSess=null;clearActiveStash();stopRest();releaseWakeLock();hideRirAsk();
   navHome();toast(wasEdit?'Cambios descartados':'Entrenamiento cancelado');
 }
 function updateTimer(){timerSecs=sessStartTs?Math.max(0,Math.floor((Date.now()-sessStartTs)/1000)):0;const m=Math.floor(timerSecs/60),s=timerSecs%60;const txt=m+':'+(s<10?'0':'')+s;document.getElementById('sess-timer').textContent=txt;const rt=document.getElementById('resume-bar-timer');if(rt)rt.textContent=txt;}
@@ -268,7 +281,7 @@ function updateResumeBar(){
 }
 function onSessDate(v){if(!activeSess||activeSess.isTmplEdit||!v)return;activeSess.date=v;persistActive();renderSessMeso();toast('Fecha cambiada: '+fmtDate(v));}
 function renderSessExs(){
-  renderSessMeso();
+  renderSessMeso();renderSessPlan();
   const di=document.getElementById('sess-date');
   if(di&&activeSess&&!activeSess.isTmplEdit&&di!==document.activeElement)di.value=activeSess.date||todayStr();
   const target=activeSess?.isTmplEdit?'tmpledit-exs':'sess-exs';
@@ -284,13 +297,15 @@ const SET_ABBR2={normal:'',warmup:'W',dropset:'D',failure:'F',preex:'P',restpaus
 function renderSetRow(ex,ei,si){
   const s=ex.sets[si];
   const lv=getLastEx(ex.name)?.sets?.[si];
+  const tg=setTarget(ex,si); // objetivo: serie anterior de hoy · doble progresión · sesión anterior (nunca el RPE)
+  const im=NUMPAD?'inputmode="none" onfocus="npOpen(this)"':'inputmode="decimal"';
   const stype=s.type||'normal';
   const rowBg=SET_BG[stype];
   const btnBg=s.done?'var(--green)':(SET_BG[stype]||'transparent');
   const btnBorder=s.done?'var(--green)':SET_COLORS[stype];
   const btnColor=s.done?'#000':SET_COLORS[stype];
   const btnLabel=s.done?'✓':(SET_ABBR2[stype]||(si+1));
-  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+"x"+lv.reps):"—"}</div><input type="number" id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${lv?lv.kg:"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${lv?lv.reps:"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" id="rpe_${ei}_${si}" value="${s.rpe??""}" placeholder="${lv?lv.rpe:"rpe"}" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":"○"}</button></div>`;
+  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+"x"+lv.reps):"—"}</div><input type="number" ${im} id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${tg?.kg??"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${tg?.reps??"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rpe_${ei}_${si}" value="${s.rpe??""}" placeholder="rpe" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":"○"}</button></div>`;
 }
 function renderExCard(ex,ei){
   const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
@@ -311,7 +326,7 @@ function renderExCard(ex,ei){
       <span class="drag-handle">⠿</span>
       ${thumbHtml(ex.name,'exthumb sm')}
       <span class="ec-name" data-exn="${esc(ex.name)}" onclick="openExView(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
-      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>
+      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
     ${progRow}
@@ -346,7 +361,7 @@ function fillFromPrev(ei,si){
   const rpeEl=document.getElementById(`rpe_${ei}_${si}`);
   if(kgEl&&lv.kg){kgEl.value=lv.kg;}
   if(rpEl&&lv.reps){rpEl.value=lv.reps;}
-  if(rpeEl&&lv.rpe){rpeEl.value=lv.rpe;}
+  // El RPE no se copia: el esfuerzo de hoy lo dices tú (chips de RIR al terminar la serie)
   onSetInput(ei,si);
 }
 
@@ -440,7 +455,7 @@ function onSetInput(ei,si){
   const s=activeSess.exercises[ei].sets[si];
   const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
   const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
-  const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined)s.rpe=rpe;
+  const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined){if(rpe!==s.rpe){if(rpe==null)delete s.effortSrc;else s.effortSrc='logged';}s.rpe=rpe;}
   updateE1RMRow(ei);
   persistActive();
 }
@@ -453,27 +468,35 @@ function toggleDone(ei,si){
   const rpeEl=document.getElementById(`rpe_${ei}_${si}`);
   const kgVal=numVal(kgEl);
   const rpVal=numVal(rpEl);
+  const ex=activeSess.exercises[ei];
   if(kgVal==null&&rpVal==null){
-    // Fill from placeholder (previous session values)
-    const last=getLastEx(activeSess.exercises[ei].name);
-    const lv=last?.sets?.[si];
-    if(lv){
-      if(kgEl&&lv.kg!=null&&!kgEl.value){kgEl.value=lv.kg;}
-      if(rpEl&&lv.reps!=null&&!rpEl.value){rpEl.value=lv.reps;}
-      if(rpeEl&&lv.rpe!=null&&!rpeEl.value){rpeEl.value=lv.rpe;}
+    // Un toque: se confirma el objetivo (serie anterior de hoy · progresión · sesión anterior). El RPE nunca se copia.
+    const tg=setTarget(ex,si);
+    if(tg){
+      if(kgEl&&tg.kg!=null&&!kgEl.value){kgEl.value=tg.kg;}
+      if(rpEl&&tg.reps!=null&&!rpEl.value){rpEl.value=tg.reps;}
     }
   }
   // Explicit read: what's in the input is the truth (empty = null, 0 = 0)
   const kg=numVal(kgEl);if(kg!==undefined)s.kg=kg;
   const rp=numVal(rpEl);if(rp!==undefined)s.reps=rp;
-  const rpe=numVal(rpeEl);if(rpe!==undefined)s.rpe=rpe;
+  const rpe=numVal(rpeEl);if(rpe!==undefined){if(rpe!==s.rpe&&rpe!=null)s.effortSrc='logged';s.rpe=rpe;}
   s.done=!s.done;
-  if(s.done){vib(30);startRest(activeSess.rest||90);}
+  if(s.done&&!activeSess.editing&&!activeSess.isTmplEdit){
+    // Hora de la serie y descanso real desde la anterior (menos ~3 s por repetición de la propia serie)
+    const now=Date.now(),prev=Math.max(0,...activeSess.exercises.flatMap(e=>e.sets.map(x=>x!==s&&x.done&&x.doneAt?x.doneAt:0)));
+    s.doneAt=now;
+    const gap=prev?(now-prev)/1000:null;
+    if(gap!=null&&gap<=20*60)s.restS=Math.max(0,Math.round(gap-3*(s.reps||0)));else delete s.restS;
+  }else if(!s.done){delete s.doneAt;delete s.restS;}
+  if(s.done){vib(30);startRest(PPCore.restFor(PPCore.exKind(ex),activeSess.rest||90));if((s.type||'normal')!=='warmup'&&!hasRpe(s))askRir(ei,si);else hideRirAsk();}
+  else hideRirAsk();
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
   const num=document.getElementById(`sn_${ei}_${si}`);
   if(btn){btn.classList.toggle('done',s.done);btn.textContent=s.done?'✓':'○';}
   if(num)num.classList.toggle('done',s.done);
   onSetInput(ei,si);
+  refreshTargets(ei);
 }
 // Targeted DOM edits: the old renderSessExs() here rebuilt every card, which
 // closed the mobile keyboard and reset scroll. Inputs are already synced to
@@ -534,7 +557,7 @@ async function finishSession(){
   delete newSess.editing;delete newSess.originalId;
   if(isEdit)db.sessions=db.sessions.filter(s=>s.id!==newSess.id);
   db.sessions.push(newSess);
-  activeSess=null;clearActiveStash();releaseWakeLock();
+  activeSess=null;clearActiveStash();releaseWakeLock();hideRirAsk();
   await saveSession(newSess);
   stopRest();vib([50,30,50]);
   toast(isEdit?'Sesión actualizada ✓':'Sesión guardada ✓');

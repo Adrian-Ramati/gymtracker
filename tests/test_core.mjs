@@ -224,6 +224,12 @@ t('IHO: sin biometría β = 1 y sin penalización', () => {
   const R = C.computeHyperIndex(optimal('2026-10-20'));
   assert.equal(R.beta, 1); assert.equal(R.readiness, null); assert.equal(R.phi, 0); assert.equal(R.risk, false);
 });
+t('IHO: con menos de 3 días de recuperación no se juzga (β = 1)', () => {
+  const o = optimal('2026-10-20');
+  const R = C.computeHyperIndex({ ...o, biometrics: [{ date: '2026-10-20', subj: { sleep: 1, soreness: 5, energy: 1 } }] });
+  assert.equal(R.beta, 1); assert.equal(R.readiness, null);
+  assert.ok(!R.recs.some(r => /recuperación está baja|ajustando la carga/.test(r.t)));
+});
 t('IHO: las series planificadas al empezar mandan sobre la rutina', () => {
   const o = optimal('2026-10-20');
   o.sessions.forEach(s => { s.plannedSets = 2 * s.exercises.reduce((a, e) => a + e.sets.length, 0); });

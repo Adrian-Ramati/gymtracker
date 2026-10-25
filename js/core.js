@@ -389,9 +389,10 @@
       ? { score: 100 * mean(dens), detail: `Descanso medido en ${dens.length} series${noRest ? ` (${noRest} sin hora)` : ''}`, n: dens.length }
       : { score: null, detail: 'Sin datos: el descanso se mide desde que cada serie guarda su hora' };
     // ── β: modulación biométrica (recuperación + autorregulación) ──
-    const ready = C.readinessSeries(biometrics, start, end), rv = Object.values(ready).filter(v => v != null);
+    // Con menos de 3 días de datos de recuperación no se juzga nada (β neutra)
+    const ready = C.readinessSeries(biometrics, start, end), rv0 = Object.values(ready).filter(v => v != null), rv = rv0.length >= 3 ? rv0 : [];
     const rBar = rv.length ? mean(rv) : 0.7;
-    const al = ss.filter(s => ready[s.date] != null && plannedOf(s) > 0).map(s => clip01(1 - Math.abs(doneOf(s) / plannedOf(s) - C.targetLoad(ready[s.date])) / 0.4));
+    const al = !rv.length ? [] : ss.filter(s => ready[s.date] != null && plannedOf(s) > 0).map(s => clip01(1 - Math.abs(doneOf(s) / plannedOf(s) - C.targetLoad(ready[s.date])) / 0.4));
     const aBar = al.length ? mean(al) : 0.5;
     R.beta = Math.max(.85, Math.min(1.05, 1 - .30 * Math.max(0, .7 - rBar) + .10 * (aBar - .5)));
     R.readiness = rv.length ? rBar : null; R.alignment = al.length ? aBar : null; R.readinessDays = rv.length;

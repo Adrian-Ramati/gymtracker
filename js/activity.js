@@ -432,7 +432,7 @@ const SET_TYPES=[
   {id:'normal',   label:'Serie Normal',        color:'var(--t2)',  bg:'var(--s2)'},
   {id:'warmup',   label:'Serie de Calentamiento', color:'#fbbf24', bg:'rgba(251,191,36,.15)'},
   {id:'dropset',  label:'Drop Set',             color:'#f472b6',   bg:'rgba(244,114,182,.15)'},
-  {id:'failure',  label:'Error',       color:'#f87171',   bg:'rgba(248,113,113,.15)'},
+  {id:'failure',  label:'Al fallo',    color:'#f87171',   bg:'rgba(248,113,113,.15)'},
   {id:'preex',    label:'Pre-agotamiento',      color:'#34d399',   bg:'rgba(52,211,153,.15)'},
   {id:'restpause',label:'Rest-Pause',           color:'#a78bfa',   bg:'rgba(167,139,250,.15)'},
   {id:'superset', label:'Superserie',           color:'#4f8ef7',   bg:'rgba(79,142,247,.15)'},

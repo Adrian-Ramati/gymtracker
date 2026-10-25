@@ -320,6 +320,7 @@ async function checkRestoreSession(){
 
 // ═══ NAV ═══
 function showScr(n,el){
+  if(n!=='sess'&&typeof hideRirAsk==='function')hideRirAsk();
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   const sc=document.getElementById('s-'+n);if(sc)sc.classList.add('on');
   updateHdr(n);renderCurrentScr(n);updateResumeBar();

@@ -283,7 +283,9 @@ def target_load(r: float) -> float:
 
 def biometric_modulation(sessions: list[Session], ready: dict[date, float | None]) -> tuple[float, float, float]:
     vals = [v for v in ready.values() if v is not None]
-    r_bar = st.mean(vals) if vals else 0.7          # sin datos: neutro
+    if len(vals) < 3:                                # con menos de 3 días de datos no se juzga nada: β neutra
+        return 1.0, 0.7, 0.5
+    r_bar = st.mean(vals)
     al = []
     for s in sessions:
         if ready.get(s.day) is None or not s.planned_hard_sets:   # sin readiness ese día no se juzga la autorregulación
