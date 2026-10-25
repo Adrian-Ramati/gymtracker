@@ -18,7 +18,8 @@ def check(name, cond, extra=''):
 # Puente nativo simulado: 12 días de datos de un Xiaomi (sueño, pulso en reposo, HRV, pasos de dos fuentes, peso)
 BRIDGE = """(()=>{
   const day=n=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-n);return d;};
-  const at=(n,h,m=0)=>{const d=day(n);d.setHours(h,m,0,0);return d.toISOString();};
+  // hora h del día n; si hoy aún no ha llegado esa hora, justo antes de ahora (la prueba no depende de cuándo se ejecute)
+  const at=(n,h,m=0)=>{const d=day(n);d.setHours(h,m,0,0);if(d.getTime()>Date.now())d.setTime(Date.now()-60000);return d.toISOString();};
   const S={sleep:[],restingHeartRate:[],heartRateVariability:[],steps:[],weight:[],heartRate:[]};
   for(let n=0;n<12;n++){
     S.sleep.push({startDate:at(n+1,23,30),endDate:at(n,7,0),value:450,stages:[{stage:'light',durationMinutes:250},{stage:'deep',durationMinutes:90},{stage:'rem',durationMinutes:80},{stage:'awake',durationMinutes:30}]});
