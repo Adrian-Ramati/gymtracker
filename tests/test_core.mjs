@@ -112,20 +112,21 @@ function optimal(end, extraProfile = {}) {
   }
   return { sessions, templates, profile: extraProfile, end };
 }
-t('índice: escenario óptimo ≥ 85', () => {
+t('índice: escenario óptimo ≥ 80 (Óptimo)', () => {
   const R = C.computeHyperIndex(optimal('2026-10-20'));
-  assert.ok(R.score >= 85, `score ${R.score}`);
+  assert.ok(R.score >= 80 && R.label === 'Óptimo', `score ${R.score} ${R.label}`);
   assert.equal(R.comp.adh.cr, 1);
 });
-t('índice: pesos suman 1 y frecuencia es el menor', () => {
+t('índice: pesos suman 1, sin frecuencia, densidad es el menor', () => {
   const w = Object.values(C.HI_W); assert.equal(Math.round(w.reduce((a, b) => a + b, 0) * 100), 100);
-  assert.equal(Math.min(...w), C.HI_W.freq);
+  assert.equal(C.HI_W.freq, undefined);
+  assert.equal(Math.min(...w), C.HI_W.den);
 });
 t('índice: los secundarios suman 0,5 al volumen (tríceps recibe del press)', () => {
   const R = C.computeHyperIndex(optimal('2026-10-20'));
   const tri = R.muscles.find(m => m.m === 'Tríceps'), pec = R.muscles.find(m => m.m === 'Pectoral');
-  // el único aporte indirecto al tríceps es el press de pecho: debe sumar exactamente la mitad de sus series
-  assert.ok(Math.abs((tri.v - tri.rv) - .5 * pec.rv) < .01, `tríceps ${tri.v} (directas ${tri.rv}) · press ${pec.rv}`);
+  // el único aporte indirecto al tríceps es el press de pecho: suma la mitad de sus series (todas a RPE 8 → estímulo 0,95)
+  assert.ok(Math.abs((tri.v - .95 * tri.rv) - .5 * .95 * pec.rv) < .01, `tríceps ${tri.v} (directas ${tri.rv}) · press ${pec.rv}`);
 });
 t('índice: la semana de descarga no cuenta', () => {
   const end = '2026-10-25';
@@ -136,7 +137,7 @@ t('índice: la semana de descarga no cuenta', () => {
   const R1 = C.computeHyperIndex({ ...base, sessions: dl, profile: prof });
   assert.ok(R1.deloadSessions > 0);
   assert.ok(R1.score > R0.score, `sin excluir ${R0.score} · excluyendo ${R1.score}`);
-  assert.ok(R1.score >= 85, `score ${R1.score}`);
+  assert.ok(R1.score >= 80, `score ${R1.score}`);
 });
 t('índice: escenario pobre < 50 con recomendaciones priorizadas', () => {
   const end = '2026-10-20', M = ['Pectoral', 'Espalda', 'Cuádriceps', 'Isquiosurales', 'Glúteos', 'Bíceps'];
@@ -144,7 +145,8 @@ t('índice: escenario pobre < 50 con recomendaciones priorizadas', () => {
   const sessions = [0, 7, 14, 21, 28, 35].map((d, i) => mkS(C.addDays(end, -d), 'Full', M.map(m => ['Ej ' + m, m, 3, 5, 60 + i * .4])));
   const R = C.computeHyperIndex({ sessions, templates, profile: {}, end });
   assert.ok(R.score < 50, `score ${R.score}`);
-  assert.match(R.recs[0].t, /no cuentan como series efectivas/);
+  assert.match(R.recs[0].t, /apenas estimulan/);
+  assert.ok(R.score <= 59, 'puerta de volumen basura');
 });
 t('índice: sin datos suficientes', () => {
   const R = C.computeHyperIndex({ sessions: [], templates: [], profile: {}, end: '2026-10-20' });
@@ -178,6 +180,62 @@ t('nombres: sesiones, rutinas y mapas de ajustes quedan con el nombre nuevo', ()
   // secundarios personalizados siguen aplicando con el nombre nuevo
   const prof = { secMap: C.canonExKeys({ 'ab-roll out/ab-wheel': ['Lumbar'] }, true) };
   assert.deepEqual(C.secondaryFor(prof, 'Ab Roll Out / Ab Wheel', 'Abdomen'), ['Lumbar']);
+});
+
+// ── IHO: piezas nuevas ──
+t('IHO: estímulo y fatiga por RIR (umbrales)', () => {
+  assert.deepEqual([0, 1, 1.5, 2, 3, 4, 5, 6].map(C.stim), [1, 1, .95, .95, .85, .6, .35, 0]);
+  assert.equal(C.stim(null), 0);
+  assert.deepEqual([0, 1, 2, 3].map(C.fatCost), [1.4, 1.15, 1.05, 1]);
+});
+t('IHO: el RPE copiado o inferido no cuenta como esfuerzo real', () => {
+  assert.equal(C.setRir({ kg: 50, reps: 10, rpe: 8, done: true }), 2);
+  assert.equal(C.setRir({ kg: 50, reps: 10, rpe: 8, done: true, effortSrc: 'logged' }), 2);
+  assert.equal(C.setRir({ kg: 50, reps: 10, rpe: 8, done: true, effortSrc: 'copied' }), null);
+  assert.equal(C.setRir({ kg: 50, reps: 10, rpe: null, done: true }), null);
+});
+t('IHO: tipo de ejercicio y descanso del temporizador', () => {
+  assert.equal(C.exKind({ name: 'Press banca' }), 'compound_heavy');
+  assert.equal(C.exKind({ name: 'Remo pecho apoyado' }), 'compound');
+  assert.equal(C.exKind({ name: 'Curl femoral sentado' }), 'isolation');
+  assert.equal(C.exKind({ name: 'Gemelo en Prensa' }), 'isolation');
+  assert.equal(C.exKind({ name: 'Lo que sea', kind: 'isolation' }), 'isolation');
+  assert.deepEqual(['compound_heavy', 'compound', 'isolation'].map(k => C.restFor(k, 90)), [150, 90, 60]);
+  assert.deepEqual(['compound_heavy', 'compound', 'isolation'].map(k => C.restFor(k, 120)), [180, 120, 90]);
+});
+t('IHO: densidad penaliza descansar poco, apenas descansar mucho', () => {
+  assert.equal(C.density(150, 120, 240), 1);
+  assert.ok(Math.abs(C.density(60, 120, 240) - .25) < 1e-9);
+  assert.ok(C.density(600, 120, 240) >= .6);
+});
+t('IHO: readiness con sueño, pulso, HRV y check-in', () => {
+  const end = '2026-10-25', start = C.addDays(end, -27), bio = [];
+  for (let i = 0; i < 88; i++) { const d = C.addDays(end, -i); bio.push({ date: d, hrv: 60 * Math.exp(.05 * Math.sin(i)), rhr: 55 + (i % 3) - 1, sleepMin: 7.5 * 60 }); }
+  const R = C.readinessSeries(bio, start, end);
+  assert.ok(Math.abs(R[end] - 0.85) < .08, `normal ${R[end]}`);
+  const bad = bio.map(b => C.daysBetween(b.date, end) < 3 ? { ...b, hrv: 40, rhr: 62, sleepMin: 300 } : b);
+  assert.ok(C.readinessSeries(bad, start, end)[end] < .2, 'semana mala → readiness baja');
+  assert.equal(C.readinessSeries([], start, end)[end], null);
+  const sub = C.readinessSeries([{ date: end, subj: { sleep: 5, soreness: 1, energy: 5 } }], start, end)[end];
+  assert.ok(Math.abs(sub - .9) < 1e-9, `check-in ${sub}`);
+  assert.deepEqual([.7, .5, .3].map(C.targetLoad), [1, .8, .6]);
+});
+t('IHO: sin biometría β = 1 y sin penalización', () => {
+  const R = C.computeHyperIndex(optimal('2026-10-20'));
+  assert.equal(R.beta, 1); assert.equal(R.readiness, null); assert.equal(R.phi, 0); assert.equal(R.risk, false);
+});
+t('IHO: las series planificadas al empezar mandan sobre la rutina', () => {
+  const o = optimal('2026-10-20');
+  o.sessions.forEach(s => { s.plannedSets = 2 * s.exercises.reduce((a, e) => a + e.sets.length, 0); });
+  const R = C.computeHyperIndex(o);
+  assert.equal(R.comp.adh.cr, .5);
+});
+t('IHO: densidad con la hora de cada serie', () => {
+  const o = optimal('2026-10-20');
+  o.sessions.forEach(s => s.exercises.forEach(e => e.sets.forEach((x, i) => { if (i) x.restS = 30; })));
+  const R = C.computeHyperIndex(o);
+  assert.ok(R.comp.den.score < 40, `densidad ${R.comp.den.score}`);
+  assert.ok(R.recs.some(r => /Descansas poco/.test(r.t)));
 });
 
 console.log(`\n${ok}/${ok + fail} OK`);

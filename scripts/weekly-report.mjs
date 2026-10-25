@@ -102,10 +102,10 @@ const wkPrev = { start: ymd(monPrev), end: ymd(sunPrev) };
 const win4 = { start: ymd(mon4), end: ymd(sunPrev) };
 
 // ─── 4. Cargar sesiones ──────────────────────────────────────────────────────
-let sessions = [], profileRow = null;
+let sessions = [], profileRow = null, biometrics = [];
 if (DRY) {
   const fx = JSON.parse(readFileSync(process.env.REPORT_FIXTURE, 'utf8'));
-  sessions = fx.sessions || []; profileRow = fx.profile || null;
+  sessions = fx.sessions || []; profileRow = fx.profile || null; biometrics = fx.biometrics || [];
 } else {
   let query = supabase.from('sessions').select('*').order('date', { ascending: true });
   if (SUPABASE_USER_ID) query = query.eq('user_id', SUPABASE_USER_ID);
@@ -118,9 +118,13 @@ if (DRY) {
     if (r.error) r = await supabase.from('profiles').select('templates').eq('id', SUPABASE_USER_ID).single(); // sin columna settings
     if (!r.error) profileRow = r.data;
     else console.warn('No se pudo leer el perfil (el índice usará valores por defecto):', r.error.message);
+    // Biometría diaria (sueño, pulso en reposo, HRV, check-in) para la modulación β del IHO; la tabla puede no existir aún
+    const b = await supabase.from('biometric_daily').select('*').eq('user_id', SUPABASE_USER_ID).gte('day', new Date(Date.now() - 100 * 864e5).toISOString().slice(0, 10));
+    if (!b.error) biometrics = (b.data || []).map(x => ({ date: x.day, hrv: x.hrv_rmssd_ms, rhr: x.resting_hr_bpm, sleepMin: x.sleep_min,
+      subj: (x.subj_sleep || x.subj_soreness || x.subj_energy) ? { sleep: x.subj_sleep, soreness: x.subj_soreness, energy: x.subj_energy } : null }));
   }
 }
-sessions.forEach(s => { if (typeof s.exercises === 'string') s.exercises = JSON.parse(s.exercises); });
+sessions.forEach(s => { if (typeof s.exercises === 'string') s.exercises = JSON.parse(s.exercises); if (s.meta?.plannedSets) s.plannedSets = s.meta.plannedSets; });
 PPCore.canonExList(sessions); // ejercicios renombrados: historial antiguo y nuevo se cuentan juntos
 const profile = { ...(profileRow?.settings || {}) };
 if (profile.secMap) profile.secMap = PPCore.canonExKeys(profile.secMap, true);
@@ -221,19 +225,19 @@ function recentHistory(name, n = 6) {
 
 // ─── 10b. Índice de hipertrofia (misma fórmula que la app) ──────────────────
 const hiEnd = wkThis.end < todayYMD ? wkThis.end : todayYMD;
-const HI = PPCore.computeHyperIndex({ sessions, templates, profile, end: hiEnd });
-const HIprev = PPCore.computeHyperIndex({ sessions, templates, profile, end: PPCore.addDays(hiEnd, -7) });
+const HI = PPCore.computeHyperIndex({ sessions, templates, profile, biometrics, end: hiEnd });
+const HIprev = PPCore.computeHyperIndex({ sessions, templates, profile, biometrics, end: PPCore.addDays(hiEnd, -7) });
 const stripTags = t => t.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 function hyperIndexHtml() {
   if (HI.score == null) return `<p style="color:#9ca3af">Índice de hipertrofia: hacen falta al menos 2 sesiones en las últimas 4 semanas.</p>`;
-  const L = PPCore.hiLabel(HI.score), d = HIprev.score != null ? HI.score - HIprev.score : null;
+  const L = PPCore.hiLabel(HI.score, HI.risk), d = HIprev.score != null ? HI.score - HIprev.score : null;
   const bars = Object.keys(PPCore.HI_W).map(k => {
     const c = HI.comp[k], s = c?.score, w = s == null ? 0 : Math.round(s), col = s == null ? '#6b7280' : PPCore.hiLabel(s).c;
     return `<tr><td style="padding:3px 8px 3px 0;color:#d1d5db;font-size:12px;white-space:nowrap">${PPCore.HI_NAMES[k]}</td>
       <td style="padding:3px 0;width:100%"><div style="background:#262626;border-radius:3px;height:6px"><div style="width:${w}%;background:${col};height:6px;border-radius:3px"></div></div></td>
       <td style="padding:3px 0 3px 8px;color:${col};font-size:12px;font-weight:700;text-align:right">${s == null ? '—' : w}</td></tr>`;
   }).join('');
-  return `<h2 style="color:#a855f7;margin:0 0 8px;font-size:17px">Índice de hipertrofia</h2>
+  return `<h2 style="color:#a855f7;margin:0 0 8px;font-size:17px">Índice de hipertrofia optimizado (IHO)</h2>
     <table style="border-collapse:collapse;margin-bottom:6px"><tr>
       <td style="font-size:42px;font-weight:800;color:${L.c};padding-right:14px;line-height:1">${HI.score}</td>
       <td style="font-size:13px;color:#f2f2f2"><strong style="color:${L.c}">${L.t}</strong>${d == null ? '' : d === 0 ? ' · igual que la semana anterior' : ` · <span style="color:${d > 0 ? '#34d399' : '#f87171'}">${d > 0 ? '▲ +' : '▼ '}${d}</span> vs semana anterior`}<br>
@@ -264,7 +268,7 @@ const aiPayload = {
   ejercicios_esta_semana: exNames.map(name => ({ nombre: name, musculo: exThis[name].muscle, historial_reciente: recentHistory(name) })),
   prs_esta_semana: prs,
   indice_hipertrofia: HI.score == null ? null : {
-    puntuacion: HI.score, etiqueta: PPCore.hiLabel(HI.score).t,
+    puntuacion: HI.score, etiqueta: HI.label, beta: Math.round(HI.beta * 1000) / 1000, fatiga_phi: Math.round(HI.phi * 10) / 10, riesgo: HI.risk,
     componentes: Object.fromEntries(Object.entries(HI.comp).map(([k, c]) => [PPCore.HI_NAMES[k], c.score == null ? null : Math.round(c.score)])),
     recomendaciones: HI.recs.slice(0, 3).map(r => stripTags(r.t)),
   },

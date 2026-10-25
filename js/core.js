@@ -142,7 +142,9 @@
   // Reparto de una serie del ejercicio: [{m, w}] (principal w=1, secundarios w=0,5)
   C.credits = (profile, ex) => {
     const prim = C.normMuscle(ex.muscle);
-    return [{ m: prim, w: 1 }, ...C.secondaryFor(profile, ex.name, ex.muscle).map(m => ({ m, w: C.SEC_W }))];
+    // ex.sec explícito (catálogo exercise_muscles) manda sobre las reglas
+    const sec = Array.isArray(ex.sec) ? ex.sec.map(C.normMuscle).filter(m => m && m !== prim) : C.secondaryFor(profile, ex.name, ex.muscle);
+    return [{ m: prim, w: 1 }, ...sec.map(m => ({ m, w: C.SEC_W }))];
   };
 
   // ── Series ──
@@ -206,20 +208,89 @@
     });
   };
 
-  // ── Índice de hipertrofia (0–100) ──
+  // ── Tipo de ejercicio y descansos ──
+  // compound_heavy (multiarticular pesado) · compound (multiarticular) · isolation (aislamiento).
+  // Se deduce del nombre; el ejercicio puede traerlo explícito (ex.kind).
+  C.KINDS = ['compound_heavy', 'compound', 'isolation'];
+  const ISO_RE = /curl|extension|elevacion|apertura|cruce|crossover|pec ?deck|contractora|\bfly|patada|kickback|pajaro|face ?pull|reverse (fly|cable)|pull ?over|gemelo|calf|soleo|crunch|encogimiento|shrug|aduc|abduc|wrist|muneca|sissy|frances|french|skull|rompecraneo|copa|katana|lateral|y-raise|hang & swing|leg raise|elevaciones de piernas|rueda|ab roll|wood ?chop|pallof|plancha|plank/;
+  const HEAVY_RE = /sentadilla|squat|peso muerto|deadlift|rumano|\brdl\b|press banca|bench press|press militar|overhead press|hack|prensa|leg press|hip ?thrust|dominada|pull ?up|chin ?up|pendlay|remo con barra|rack pull|zancada|lunge|bulgar|good ?morning|buenos dias|belt squat/;
+  C.exKind = ex => {
+    if (ex && C.KINDS.includes(ex.kind)) return ex.kind;
+    const n = fold(ex?.name);
+    if (/gemelo|calf|soleo/.test(n)) return 'isolation';
+    if (/hip ?thrust/.test(n)) return 'compound_heavy';
+    if (/press|remo|\brow\b|jalon|pulldown|dominad|fondo|\bdip|hip ?thrust|sentadilla|prensa|peso muerto|zancada/.test(n) && !/frances|french|katana|copa/.test(n) && !/extension|curl/.test(n.split(/\s+/)[0] || ''))
+      return HEAVY_RE.test(n) ? 'compound_heavy' : 'compound';
+    if (ISO_RE.test(n)) return 'isolation';
+    return HEAVY_RE.test(n) ? 'compound_heavy' : 'compound';
+  };
+  // Descanso objetivo [mín, máx] en segundos (densidad del estímulo)
+  C.REST_TARGET = { compound_heavy: [120, 240], compound: [90, 180], isolation: [60, 150] };
+  // Temporizador: el descanso de la rutina es el de los multiarticulares; pesados +60 s, aislamientos −30 s (mín. 60)
+  C.restFor = (kind, base) => { const b = +base || 90; return kind === 'compound_heavy' ? b + 60 : kind === 'isolation' ? Math.max(60, b - 30) : b; };
+  C.density = (r, lo, hi) => r < lo ? Math.max(0, Math.min(1, 1 - 1.5 * (lo - r) / lo)) : r <= hi ? 1 : Math.max(0.6, 1 - 0.4 * (r - hi) / (2 * hi));
+  // Esfuerzo real de una serie en RIR (null si no hay o si es copiado/inferido: no se inventa)
+  C.setRir = st => (st && C.hasRpe(st) && st.effortSrc !== 'copied' && st.effortSrc !== 'inferred') ? Math.max(0, 10 - +st.rpe) : null;
+  // Estímulo y coste de fatiga por serie según RIR (umbrales, igual que la referencia Python y la función SQL stim_rir)
+  C.stim = rir => rir == null ? 0 : rir <= 1 ? 1 : rir <= 2 ? .95 : rir <= 3 ? .85 : rir <= 4 ? .6 : rir <= 5 ? .35 : 0;
+  C.fatCost = rir => rir <= 0 ? 1.4 : rir <= 1 ? 1.15 : rir <= 2 ? 1.05 : 1;
+
+  // ── Readiness diaria (0–1, 0,7 = normal) ──
+  // biometrics: [{date, hrv (RMSSD ms), rhr (lpm), sleepMin, subj:{sleep, soreness, energy} (1–5)}]
+  // Medias de 3 días frente a la línea base de los 60 días anteriores a `start`. Día sin datos → null.
+  C.SLEEP_NEED_H = 7.5;
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const pstdev = a => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  C.subjReadiness = q => {
+    if (!q) return null;
+    const v = [q.sleep != null ? (q.sleep - 1) / 4 : null, q.soreness != null ? (5 - q.soreness) / 4 : null, q.energy != null ? (q.energy - 1) / 4 : null].filter(x => x != null);
+    return v.length ? 0.3 + 0.6 * mean(v) : null;
+  };
+  C.readinessSeries = (biometrics, start, end) => {
+    const by = {};
+    (biometrics || []).forEach(b => { if (b && b.date) by[b.date] = b; });
+    const base = Object.values(by).filter(b => { const d = C.daysBetween(b.date, start); return d >= 1 && d <= 60; });
+    const st = vals => { vals = vals.filter(v => v != null && isFinite(v)); return vals.length >= 14 ? [mean(vals), pstdev(vals) || 1e-6] : [null, null]; };
+    const lnH = b => b.hrv > 0 ? Math.log(b.hrv) : null;
+    const [hMu, hSd] = st(base.map(lnH)), [rMu] = st(base.map(b => b.rhr > 0 ? +b.rhr : null));
+    const out = {};
+    for (let k = 0, n = C.daysBetween(start, end); k <= n; k++) {
+      const day = C.addDays(start, k), win = [-2, -1, 0].map(i => by[C.addDays(day, i)]).filter(Boolean);
+      const roll = f => { const v = win.map(f).filter(x => x != null && isFinite(x)); return v.length >= 2 ? mean(v) : null; };
+      const h = roll(lnH), r = roll(b => b.rhr > 0 ? +b.rhr : null), s = roll(b => b.sleepMin > 0 ? b.sleepMin / 60 : null);
+      const parts = [];
+      if (h != null && hMu != null) parts.push([.5, clip01(0.7 + 0.3 * (h - hMu) / hSd)]);
+      if (r != null && rMu != null) parts.push([.2, clip01(0.7 - 0.1 * (r - rMu))]);
+      if (s != null) parts.push([.3, clip01((s - 5) / (C.SLEEP_NEED_H - 5))]);
+      const wear = parts.length ? parts.reduce((a, [w, v]) => a + w * v, 0) / parts.reduce((a, [w]) => a + w, 0) : null;
+      const subj = C.subjReadiness(by[day]?.subj);
+      out[day] = wear != null && subj != null ? 0.7 * wear + 0.3 * subj : wear ?? subj;
+    }
+    return out;
+  };
+  // Carga recomendada del día (fracción de las series planificadas) según la readiness
+  C.targetLoad = r => r >= 0.6 ? 1 : r >= 0.4 ? 0.8 : 0.6;
+  C.readinessAdvice = r => r == null ? null : r >= 0.6 ? { key: 'full', t: 'Sesión completa', f: 1 } : r >= 0.4 ? { key: 'reduce_20', t: 'Quita un 20 % de las series', f: 0.8 } : { key: 'reduce_40', t: 'Quita un 40 % de las series y no vayas al fallo', f: 0.6 };
+  function clip01(x) { return Math.max(0, Math.min(1, x)); }
+
+  // ── IHO · Índice de Hipertrofia Optimizado (0–100) ──
+  // IHO = clip(β·Σ w·C − Φ, 0, 100) con dos puertas de calidad. Referencia: auditoría (claude/Auditoria_Peak_Physique.md)
+  // y su implementación Python, que sirve de oráculo en tests/test_iho_oracle.mjs.
+  C.IHO_VERSION = '2.0';
   C.HI_MAJOR = ['Pectoral', 'Espalda', 'Cuádriceps', 'Isquiosurales', 'Glúteos', 'Deltoides lateral', 'Bíceps', 'Tríceps'];
-  // Pesos (ver HI_METHOD en js/hyper.js): volumen 35 · proximidad 20 · progresión 20 · adherencia 15 · frecuencia 10
-  C.HI_W = { vol: .35, int: .20, prog: .20, adh: .15, freq: .10 };
-  C.HI_NAMES = { vol: 'Volumen efectivo', int: 'Proximidad al fallo', freq: 'Frecuencia', prog: 'Sobrecarga progresiva', adh: 'Adherencia' };
-  C.hiLabel = sc => sc >= 80 ? { t: 'Óptimo', c: '#34d399' } : sc >= 65 ? { t: 'Bueno', c: '#4f7cff' } : sc >= 50 ? { t: 'Mejorable', c: '#fbbf24' } : { t: 'Subóptimo', c: '#f87171' };
+  C.HI_W = { vol: .35, int: .20, prog: .20, adh: .15, den: .10 };
+  C.HI_NAMES = { vol: 'Volumen efectivo', int: 'Proximidad al fallo', prog: 'Sobrecarga progresiva', adh: 'Adherencia', den: 'Densidad del estímulo' };
+  C.hiLabel = (sc, risk) => risk ? { t: 'Sobrecarga / riesgo', c: '#f43f5e' } : sc >= 80 ? { t: 'Óptimo', c: '#34d399' } : sc >= 60 ? { t: 'Productivo', c: '#4f7cff' } : sc >= 40 ? { t: 'Mantenimiento', c: '#fbbf24' } : { t: 'Insuficiente', c: '#f87171' };
+  // Volumen efectivo semanal → 0–100: lineal hasta el MEV (60), sube al MAV (100), meseta hasta el MRV (90) y cae
   C.hiVolScore = (v, lm) => {
     if (!(v > 0)) return 0;
     if (v < lm.mev) return 60 * v / lm.mev;
-    if (v <= lm.mav) return 85 + 15 * (v - lm.mev) / Math.max(1, lm.mav - lm.mev);
-    if (v <= lm.mrv) return 100 - 20 * (v - lm.mav) / Math.max(1, lm.mrv - lm.mav);
-    return Math.max(20, 80 - 6 * (v - lm.mrv));
+    if (v <= lm.mav) return 60 + 40 * (v - lm.mev) / Math.max(1e-9, lm.mav - lm.mev);
+    if (v <= lm.mrv) return 100 - 10 * (v - lm.mav) / Math.max(1e-9, lm.mrv - lm.mav);
+    return Math.max(0, 90 - 60 * (v - lm.mrv) / lm.mrv);
   };
-  C.computeHyperIndex = ({ sessions, templates, profile, end }) => {
+  C.SESSION_CAP = 10; // series efectivas/músculo/sesión a crédito completo; el exceso vale 0,5 (heurística)
+  C.computeHyperIndex = ({ sessions, templates, profile, end, biometrics }) => {
     const { esc, f1 } = C;
     const start = C.addDays(end, -27);
     const all = (sessions || []).filter(s => s && s.date);
@@ -232,117 +303,140 @@
     let dlDays = 0;
     for (let i = 0; i < span; i++) if (isDl(C.addDays(end, -i))) dlDays++;
     const weeks = Math.max(1, (span - dlDays) / 7);
-    const R = { end, start, weeks, sessions: ss.length, deloadSessions: inWin.length - ss.length, comp: {}, muscles: [], exercises: [], recs: [], score: null };
+    const R = { version: C.IHO_VERSION, end, start, weeks, sessions: ss.length, deloadSessions: inWin.length - ss.length, comp: {}, muscles: [], exercises: [], recs: [], score: null, label: null, risk: false };
     if (ss.length < 2) { R.insufficient = true; return R; }
     const tByName = Object.fromEntries((templates || []).map(t => [t.name, t]));
-    // Recuento por músculo e intensidad
-    const hard = {}, raw = {}, dates = {};
-    let work = 0, withRpe = 0, eff = 0, junk = 0, fail = 0, repsKnown = 0, repsOK = 0;
-    ss.forEach(s => s.exercises?.forEach(e => {
-      const cr = C.credits(profile, e);
-      (e.sets || []).forEach(st => {
-        if (!C.isWorkSet(st)) return; work++;
-        const c = C.hardCredit(st);
-        cr.forEach(({ m, w }) => {
-          hard[m] = (hard[m] || 0) + c * w;
-          if (w === 1) { raw[m] = (raw[m] || 0) + 1; if (c > 0) (dates[m] = dates[m] || new Set()).add(s.date); }
+    const plannedOf = s => { if (+s.plannedSets > 0) return +s.plannedSets; const t = tByName[s.name]; return t ? C.mesoSets(profile, templates, t, s.date).reduce((a, b) => a + b, 0) : 0; };
+    const doneOf = s => (s.exercises || []).reduce((a, e) => a + (e.sets || []).filter(C.isWorkSet).length, 0);
+    // ── Recorrido de series ──
+    const eff = {}, raw = {}, dates = {}, dens = [];
+    let work = 0, logged = 0, stimSum = 0, rir03 = 0, junk = 0, failC = 0, compLogged = 0, acute = 0, chronic = 0, noRest = 0;
+    ss.forEach(s => {
+      const x = {}, recent = C.daysBetween(s.date, end) < 7;
+      (s.exercises || []).forEach(e => {
+        const cr = C.credits(profile, e), kind = C.exKind(e), [lo, hi] = C.REST_TARGET[kind], cf = kind !== 'isolation' ? 1.3 : 1;
+        (e.sets || []).forEach(st => {
+          if (!C.isWorkSet(st)) return;
+          work++;
+          const rir = C.setRir(st), k = C.stim(rir);
+          if (rir != null) { logged++; stimSum += k; if (rir <= 3) rir03++; if (rir >= 5) junk++; if (kind !== 'isolation') { compLogged++; if (rir <= 0) failC++; } }
+          cr.forEach(({ m, w }) => {
+            x[m] = (x[m] || 0) + w * k;
+            if (w === 1) { raw[m] = (raw[m] || 0) + 1; if (k > 0) (dates[m] = dates[m] || new Set()).add(s.date); }
+          });
+          if (st.restS != null && isFinite(st.restS)) dens.push(C.density(+st.restS, lo, hi)); else noRest++;
+          const fl = C.fatCost(rir ?? 2) * cf;
+          chronic += fl; if (recent) acute += fl;
         });
-        if (C.hasRpe(st)) { withRpe++; const r = +st.rpe; if (r >= 7) eff++; if (r < 6) junk++; if (r >= 10) fail++; }
-        else if (st.type === 'failure') fail++;
-        if (st.reps > 0) { repsKnown++; if (st.reps >= 5 && st.reps <= 30) repsOK++; }
       });
-    }));
-    const V = m => (hard[m] || 0) / weeks;
-    // 1 · Volumen efectivo vs landmarks
-    let vs = 0, vw = 0, inZone = 0, nLm = 0;
-    new Set([...C.HI_MAJOR, ...Object.keys(hard)]).forEach(m => {
+      Object.entries(x).forEach(([m, v]) => { eff[m] = (eff[m] || 0) + Math.min(v, C.SESSION_CAP) + 0.5 * Math.max(0, v - C.SESSION_CAP); });
+    });
+    const V = m => (eff[m] || 0) / weeks;
+    // 1 · Volumen efectivo frente a los landmarks
+    let vs = 0, vw = 0, inZone = 0, nLm = 0, overMrv = 0;
+    new Set([...C.HI_MAJOR, ...Object.keys(eff)]).forEach(m => {
       const lm = C.landmarks(profile, m), v = V(m), f = dates[m] ? dates[m].size / weeks : 0, major = C.HI_MAJOR.includes(m);
       if (!lm) { if (v > 0) R.muscles.push({ m, v, f, lm: null, score: null, major, rv: (raw[m] || 0) / weeks }); return; }
       if (!major && !(v > 0)) return;
       const sc = C.hiVolScore(v, lm), w = major ? 1 : .5; vs += sc * w; vw += w; nLm++;
       if (v >= lm.mev && v <= lm.mav) inZone++;
+      if (major && v > lm.mrv) overMrv++;
       R.muscles.push({ m, v, f, lm, score: sc, major, rv: (raw[m] || 0) / weeks });
     });
     R.muscles.sort((a, b) => (b.major - a.major) || (b.v - a.v));
-    R.comp.vol = { score: vw ? vs / vw : null, detail: `${inZone} de ${nLm} grupos en zona productiva (MEV–MAV)` };
-    // 2 · Proximidad al fallo y rango de reps
-    const cov = work ? withRpe / work : 0;
-    if (withRpe >= 8 && cov >= .3) {
-      const effS = eff / withRpe, junkS = junk / withRpe, repS = repsKnown ? repsOK / repsKnown : 1, failS = work ? fail / work : 0;
-      R.comp.int = { score: Math.max(0, Math.min(100, 100 * (.8 * effS + .2 * repS) - 40 * Math.max(0, failS - .4))),
-        detail: `${Math.round(effS * 100)}% de series a RPE 7–10${junkS >= .05 ? ` · ${Math.round(junkS * 100)}% demasiado fáciles` : ''}`, effS, junkS, failS, cov };
-    } else R.comp.int = { score: null, detail: `Sin datos: RPE registrado en el ${Math.round(cov * 100)}% de las series`, cov };
-    // 3 · Frecuencia por grupo principal (solo trabajo directo)
-    const fm = R.muscles.filter(x => x.major && x.f > 0);
-    if (fm.length) {
-      const sc = fm.map(x => x.f >= 2 ? 100 : x.f >= 1 ? 50 + 50 * (x.f - 1) : 50 * x.f);
-      R.comp.freq = { score: sc.reduce((a, b) => a + b, 0) / sc.length, detail: `${f1(fm.reduce((a, x) => a + x.f, 0) / fm.length)} días/semana de media por grupo` };
-    } else R.comp.freq = { score: null, detail: 'Sin datos' };
-    // 4 · Sobrecarga progresiva: tendencia del e1RM en 8 semanas (sin semanas de descarga)
+    R.comp.vol = { score: vw ? vs / vw : null, detail: `${inZone} de ${nLm} grupos en zona productiva (MEV–MAV), series ponderadas por esfuerzo` };
+    // 2 · Proximidad al fallo (solo esfuerzo real: el copiado o inferido no cuenta)
+    const cov = work ? logged / work : 0, junkS = logged ? junk / logged : 0, failS = compLogged ? failC / compLogged : 0;
+    R.junk = junkS;
+    R.comp.int = work && cov >= .5
+      ? { score: 100 * stimSum / logged, detail: `${Math.round(100 * rir03 / logged)}% de series a RIR 0–3${junkS >= .05 ? ` · ${Math.round(junkS * 100)}% demasiado lejos del fallo` : ''}`, cov, junkS, failS }
+      : { score: null, detail: `Sin datos: esfuerzo (RIR/RPE) registrado en el ${Math.round(cov * 100)}% de las series`, cov, junkS, failS };
+    // 3 · Sobrecarga progresiva: tendencia del e1RM (8 semanas, sin descargas)
     const pStart = C.addDays(end, -55), hist = {};
-    all.filter(s => s.date >= pStart && s.date <= end && !isDl(s.date)).forEach(s => s.exercises?.forEach(e => {
-      if (+e.best_e1rm > 0) (hist[e.name] = hist[e.name] || []).push({ d: s.date, v: +e.best_e1rm });
+    all.filter(s => s.date >= pStart && s.date <= end && !isDl(s.date)).forEach(s => (s.exercises || []).forEach(e => {
+      // e1RM de la sesión: el mismo que muestra Progreso (best_e1rm); si falta, se calcula con el esfuerzo real
+      let best = +e.best_e1rm > 0 ? +e.best_e1rm : null;
+      if (best == null) (e.sets || []).forEach(st => { if (!C.isWorkSet(st)) return; const rir = C.setRir(st), v = C.calcE1RM(st.kg, st.reps, rir == null ? null : 10 - rir); if (v && (best == null || v > best)) best = v; });
+      if (best) (hist[e.name] = hist[e.name] || []).push({ d: s.date, v: best });
     }));
+    let pS = 0, pW = 0, drops = 0, nPerf = 0;
     Object.entries(hist).forEach(([name, h]) => {
-      if (h.length < 3) return; h.sort((a, b) => a.d.localeCompare(b.d));
-      if (h[h.length - 1].d < start) return;
+      h.sort((a, b) => a.d.localeCompare(b.d));
+      if (h.length >= 4 && C.daysBetween(h[h.length - 1].d, end) <= 10) {
+        nPerf++;
+        const prev = h.slice(-4, -1).map(q => q.v).sort((a, b) => a - b);
+        if (h[h.length - 1].v < 0.97 * prev[1]) drops++;
+      }
+      if (h.length < 3 || h[h.length - 1].d < start) return;
       const xs = h.map(q => C.daysBetween(h[0].d, q.d)), ys = h.map(q => q.v), n = h.length;
-      const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n, sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+      const mx = mean(xs), my = mean(ys), sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
       const slope = sxx ? xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / sxx : 0;
       const pct = my ? slope * 28 / my * 100 : 0;
+      pS += (50 + 50 * Math.tanh(pct / 2.5)) * n; pW += n;
       R.exercises.push({ name, n, pct, st: pct >= 1 ? 'up' : pct <= -1 ? 'down' : 'flat', last: ys[n - 1] });
     });
     R.exercises.sort((a, b) => b.pct - a.pct);
-    if (R.exercises.length >= 2) {
-      const sc = R.exercises.map(x => x.st === 'up' ? 100 : x.st === 'flat' ? 55 : 20), wt = R.exercises.map(x => x.n);
-      R.comp.prog = { score: sc.reduce((a, v, i) => a + v * wt[i], 0) / wt.reduce((a, b) => a + b, 0), detail: `${R.exercises.filter(x => x.st === 'up').length} de ${R.exercises.length} ejercicios progresan` };
-    } else R.comp.prog = { score: null, detail: 'Hacen falta ≥3 sesiones por ejercicio en 8 semanas' };
-    // 5 · Adherencia: sesiones/semana vs plan y series hechas vs planificadas (con el plan del mesociclo)
+    R.comp.prog = R.exercises.length >= 2
+      ? { score: pS / pW, detail: `${R.exercises.filter(x => x.st === 'up').length} de ${R.exercises.length} ejercicios progresan (e1RM, 8 semanas)` }
+      : { score: null, detail: 'Hacen falta ≥3 sesiones por ejercicio en 8 semanas' };
+    // 4 · Adherencia: sesiones/semana frente al plan y series hechas frente a las planificadas
     const plan = Math.max(2, Math.min(6, (templates || []).length || 3)), spw = ss.length / weeks, fr = Math.min(1, spw / plan);
-    const done = [];
-    ss.forEach(s => {
-      const t = tByName[s.name]; if (!t) return;
-      const planned = C.mesoSets(profile, templates, t, s.date).reduce((a, b) => a + b, 0); if (!planned) return;
-      done.push(Math.min(1, (s.exercises || []).reduce((a, e) => a + (e.sets || []).filter(C.isWorkSet).length, 0) / planned));
-    });
-    const cr = done.length ? done.reduce((a, b) => a + b, 0) / done.length : null;
+    const done = ss.map(s => { const p = plannedOf(s); return p ? Math.min(1, doneOf(s) / p) : null; }).filter(v => v != null);
+    const cr = done.length ? mean(done) : null;
     R.comp.adh = { score: 100 * (cr == null ? fr : .5 * fr + .5 * cr), detail: `${f1(spw)} sesiones/sem de ${plan}${cr != null ? ` · ${Math.round(cr * 100)}% de series planificadas` : ''}`, spw, plan, cr };
-    // Índice global (los componentes sin datos no cuentan y su peso se reparte)
+    // 5 · Densidad: descanso real frente al objetivo de cada tipo de ejercicio
+    R.comp.den = dens.length
+      ? { score: 100 * mean(dens), detail: `Descanso medido en ${dens.length} series${noRest ? ` (${noRest} sin hora)` : ''}`, n: dens.length }
+      : { score: null, detail: 'Sin datos: el descanso se mide desde que cada serie guarda su hora' };
+    // ── β: modulación biométrica (recuperación + autorregulación) ──
+    const ready = C.readinessSeries(biometrics, start, end), rv = Object.values(ready).filter(v => v != null);
+    const rBar = rv.length ? mean(rv) : 0.7;
+    const al = ss.filter(s => ready[s.date] != null && plannedOf(s) > 0).map(s => clip01(1 - Math.abs(doneOf(s) / plannedOf(s) - C.targetLoad(ready[s.date])) / 0.4));
+    const aBar = al.length ? mean(al) : 0.5;
+    R.beta = Math.max(.85, Math.min(1.05, 1 - .30 * Math.max(0, .7 - rBar) + .10 * (aBar - .5)));
+    R.readiness = rv.length ? rBar : null; R.alignment = al.length ? aBar : null; R.readinessDays = rv.length;
+    // ── Φ: fatiga acumulada ──
+    const acwr = chronic && span >= 21 ? (acute / 7) / (chronic / span) : 1;
+    const phiSpike = Math.min(10, 40 * Math.max(0, acwr - 1.3)), phiFail = Math.min(8, 40 * Math.max(0, failS - .25));
+    const phiPerf = Math.min(10, 25 * Math.max(0, (nPerf ? drops / nPerf : 0) - .15));
+    R.phi = Math.min(25, phiSpike + phiFail + phiPerf);
+    R.phiParts = { acwr, spike: phiSpike, fail: phiFail, perf: phiPerf, drops, nPerf };
+    // ── Nota ──
     let tw = 0, ts = 0;
     Object.entries(C.HI_W).forEach(([k, w]) => { const c = R.comp[k]; if (c && c.score != null) { ts += c.score * w; tw += w; } });
-    R.score = tw ? Math.round(ts / tw) : null;
-    // Recomendaciones priorizadas
+    R.base = tw ? ts / tw : null;
+    let score = tw ? Math.round(Math.max(0, Math.min(100, R.beta * R.base - R.phi))) : null;
+    R.risk = R.phi >= 12 || (rBar < .45 && (phiPerf > 0 || overMrv >= 2));
+    if (score != null && (R.risk || junkS > .5)) score = Math.min(score, 59);
+    R.score = score; R.label = score == null ? null : C.hiLabel(score, R.risk).t;
+    // ── Recomendaciones priorizadas ──
     const rec = (p, t) => R.recs.push({ p, t });
+    if (R.risk) rec(99, `<b>Riesgo de sobrecarga</b>: ${phiPerf > 0 ? `${drops} de ${nPerf} ejercicios rinden por debajo de lo normal` : 'fatiga acumulada alta'}${rBar < .45 && rv.length ? ' y tu recuperación está baja' : ''}. Haz una descarga de 5–7 días: −40–50% de series, RIR ≥3 y prioridad al sueño.`);
     const lows = R.muscles.filter(x => x.lm && x.major && x.v < x.lm.mev).sort((a, b) => (b.lm.mev - b.v) - (a.lm.mev - a.v));
     const regNote = x => x.rv - x.v >= 1 ? ` (${f1(x.rv)} registradas)` : '';
     if (lows.length >= 3) {
       const nm = lows.slice(0, 3).map(x => `<b>${esc(x.m)}</b>`);
-      rec(90, `Sube el volumen de ${nm.slice(0, -1).join(', ')} y ${nm[nm.length - 1]}${lows.length > 3 ? ` (y ${lows.length - 3} más)` : ''}: están por debajo de su MEV. Añade 2–4 series duras por semana a cada uno.`);
+      rec(90, `Sube el volumen efectivo de ${nm.slice(0, -1).join(', ')} y ${nm[nm.length - 1]}${lows.length > 3 ? ` (y ${lows.length - 3} más)` : ''}: están por debajo de su MEV. Añade 2–4 series duras por semana a cada uno.`);
     } else lows.forEach(x => {
       const gap = Math.ceil(x.lm.mev - x.v);
-      rec(92 - x.v, `Sube <b>${esc(x.m)}</b>: ${f1(x.v)} series duras/sem${regNote(x)}, por debajo de tu MEV (${x.lm.mev}). Añade ${gap}–${gap + 2} series a la semana.`);
+      rec(92 - x.v, `Sube <b>${esc(x.m)}</b>: ${f1(x.v)} series efectivas/sem${regNote(x)}, por debajo de tu MEV (${x.lm.mev}). Añade ${gap}–${gap + 2} series a la semana.`);
     });
     R.muscles.filter(x => x.lm && x.v > x.lm.mrv).forEach(x => rec(86, `Baja <b>${esc(x.m)}</b>: ${f1(x.v)} series/sem superan tu MRV (${x.lm.mrv}). Quita ${Math.ceil(x.v - x.lm.mav)} para volver a la zona productiva.`));
-    if (cr != null && cr < .9) rec(88, `Completas el ${Math.round(cr * 100)}% de las series planificadas: estás recortando sesiones. Haz primero los ejercicios clave o planifica menos series.`);
+    if (junkS > .5) rec(96, `El ${Math.round(junkS * 100)}% de tus series se quedan a 5 o más repeticiones del fallo y apenas estimulan: llévalas a RIR 1–3 (te quedan 1–3 reps). Mientras sea así, el índice no pasa de 59.`);
+    else if (junkS > .2) rec(76, `El ${Math.round(junkS * 100)}% de tus series se quedan lejos del fallo (RIR ≥5): acércalas a RIR 1–3 o elimínalas.`);
+    if (failS > .25 && compLogged >= 6) rec(70, `Llevas al fallo el ${Math.round(failS * 100)}% de las series de multiarticulares: el fallo fatiga mucho más de lo que estimula. Resérvalo para aislamientos.`);
+    if (cr != null && cr < .9) rec(88, `Completas el ${Math.round(cr * 100)}% de las series planificadas: estás recortando sesiones. Usa el tiempo disponible al empezar: la app deja para el final lo accesorio.`);
     if (spw < plan * .75) rec(72, `Haces ${f1(spw)} sesiones/sem de las ${plan} de tu plan.`);
-    if (R.comp.int.score == null) rec(70, 'Registra el RPE en cada serie: sin él no se puede saber cuántas series son realmente efectivas.');
-    else {
-      if (R.comp.int.junkS > .5) rec(96, `El ${Math.round(R.comp.int.junkS * 100)}% de tus series están a RPE &lt;6 y no cuentan como series efectivas: llévalas a RPE 7–9 (te quedan 1–3 reps).`);
-      else if (R.comp.int.junkS > .2) rec(76, `El ${Math.round(R.comp.int.junkS * 100)}% de tus series están a RPE &lt;6: acércalas a RIR 1–3 o elimínalas.`);
-      if (R.comp.int.failS > .4) rec(62, `Llevas al fallo el ${Math.round(R.comp.int.failS * 100)}% de las series: resérvalo para la última serie de aislamientos.`);
-    }
-    R.muscles.filter(x => x.major && x.v >= 4 && x.f > 0 && x.f < 1.5).forEach(x => rec(58, `<b>${esc(x.m)}</b> se entrena ${f1(x.f)} día/sem: reparte sus ${f1(x.v)} series en 2 sesiones.`));
+    if (R.comp.int.score == null) rec(80, 'Marca las repeticiones en reserva (RIR) de cada serie al terminarla: sin esfuerzo real no se puede saber qué series estimulan.');
+    if (R.comp.den.score != null && R.comp.den.score < 70) rec(64, `Descansas poco entre series (densidad ${Math.round(R.comp.den.score)}): deja 2–3 min en multiarticulares y al menos 1 min en aislamientos.`);
+    if (rv.length && rBar < .55 && !R.risk) rec(74, `Tu recuperación está baja (readiness media ${Math.round(rBar * 100)}/100): duerme más y, en días rojos, quita series en vez de apretar.`);
+    if (al.length && aBar < .5) rec(66, 'No estás ajustando la carga a cómo llegas: en días de mala recuperación aplica la recomendación del inicio de sesión.');
     R.exercises.filter(x => x.st !== 'up' && x.n >= 4).sort((a, b) => a.pct - b.pct).slice(0, 2).forEach(x =>
       rec(x.st === 'down' ? 80 : 55, `<b>${esc(x.name)}</b> ${x.st === 'down' ? 'retrocede' : 'está estancado'} (${x.pct > 0 ? '+' : ''}${x.pct.toFixed(1)}% de e1RM al mes): cambia el rango de reps o la variante.`));
-    // Equilibrios con series DIRECTAS (las indirectas inflarían el empuje: cada press suma medio deltoides anterior)
     const D = m => (raw[m] || 0) / weeks;
     const push = D('Pectoral') + D('Deltoides anterior'), pull = D('Espalda');
     if (push > 4 && pull < .8 * push) rec(50, `Desequilibrio empuje/tirón: ${f1(pull)} series directas de espalda frente a ${f1(push)} de empuje. Busca un ratio cercano a 1:1.`);
     if (D('Cuádriceps') > 4 && D('Isquiosurales') < .6 * D('Cuádriceps')) rec(45, `Isquiosurales (${f1(D('Isquiosurales'))} series directas/sem) muy por detrás de cuádriceps (${f1(D('Cuádriceps'))}).`);
-    const rpeAvg = (a, b) => { let s = 0, n = 0; all.filter(x => x.date >= a && x.date <= b && !isDl(x.date)).forEach(x => x.exercises?.forEach(e => e.sets?.forEach(st => { if (C.isWorkSet(st) && C.hasRpe(st)) { s += +st.rpe; n++; } }))); return n >= 6 ? s / n : null; };
-    const rNow = rpeAvg(C.addDays(end, -6), end), rPrev = rpeAvg(start, C.addDays(end, -7));
-    if (rNow != null && rPrev != null && rNow - rPrev >= .7 && (R.comp.prog.score ?? 100) < 60)
-      rec(84, `Señales de fatiga: el RPE medio sube (${f1(rPrev)} → ${f1(rNow)}) sin que suba la fuerza. Adelanta la semana de descarga (−50% de series).`);
     R.recs.sort((a, b) => b.p - a.p);
     if (!R.recs.length) rec(0, 'Todo en orden: mantén el volumen y sigue subiendo cargas o repeticiones.');
     return R;
