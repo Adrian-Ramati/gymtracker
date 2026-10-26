@@ -113,7 +113,7 @@ with sync_playwright() as p:
     check('M12. Desactivar no borra el historial', ev("()=>mesoNow()") is None and ev("()=>db.profile.mesoLog.length") >= 2)
     # el índice excluye las sesiones de descarga
     ev("""()=>{const t=todayStr(),mk=(d,n)=>({id:Math.random(),date:addDays(t,-d),name:'Upper',exercises:[{name:'Press banca',muscle:'Pectoral',notes:'',best_e1rm:100,sets:Array.from({length:n},()=>({kg:80,reps:8,rpe:8,done:true}))}]});
-      db.sessions=[mk(20,3),mk(15,3),mk(9,3),mk(1,2)];db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(t),-28),weeks:5,deload:true,progress:true,on:true}];navTo('hyper');}""")
+      db.sessions=[mk(20,3),mk(15,3),mk(9,3),mk(0,2)];db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(t),-28),weeks:5,deload:true,progress:true,on:true}];navTo('hyper');}""")
     page.wait_for_timeout(400)
     meta = page.inner_text('#hyper-body .hi-meta')
     check('M13. El índice indica las sesiones de descarga excluidas', 'de descarga excluidas' in meta, meta)

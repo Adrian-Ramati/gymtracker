@@ -265,6 +265,16 @@ t('v2: sesión de la app → filas por serie (tipos, serie madre, esfuerzo, hora
   assert.deepEqual(again.sets.map(x => x.id), S.map(x => x.id), 'los ids no cambian al volver a guardar');
 });
 
+t('v2: valores imposibles del historial (RPE 14, peso negativo, 150 reps) no rompen nada', () => {
+  assert.equal(C.setRir({ kg: 55, reps: 55, rpe: 14, done: true }), null);
+  assert.equal(C.setRir({ kg: 55, reps: 10, rpe: 0.5, done: true }), null);
+  const s = { id: 9, date: '2026-09-01', name: 'X', exercises: [{ name: 'Curl', muscle: 'Bíceps', sets: [
+    { kg: 55, reps: 55, rpe: 14, done: true }, { kg: -5, reps: 150, rpe: 8, done: true, restS: -3, doneAt: 'ayer' }] }] };
+  const S = C.toV2Rows(s, 'u').sets;
+  assert.deepEqual([S[0].load_kg, S[0].reps, S[0].rpe, S[0].rir, S[0].effort_source], [55, 55, null, null, null]);
+  assert.deepEqual([S[1].load_kg, S[1].reps, S[1].rpe, S[1].rir, S[1].rest_before_s, S[1].completed_at], [null, null, 8, 2, null, null]);
+});
+
 // ── Health Connect → biometría diaria (zona horaria de Madrid) ──
 t('salud: sueño al día en que te despiertas, sin fases despierto; pulso, HRV nocturna, peso y pasos sin duplicar', () => {
   const tz = process.env.TZ; process.env.TZ = 'Europe/Madrid'; // el día y la «noche» dependen de la hora local

@@ -44,9 +44,12 @@ check('S7. Cada nombre cambiado indica el nombre antiguo', len(olds) == len(name
 V2 = open(os.path.join(ROOT, 'sql', '2026-10-25-modelo-v2.sql'), encoding='utf-8').read()
 v2body = re.sub(r'^--.*$', '', V2, flags=re.M).strip()
 check('S9. Modelo v2: una transacción y repetible (if not exists / on conflict / sin duplicar sesiones)', v2body.startswith('begin;') and v2body.endswith('commit;')
-      and all(k in V2 for k in ['create table if not exists workout_sessions', 'add column if not exists meta', 'on conflict (exercise_id, muscle) do nothing', 'where not exists (select 1 from workout_sessions w where w.legacy_session_id = s.id)']))
+      and all(k in V2 for k in ['create table if not exists workout_sessions', 'add column if not exists meta', 'on conflict (exercise_id, muscle) do nothing', 'not exists (select 1 from workout_sessions w where w.legacy_session_id = s.id)']))
 check('S10. Modelo v2: seguridad por usuario en las cinco tablas nuevas', "array['workout_sessions', 'exercise_entries', 'set_entries', 'biometric_daily', 'iho_snapshots']" in V2 and 'user_id = auth.uid()' in V2)
 check('S11. Modelo v2: alias para los 15 nombres corregidos', V2.count('insert into exercise_aliases') == 15)
+check('S12. Modelo v2: la migración deja vacíos los valores imposibles en lugar de fallar (RPE 1–10, ≤100 reps, peso ≥0)',
+      all(k in V2 for k in ["case when (x.value->>'rpe')::numeric between 1 and 10", "case when (x.value->>'reps')::numeric <= 100",
+                            "x.value->>'kg' ~ '^[0-9]+", 's.user_id is not null and s.date is not null']))
 
 OLD_SESS = """()=>{
   const d=n=>{const x=new Date();x.setDate(x.getDate()-n);return isoDate(x);};

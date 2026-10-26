@@ -455,7 +455,10 @@ function onSetInput(ei,si){
   const s=activeSess.exercises[ei].sets[si];
   const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
   const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
-  const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined){if(rpe!==s.rpe){if(rpe==null)delete s.effortSrc;else s.effortSrc='logged';}s.rpe=rpe;}
+  const rpeEl=document.getElementById(`rpe_${ei}_${si}`);
+  let rpe=numVal(rpeEl);
+  if(rpe!=null&&!PPCore.validRpe(rpe)){rpeEl?.classList.add('bad');if(!rpeEl?.dataset.warned){toast('El RPE va de 1 a 10');if(rpeEl)rpeEl.dataset.warned='1';}rpe=null;}else rpeEl?.classList.remove('bad');
+  if(rpe!==undefined){if(rpe!==s.rpe){if(rpe==null)delete s.effortSrc;else s.effortSrc='logged';}s.rpe=rpe;}
   updateE1RMRow(ei);
   persistActive();
 }
@@ -480,7 +483,8 @@ function toggleDone(ei,si){
   // Explicit read: what's in the input is the truth (empty = null, 0 = 0)
   const kg=numVal(kgEl);if(kg!==undefined)s.kg=kg;
   const rp=numVal(rpEl);if(rp!==undefined)s.reps=rp;
-  const rpe=numVal(rpeEl);if(rpe!==undefined){if(rpe!==s.rpe&&rpe!=null)s.effortSrc='logged';s.rpe=rpe;}
+  let rpe=numVal(rpeEl);if(rpe!=null&&!PPCore.validRpe(rpe))rpe=null;
+  if(rpe!==undefined){if(rpe!==s.rpe&&rpe!=null)s.effortSrc='logged';s.rpe=rpe;}
   s.done=!s.done;
   if(s.done&&!activeSess.editing&&!activeSess.isTmplEdit){
     // Hora de la serie y descanso real desde la anterior (menos ~3 s por repetición de la propia serie)
