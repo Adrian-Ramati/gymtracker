@@ -949,15 +949,20 @@ insert into exercise_aliases (alias, exercise_id)
   on conflict (alias) do nothing;
 
 -- ── Migración del historial (sessions.exercises jsonb → filas). Ids deterministas: repetirla no duplica ──
+-- Los valores imposibles del historial (p. ej. un RPE de 14 o un peso negativo) se migran vacíos en lugar de romper la migración.
 with src as (
-  select s.* from sessions s where not exists (select 1 from workout_sessions w where w.legacy_session_id = s.id)
+  select s.* from sessions s
+  where s.user_id is not null and s.date is not null
+    and not exists (select 1 from workout_sessions w where w.legacy_session_id = s.id)
 ), ins_s as (
   insert into workout_sessions (id, user_id, local_date, started_at, ended_at, status, template_name,
                                 time_budget_min, planned_hard_sets, readiness, legacy_session_id)
   select md5('w:' || s.id)::uuid, s.user_id, s.date::date,
          (s.date::date + time '12:00') at time zone 'Europe/Madrid',
          (s.date::date + time '12:00') at time zone 'Europe/Madrid' + make_interval(mins => coalesce(s.duration_min, 0)),
-         'completed', s.name, nullif(s.meta->>'timeBudget', '')::smallint, nullif(s.meta->>'plannedSets', '')::smallint,
+         'completed', s.name,
+         case when s.meta->>'timeBudget' ~ '^[0-9]{1,4}$' then (s.meta->>'timeBudget')::smallint end,
+         case when s.meta->>'plannedSets' ~ '^[0-9]{1,4}$' then (s.meta->>'plannedSets')::smallint end,
          s.meta->'readiness', s.id
   from src s
   returning id, legacy_session_id, user_id
@@ -975,25 +980,36 @@ with src as (
   left join exercises c2 on c2.id = coalesce(c.id, a.exercise_id)
   returning id
 ), st as (
+  -- números válidos o nulo (CASE garantiza el orden: primero se comprueba el formato, después se convierte)
   select ex.*, x.value as s, (x.ord - 1)::int as idx, x.value->>'type' as t,
-         nullif(x.value->>'rpe', '')::numeric as rpe0
-  from ex cross join lateral jsonb_array_elements(coalesce(ex.ex->'sets', '[]'::jsonb)) with ordinality x(value, ord)
+         case when x.value->>'rpe' ~ '^[0-9]+(\.[0-9]+)?$' then
+           case when (x.value->>'rpe')::numeric between 1 and 10 then (x.value->>'rpe')::numeric end end as rpe0,
+         case when x.value->>'kg' ~ '^[0-9]+(\.[0-9]+)?$' then
+           case when (x.value->>'kg')::numeric < 10000 then round((x.value->>'kg')::numeric, 2) end end as kg0,
+         case when x.value->>'reps' ~ '^[0-9]+(\.[0-9]+)?$' then
+           case when (x.value->>'reps')::numeric <= 100 then round((x.value->>'reps')::numeric)::smallint end end as reps0,
+         case when x.value->>'done' in ('true', 'false') then (x.value->>'done')::boolean end as done0,
+         case when x.value->>'doneAt' ~ '^[0-9]{10,13}$' then to_timestamp((x.value->>'doneAt')::bigint / 1000.0) end as at0,
+         case when x.value->>'restS' ~ '^[0-9]{1,6}(\.[0-9]+)?$' then round((x.value->>'restS')::numeric)::int end as rest0,
+         -- drop set y rest-pause cuelgan de la serie anterior, si existe
+         x.ord > 1 and jsonb_typeof(ex.ex->'sets'->((x.ord - 2)::int)) = 'object' as prev_ok
+  from ex cross join lateral jsonb_array_elements(case when jsonb_typeof(ex.ex->'sets') = 'array' then ex.ex->'sets' else '[]'::jsonb end)
+       with ordinality x(value, ord)
+  where jsonb_typeof(x.value) = 'object'
 )
 insert into set_entries (id, entry_id, session_id, user_id, idx, set_type, parent_set_id, load_kg, reps, rir, rpe,
                          effort_source, completed, completed_at, rest_before_s)
 select md5('s:' || lid || ':' || ord || ':' || idx)::uuid,
        md5('e:' || lid || ':' || ord)::uuid, session_id, user_id, idx,
-       case when t = 'warmup' then 'warmup' when t = 'dropset' and idx > 0 then 'drop' when t = 'restpause' and idx > 0 then 'rest_pause' else 'working' end,
-       case when t in ('dropset', 'restpause') and idx > 0 then md5('s:' || lid || ':' || ord || ':' || (idx - 1))::uuid end,
-       nullif(s->>'kg', '')::numeric, nullif(s->>'reps', '')::numeric::smallint,
-       case when t = 'warmup' or coalesce(rpe0, case when t = 'failure' then 10 end) is null then null
-            else greatest(0, 10 - coalesce(rpe0, 10)) end,
-       case when t = 'warmup' then null else coalesce(rpe0, case when t = 'failure' then 10 end) end,
+       case when t = 'warmup' then 'warmup' when t = 'dropset' and prev_ok then 'drop' when t = 'restpause' and prev_ok then 'rest_pause' else 'working' end,
+       case when t in ('dropset', 'restpause') and prev_ok then md5('s:' || lid || ':' || ord || ':' || (idx - 1))::uuid end,
+       kg0, reps0,
+       case when t = 'warmup' then null when rpe0 is not null then 10 - rpe0 when t = 'failure' then 0 end,
+       case when t = 'warmup' then null when rpe0 is not null then rpe0 when t = 'failure' then 10 end,
        case when t = 'warmup' or (rpe0 is null and t is distinct from 'failure') then null
             when s->>'effortSrc' = 'logged' then 'logged' when s->>'effortSrc' = 'copied' then 'copied_prev' else 'legacy' end,
-       coalesce((s->>'done')::boolean, false) or nullif(s->>'kg', '') is not null,
-       case when s->>'doneAt' ~ '^[0-9]+$' then to_timestamp((s->>'doneAt')::bigint / 1000.0) end,
-       case when s->>'restS' ~ '^[0-9]+(\.[0-9]+)?$' then round((s->>'restS')::numeric)::int end
+       coalesce(done0, false) or kg0 is not null,
+       at0, rest0
 from st
 where exists (select 1 from ins_e);
 

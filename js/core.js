@@ -230,7 +230,9 @@
   C.restFor = (kind, base) => { const b = +base || 90; return kind === 'compound_heavy' ? b + 60 : kind === 'isolation' ? Math.max(60, b - 30) : b; };
   C.density = (r, lo, hi) => r < lo ? Math.max(0, Math.min(1, 1 - 1.5 * (lo - r) / lo)) : r <= hi ? 1 : Math.max(0.6, 1 - 0.4 * (r - hi) / (2 * hi));
   // Esfuerzo real de una serie en RIR (null si no hay o si es copiado/inferido: no se inventa)
-  C.setRir = st => (st && C.hasRpe(st) && st.effortSrc !== 'copied' && st.effortSrc !== 'inferred') ? Math.max(0, 10 - +st.rpe) : null;
+  // RPE válido: entre 1 y 10 (un 14 tecleado por error no cuenta como esfuerzo)
+  C.validRpe = v => v != null && v !== '' && isFinite(+v) && +v >= 1 && +v <= 10;
+  C.setRir = st => (st && C.validRpe(st.rpe) && st.effortSrc !== 'copied' && st.effortSrc !== 'inferred') ? 10 - +st.rpe : null;
   // Estímulo y coste de fatiga por serie según RIR (umbrales, igual que la referencia Python y la función SQL stim_rir)
   C.stim = rir => rir == null ? 0 : rir <= 1 ? 1 : rir <= 2 ? .95 : rir <= 3 ? .85 : rir <= 4 ? .6 : rir <= 5 ? .35 : 0;
   C.fatCost = rir => rir <= 0 ? 1.4 : rir <= 1 ? 1.15 : rir <= 2 ? 1.05 : 1;
@@ -313,11 +315,13 @@
         const t0 = st.type || 'normal', prev = e.sets[idx - 1];
         let type = V2_TYPE[t0] || 'working', parent = null;
         if ((type === 'drop' || type === 'rest_pause')) { if (prev) parent = prev.sid; else type = 'working'; }
-        const warm = type === 'warmup', rpe = C.hasRpe(st) ? +st.rpe : (t0 === 'failure' ? 10 : null);
+        const warm = type === 'warmup', rpe = C.validRpe(st.rpe) ? +st.rpe : (t0 === 'failure' ? 10 : null);
+        // valores imposibles (peso negativo, más de 100 reps…) se guardan vacíos: la base de datos los rechazaría
+        const num = (v, max, dec) => v != null && v !== '' && isFinite(+v) && +v >= 0 && +v <= max ? (dec ? Math.round(+v * 100) / 100 : Math.round(+v)) : null;
         const src = warm || rpe == null ? null : st.effortSrc === 'copied' ? 'copied_prev' : st.effortSrc === 'logged' ? 'logged' : 'legacy';
         sets.push({ id: st.sid, entry_id: e.eid, session_id: sess.uid, user_id: userId, idx, set_type: type, parent_set_id: parent,
-          load_kg: st.kg ?? null, reps: st.reps ?? null, rir: warm || rpe == null ? null : Math.max(0, 10 - rpe), rpe: warm ? null : rpe,
-          effort_source: src, completed: !!(st.done || st.kg), completed_at: iso(st.doneAt), rest_before_s: st.restS ?? null,
+          load_kg: num(st.kg, 9999.99, true), reps: num(st.reps, 100), rir: warm || rpe == null ? null : 10 - rpe, rpe: warm ? null : rpe,
+          effort_source: src, completed: !!(st.done || st.kg), completed_at: isFinite(+st.doneAt) && +st.doneAt > 1e12 ? iso(+st.doneAt) : null, rest_before_s: num(st.restS, 1e6),
           input_method: null, revision: 0 });
       });
     });
