@@ -561,12 +561,12 @@
     <div class="mscroll" style="display:flex;flex-direction:column;gap:10px">
       <div>
         <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre</label>
-        <input id="exed-name" type="text" placeholder="Nombre del ejercicio" style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none">
+        <input id="exed-name" oninput="exedRefreshSec()" type="text" placeholder="Nombre del ejercicio" style="width:100%;padding:9px 12px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none">
       </div>
       <div style="display:flex;gap:8px">
         <div style="flex:1">
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Músculo</label>
-          <select id="exed-muscle" style="width:100%;padding:9px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none"></select>
+          <select id="exed-muscle" onchange="exedRefreshSec()" style="width:100%;padding:9px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none"></select>
         </div>
         <div style="flex:1">
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Equipamiento</label>
@@ -576,6 +576,11 @@
             <option value="Máquina">Máquina</option>
           </select>
         </div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Músculos secundarios · cuentan ½ serie</label>
+        <div class="exv-sec2" id="exed-sec"></div>
+        <div class="exv-auto" id="exed-sec-note"></div>
       </div>
       <div>
         <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Rango de repeticiones</label>

@@ -81,7 +81,23 @@ function toggleBibCard(i){
   const el=document.getElementById('bibcard-'+i);
   if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
-let exEditorIdx=null;
+let exEditorIdx=null,exedSec=null; // exedSec: null = automáticos · array = elegidos a mano en este editor
+// Secundarios del editor: se calculan solos según nombre + músculo principal hasta que los toques
+function exedCur(){
+  const name=document.getElementById('exed-name').value.trim(),m=document.getElementById('exed-muscle').value;
+  return exedSec?exedSec.filter(x=>x!==PPCore.normMuscle(m)):PPCore.secondaryFor(db.profile,name,m);
+}
+function exedRefreshSec(){
+  const m=PPCore.normMuscle(document.getElementById('exed-muscle').value),cur=exedCur();
+  document.getElementById("exed-sec").innerHTML=PPCore.MUSCLES.filter(x=>PPCore.normMuscle(x)!==m).map(x=>`<button type="button" class="exv-mchip${cur.includes(x)?' on':''}" data-m="${esc(x)}" onclick="exedToggleSec(this.dataset.m)">${cur.includes(x)?'✓ ':''}${esc(x)}</button>`).join('');
+  document.getElementById('exed-sec-note').textContent=exedSec?'Elegidos por ti':cur.length?'Sugeridos según el nombre y el músculo principal; toca para cambiarlos':'Ninguno: este nombre no encaja con ninguna regla automática. Marca los que trabaja si quieres que cuenten';
+}
+function exedToggleSec(m){const cur=exedCur();exedSec=cur.includes(m)?cur.filter(x=>x!==m):[...cur,m];exedRefreshSec();}
+function exedSaveSec(name){
+  if(!exedSec||!name)return;
+  db.profile=db.profile||{};db.profile.secMap=db.profile.secMap||{};
+  db.profile.secMap[normExName(name)]=exedCur();saveDB();
+}
 function openExEditor(i,prefillName){
   exEditorIdx=i===null?null:Number(i);
   const isNew=exEditorIdx===null;
@@ -107,6 +123,7 @@ function openExEditor(i,prefillName){
     document.getElementById('exed-execution').value=e.execution||'';
     document.getElementById('exed-cues').value=(e.cues||[]).join('\n');
   }
+  exedSec=null;exedRefreshSec();
   document.getElementById('ov-ex-editor').classList.add('on');
 }
 function closeExEditor(e){if(!e||e.target===document.getElementById('ov-ex-editor')){document.getElementById('ov-ex-editor').classList.remove('on');pickerCreating=false;}}
@@ -131,6 +148,7 @@ async function saveExEditor(){
       btn.textContent='Guardar';btn.disabled=false;
       if(error){toast('Error al guardar: '+error.message);return;}
     }
+    exedSaveSec(name);
     ALL_EX.push({name,muscle,equipment,reps,description,execution,cues});
     if(!MUSCLES.includes(muscle))MUSCLES.push(muscle);
     toast('Ejercicio añadido ✓');
@@ -148,6 +166,7 @@ async function saveExEditor(){
     }
     const orig=ALL_EX.find(x=>x.name===e.name);
     if(orig){orig.description=description;orig.execution=execution;orig.cues=cues;}
+    exedSaveSec(e.name);
     toast('Ejercicio actualizado ✓');
   }
   closeExEditor();renderBiblioteca();
