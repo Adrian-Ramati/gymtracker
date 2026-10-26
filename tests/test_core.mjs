@@ -321,5 +321,22 @@ t('reparto semanal: grupos por patrón, suma = series efectivas y cociente tiró
   assert.equal(C.muscleGroup('Bíceps femoral'), 'Piernas');
 });
 
+t('revisión de secundarios: origen, series extra y multiarticulares sin secundarios', () => {
+  const W = n => Array.from({ length: n }, () => ({ kg: 50, reps: 10, done: true }));
+  const ses = [
+    { id: 1, date: '2026-10-20', exercises: [{ name: 'Press banca', muscle: 'Pectoral', sets: W(3) }, { name: 'Curl barra Z', muscle: 'Bíceps', sets: W(3) }, { name: 'Movimiento raro', muscle: 'Espalda', sets: W(2) }] },
+    { id: 2, date: '2026-10-22', exercises: [{ name: 'Press banca', muscle: 'Pectoral', sets: W(2) }, { name: 'Press hombro', muscle: 'Deltoides anterior', sets: W(2), sec: ['Tríceps'] }] },
+    { id: 3, date: '2026-08-01', exercises: [{ name: 'Press banca', muscle: 'Pectoral', sets: W(9) }] }, // fuera del rango
+  ];
+  const A = C.secAudit({ secMap: { 'movimiento raro': ['Bíceps'] } }, ses, '2026-09-27', '2026-10-26'), r = Object.fromEntries(A.rows.map(x => [x.name, x]));
+  assert.equal(A.sesiones, 2); assert.equal(A.ejercicios, 4);
+  assert.equal(r['Press banca'].sets, 5); assert.equal(r['Press banca'].sesiones, 2); assert.equal(r['Press banca'].src, 'automático');
+  assert.equal(r['Press hombro'].src, 'catálogo'); assert.equal(r['Movimiento raro'].src, 'personalizado');
+  assert.equal(r['Curl barra Z'].src, 'ninguno'); assert.equal(r['Curl barra Z'].revisar, false); // aislamiento: normal
+  assert.equal(A.revisar, 0); assert.equal(A.extra, 5 * 2 * .5 + 2 * .5 + 2 * .5);
+  const B = C.secAudit({}, ses, '2026-09-27', '2026-10-26');
+  assert.equal(B.revisar, 1); assert.equal(B.rows[0].name, 'Movimiento raro'); assert.equal(B.seriesRevisar, 2); assert.equal(B.sesionesRevisar, 1);
+});
+
 console.log(`\n${ok}/${ok + fail} OK`);
 process.exit(fail ? 1 : 0);

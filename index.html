@@ -79,6 +79,7 @@
           <div id="vol-bars"></div>
           <div class="vol-note">Series efectivas: 1 por músculo principal y 0,5 por cada secundario.</div>
           <button onclick="openLandmarks()" class="rest-btn" style="margin:6px 0 0">Editar MEV · MAV · MRV</button>
+          <button onclick="openSecAudit()" class="rest-btn" style="margin:6px 0 0">Revisar secundarios · últimos 30 días</button>
         </div>
         <div class="card">
           <div class="card-title">Reparto semanal <span id="donut-sub"></span></div>
@@ -523,6 +524,17 @@
       <button onclick="closeWeightEdit()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">×</button>
     </div>
     <div class="mscroll" id="weight-edit-list"></div>
+  </div>
+</div>
+<!-- REVISIÓN DE SECUNDARIOS -->
+<div class="overlay" id="ov-secaudit" onclick="closeSecAudit(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="mtitle" style="margin-bottom:0;flex:1">Secundarios · últimos 30 días</span>
+      <button onclick="closeSecAudit()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">×</button>
+    </div>
+    <div class="mscroll" id="secaudit-body"></div>
   </div>
 </div>
 <!-- LANDMARKS (MEV/MAV/MRV) MODAL -->

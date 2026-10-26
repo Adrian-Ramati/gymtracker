@@ -76,6 +76,16 @@ with sync_playwright() as p:
     ev("()=>{openExEditor(null,'Zzz raro');exedRefreshSec()}")
     check('S11. Un nombre sin regla automática avisa de que no hay secundarios', 'Ninguno' in ev("()=>document.getElementById('exed-sec-note').innerText"))
     ev("()=>closeExEditor()")
+    # Biblioteca: los secundarios se ven en la ficha desplegable
+    ev("()=>{navTo('perfil')}"); page.wait_for_timeout(400)
+    ev("()=>{const i=bibLast.findIndex(e=>e.name==='Press banca');toggleBibCard(i)}"); page.wait_for_timeout(200)
+    card = ev("()=>[...document.querySelectorAll('[id^=bibcard-]')].map(e=>e.innerText).join('|')")
+    check('S12. La ficha de la Biblioteca muestra los músculos secundarios', 'Músculos secundarios' in card and 'Tríceps' in card, card[:200])
+    # revisión de secundarios del último mes
+    ev("()=>{db.sessions.push({id:991,date:todayStr(),name:'T',exercises:[{name:'Movimiento raro',muscle:'Espalda',sets:[{kg:40,reps:10,done:true}]},{name:'Curl barra Z',muscle:'Bíceps',sets:[{kg:20,reps:10,done:true}]}]});openSecAudit()}"); page.wait_for_timeout(300)
+    au = ev("()=>document.getElementById('secaudit-body').innerText")
+    check('S13. La revisión lista los ejercicios del mes y marca el multiarticular sin secundarios', 'sin secundarios' in au and 'Movimiento raro' in au and 'normal aquí' in au and '1 ejercicio multiarticular' in au, au[:300])
+    ev("()=>closeSecAudit()")
     ev("()=>navHome()")
     # sincronización de ajustes en Supabase
     cap = ev("""async()=>{let cap=null;const old={sb:sbClient,u:useSupabase,us:supabaseUser};

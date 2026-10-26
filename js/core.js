@@ -177,6 +177,32 @@
     return [{ m: prim, w: 1 }, ...sec.map(m => ({ m, w: C.SEC_W }))];
   };
 
+  // Revisión de secundarios en un rango de fechas: por ejercicio, de dónde salen (catálogo / personalizado / automático / ninguno)
+  // y cuántas series efectivas aportan. «revisar» = ejercicio multiarticular de un músculo grande sin secundarios (en aislamiento y músculos pequeños es lo normal).
+  const NO_SEC_OK_M = new Set(['Bíceps', 'Tríceps', 'Antebrazo', 'Deltoides lateral', 'Deltoides posterior', 'Gemelos', 'Sóleo', 'Aductores', 'Abductores', 'Abdomen', 'Lumbar', 'Trapecio']);
+  C.secAudit = (profile, sessions, from, to) => {
+    const R = {}, ses = (sessions || []).filter(s => s.date >= from && s.date <= to), flagged = new Set();
+    let seriesTotal = 0, seriesCon = 0, extra = 0, nSes = 0;
+    ses.forEach(s => {
+      let any = false;
+      (s.exercises || []).forEach(e => {
+        const n = (e.sets || []).filter(C.isWorkSet).length; if (!n) return;
+        any = true;
+        const sec = C.credits(profile, e).slice(1).map(c => c.m), k = fold(e.name);
+        const src = Array.isArray(e.sec) ? 'catálogo' : Array.isArray(profile?.secMap?.[k]) ? 'personalizado' : sec.length ? 'automático' : 'ninguno';
+        const kind = C.exKind(e), revisar = !sec.length && kind !== 'isolation' && !NO_SEC_OK_M.has(C.normMuscle(e.muscle)) && !/hip[ -]?thrust|puente de gluteo/.test(k);
+        const r = R[k] = R[k] || { name: e.name, muscle: C.normMuscle(e.muscle), sets: 0, sesiones: 0, sec, src, kind, revisar };
+        r.sets += n; r.sesiones++; seriesTotal += n; if (sec.length) { seriesCon += n; extra += n * C.SEC_W * sec.length; }
+        if (revisar) flagged.add(s.id != null ? s.id : s.date);
+      });
+      if (any) nSes++;
+    });
+    const rows = Object.values(R).sort((a, b) => (b.revisar - a.revisar) || (b.sets - a.sets));
+    const revisar = rows.filter(r => r.revisar);
+    return { rows, ejercicios: rows.length, conSec: rows.filter(r => r.sec.length).length, revisar: revisar.length,
+      seriesRevisar: revisar.reduce((a, r) => a + r.sets, 0), seriesTotal, seriesCon, extra, sesiones: nSes, sesionesRevisar: flagged.size };
+  };
+
   // ── Series ──
   C.isWorkSet = s => !!s && !!(s.done || s.kg) && (s.type || 'normal') !== 'warmup';
   C.hasRpe = s => s.rpe != null && s.rpe !== '' && !isNaN(+s.rpe);
