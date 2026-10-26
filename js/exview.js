@@ -72,3 +72,21 @@ function renderExView(){
   h+=`<div class="exv-btns"><button data-n="${dn}" onclick="openGifPick(this.dataset.n)">${g?'Cambiar animación':'Elegir animación'}</button>${curScr()!=='sess'?`<button data-n="${dn}" onclick="closeExView();goToExInBiblioteca(this.dataset.n)">Ver en biblioteca</button>`:''}</div>`;
   document.getElementById('exv-body').innerHTML=h;
 }
+
+// ─── Revisión de secundarios (últimos 30 días) ───
+function openSecAudit(){renderSecAudit();document.getElementById('ov-secaudit').classList.add('on');}
+function closeSecAudit(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('ov-secaudit').classList.remove('on');}
+function renderSecAudit(){
+  const to=todayStr(),from=PPCore.addDays(to,-29),A=PPCore.secAudit(db.profile,db.sessions,from,to);
+  const el=document.getElementById('secaudit-body');
+  if(!A.ejercicios){el.innerHTML='<div style="font-size:12px;color:var(--t3)">Sin series registradas en los últimos 30 días</div>';return;}
+  const pct=A.seriesTotal?Math.round(A.seriesCon/A.seriesTotal*100):0;
+  let h=`<div class="sa-sum"><b>${A.sesiones}</b> sesiones · <b>${A.ejercicios}</b> ejercicios · <b>${A.seriesTotal}</b> series<br>
+    Con secundarios: <b>${A.conSec}/${A.ejercicios}</b> ejercicios · <b>${pct}%</b> de las series, que aportan <b>${f1(A.extra)}</b> series efectivas extra.</div>`;
+  h+=A.revisar?`<div class="sa-warn">⚠ ${A.revisar} ejercicio${A.revisar>1?'s':''} multiarticular${A.revisar>1?'es':''} sin secundarios (${A.seriesRevisar} series en ${A.sesionesRevisar} sesion${A.sesionesRevisar>1?'es':''}). Tócalos para asignarlos.</div>`
+    :'<div class="sa-ok">✓ Todos los ejercicios multiarticulares tienen secundarios. Los que no los tienen son de aislamiento o de músculos pequeños, donde es lo normal.</div>';
+  h+=A.rows.map(r=>`<div class="sa-row${r.revisar?' warn':''}" data-n="${esc(r.name)}" onclick="closeSecAudit();openExView(this.dataset.n)">
+    <div class="sa-h"><span class="sa-n">${esc(r.name)}</span><em>${r.sets} series · ${r.sesiones} ses.</em></div>
+    <div class="sa-m"><span class="sa-p">${esc(r.muscle)}</span>${r.sec.length?r.sec.map(m=>`<span class="sa-s">+ ${esc(m)}</span>`).join(''):`<span class="sa-none">${r.revisar?'⚠ sin secundarios':'sin secundarios · normal aquí'}</span>`}<i>${r.src}</i></div></div>`).join('');
+  el.innerHTML=h;
+}
