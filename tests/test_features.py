@@ -84,14 +84,14 @@ with sync_playwright() as p:
     chip = ev("()=>document.querySelector('.cta-card .meso-chip')?.textContent")
     check('M4. Portada: chip con la semana y el RPE objetivo', chip == 'Semana 1/4 · RPE 7', chip)
     # semana 2: +1 serie en el primer ejercicio de cada músculo
-    ev("()=>{db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(todayStr()),-7),weeks:5,deload:true,progress:true,on:true}];selDate=todayStr();startFromTmpl('u');}")
+    ev("()=>{db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(todayStr()),-7),weeks:5,deload:true,progress:true,on:true}];selDate=todayStr();startFromTmpl('u');preSessGo(true);}")
     page.wait_for_timeout(300)
     st = ev("()=>({sets:activeSess.exercises.map(e=>e.sets.length),banner:document.getElementById('sess-meso').innerText})")
     check('M5. Semana 2: +1 serie en el primer ejercicio de pecho y de espalda', st['sets'] == [4, 3, 5], st)
     check('M6. Aviso en la sesión con el RIR objetivo', 'Semana 2 de 5' in st['banner'] and 'RIR 2' in st['banner'], st['banner'])
     ev(RESET)
     # semana de descarga
-    ev("()=>{db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(todayStr()),-28),weeks:5,deload:true,progress:true,on:true}];selDate=todayStr();startFromTmpl('u');}")
+    ev("()=>{db.profile.mesoLog=[{from:'2026-01-01',start:addDays(PPCore.mondayOf(todayStr()),-28),weeks:5,deload:true,progress:true,on:true}];selDate=todayStr();startFromTmpl('u');preSessGo(true);}")
     page.wait_for_timeout(300)
     st = ev("()=>({sets:activeSess.exercises.map(e=>e.sets.length),banner:document.getElementById('sess-meso').innerText,hint:document.querySelector('#ec_0 .prog-hint')?.innerText})")
     check('M7. Descarga: mitad de series', st['sets'] == [2, 2, 2], st)

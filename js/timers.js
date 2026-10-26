@@ -55,7 +55,18 @@ async function ensureNotifPermission(){
   notifAsked=true;
   try{return(await Notification.requestPermission())==='granted';}catch(e){return false;}
 }
+// App Android (Capacitor): notificación local nativa, que suena aunque la pantalla esté apagada
+function localNotif(){try{return window.Capacitor?.isNativePlatform?.()?(window.Capacitor.Plugins?.LocalNotifications||null):null;}catch(e){return null;}}
 async function scheduleRestNotification(endTs){
+  const LN=localNotif();
+  if(LN){
+    try{
+      const p=await LN.checkPermissions();if(p.display!=='granted'&&(await LN.requestPermissions()).display!=='granted')return;
+      await LN.cancel({notifications:[{id:7001}]}).catch(()=>{});
+      await LN.schedule({notifications:[{id:7001,title:'Descanso terminado',body:'A por la siguiente serie 💪',schedule:{at:new Date(endTs),allowWhileIdle:true}}]});
+    }catch(e){}
+    return;
+  }
   try{
     if(!await ensureNotifPermission())return;
     const reg=await navigator.serviceWorker?.ready;
@@ -63,6 +74,7 @@ async function scheduleRestNotification(endTs){
   }catch(e){}
 }
 function cancelRestNotification(){
+  const LN=localNotif();if(LN){LN.cancel({notifications:[{id:7001}]}).catch(()=>{});return;}
   try{
     navigator.serviceWorker?.ready.then(reg=>{
       reg.active?.postMessage({type:'cancel-rest'});

@@ -102,6 +102,7 @@
         <div id="perfil-routines"></div>
       </div>
       <div class="card" id="meso-card"></div>
+      <div class="card" id="health-card"></div>
       <div class="card">
         <div class="card-title">Biblioteca de ejercicios</div>
         <div style="position:relative;margin-bottom:10px">
@@ -165,6 +166,7 @@
         <button class="finish-btn" onclick="finishSession()">Finalizar</button>
       </div>
       <div id="sess-meso"></div>
+      <div id="sess-plan"></div>
       <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px">
         <span style="font-size:12px;color:var(--t2)">📅 Fecha del entrenamiento</span>
         <input type="date" id="sess-date" onchange="onSessDate(this.value)" style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:12px;padding:5px 6px;outline:none">
@@ -180,7 +182,7 @@
     <div id="s-tmpledit" class="scr">
       <div class="sess-hdr">
         <input class="sess-name-inp" id="tmpledit-name" value="Rutina">
-        <span class="sess-timer" style="display:flex;align-items:center;gap:4px">⏱<input type="number" id="tmpledit-rest" min="15" max="600" step="15" style="width:48px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;text-align:center;padding:2px">s</span>
+        <span class="sess-timer" style="display:flex;align-items:center;gap:4px" title="Descanso de los multiarticulares (pesados +60 s, aislamientos −30 s)">⏱<input type="number" id="tmpledit-rest" min="15" max="600" step="15" style="width:48px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;text-align:center;padding:2px">s</span>
         <button class="cancel-btn" onclick="cancelTmplEdit()" title="Cancelar">✕</button>
         <button class="finish-btn" onclick="saveTmplEdit()">Guardar</button>
       </div>
@@ -620,6 +622,36 @@
   <button onclick="restAdd(30)" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t2);font-size:11px;padding:2px 8px;cursor:pointer">+30s</button>
   <button onclick="stopRest()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0">×</button>
 </div>
+<div id="rir-ask" class="rir-ask" role="dialog" aria-label="Repeticiones en reserva">
+  <div class="rir-q"><b>¿Cuántas te quedaban?</b><span id="rir-ask-ex"></span><button onclick="hideRirAsk()" aria-label="Cerrar">×</button></div>
+  <div class="rir-chips"><button onclick="chooseRir(0)">0<small>fallo</small></button><button onclick="chooseRir(1)">1</button><button onclick="chooseRir(2)">2</button><button onclick="chooseRir(3)">3</button><button onclick="chooseRir(4)">4+</button></div>
+</div>
+<div id="ov-numpad" class="np-ov" onclick="npClose(event)">
+  <div class="np-sheet">
+    <div class="np-head"><span id="np-label">Peso (kg)</span><b id="np-val">—</b></div>
+    <div class="np-steps"><button id="np-minus" onclick="npStep(-1)">−2,5</button><button id="np-plus" onclick="npStep(1)">+2,5</button></div>
+    <div class="np-keys">
+      <button onclick="npKey('1')">1</button><button onclick="npKey('2')">2</button><button onclick="npKey('3')">3</button>
+      <button onclick="npKey('4')">4</button><button onclick="npKey('5')">5</button><button onclick="npKey('6')">6</button>
+      <button onclick="npKey('7')">7</button><button onclick="npKey('8')">8</button><button onclick="npKey('9')">9</button>
+      <button onclick="npKey(',')">,</button><button onclick="npKey('0')">0</button><button onclick="npKey('del')" aria-label="Borrar">⌫</button>
+    </div>
+    <div class="np-foot"><button class="np-next" onclick="npNext()">Siguiente →</button><button class="np-ok" onclick="npClose()">OK</button></div>
+  </div>
+</div>
+<div id="ov-presess" class="ps-ov" onclick="closePreSess(event)">
+  <div class="ps-sheet">
+    <div class="ps-grab"></div>
+    <div class="ps-h">Antes de empezar · <span id="presess-title"></span></div>
+    <div class="ps-lbl">⏱ ¿Cuánto tiempo tienes?</div>
+    <div class="ps-chips" id="presess-time"></div>
+    <div class="ps-lbl">¿Cómo llegas hoy?</div>
+    <div id="presess-q"></div>
+    <div id="presess-ready"></div>
+    <button class="ps-go" onclick="preSessGo()">Empezar</button>
+    <button class="ps-skip" onclick="preSessGo(true)">Saltar y empezar sin ajustes</button>
+  </div>
+</div>
 <div class="exv-zoom" id="exv-zoom" onclick="this.classList.remove('on')"><img id="exv-zoom-img" alt=""><span>✕</span></div>
 <div class="toast" id="toast"></div>
 <script src="js/core.js"></script>
@@ -637,6 +669,8 @@
 <script src="js/exview.js"></script>
 <script src="js/hyper.js"></script>
 <script src="js/meso.js"></script>
+<script src="js/registro.js"></script>
+<script src="js/health.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

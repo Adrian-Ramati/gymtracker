@@ -66,7 +66,7 @@ with sync_playwright() as p:
     check('A14. La portada usa los mismos colores', ev("()=>{navHome();const e=document.querySelector('#hc-body .body-m[data-id=\"f-abs\"]');return e.style.fill}") == rgb(zc[0]))
 
     # ── Entrenamiento: volver al inicio sin cortar la sesión ──
-    ev("()=>startFromTmpl('t1')"); page.wait_for_timeout(600)
+    ev("()=>{startFromTmpl('t1');preSessGo(true)}"); page.wait_for_timeout(600)
     vis = ev("()=>getComputedStyle(document.getElementById('hdr-back')).visibility")
     check('A15. Durante el entrenamiento hay botón para volver', vis == 'visible', vis)
     ev("()=>{activeSess.exercises[0].sets[0].kg=21;activeSess.exercises[0].sets[0].done=true;}")
@@ -77,7 +77,7 @@ with sync_playwright() as p:
     check('A18. Aparece la barra para continuar y el menú inferior', st['bar'] and st['nav'], st)
     page.click('#bn-stats'); page.wait_for_timeout(400)
     check('A19. Se puede navegar por la app con la sesión abierta', ev("()=>curScr()") == 'stats' and ev("()=>document.getElementById('resume-bar').classList.contains('show')"))
-    ev("()=>startFromTmpl('t2')"); page.wait_for_timeout(400)
+    ev("()=>{startFromTmpl('t2');preSessGo(true)}"); page.wait_for_timeout(400)
     st = ev("()=>({scr:curScr(),name:activeSess.name,kg:activeSess.exercises[0].sets[0].kg})")
     check('A20. Empezar otra rutina no pisa la sesión abierta: vuelve a ella', st == {'scr': 'sess', 'name': 'T1', 'kg': 21}, st)
     page.click('#hdr-back'); page.wait_for_timeout(300); page.click('.resume-bar-continue'); page.wait_for_timeout(400)

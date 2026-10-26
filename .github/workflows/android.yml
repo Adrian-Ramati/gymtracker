@@ -1,0 +1,62 @@
+name: App Android
+
+# Compila la app Android (Capacitor + Health Connect). La app carga la web publicada en GitHub Pages,
+# así que solo hace falta recompilar cuando cambia la parte nativa (carpeta android/, plugins o configuración).
+# En main, el APK se publica en la release «android»: https://github.com/Adrian-Ramati/gymtracker/releases/tag/android
+on:
+  push:
+    paths: ['android/**', 'package.json', 'package-lock.json', 'capacitor.config.json', 'www/**', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['android/**', 'package.json', 'package-lock.json', 'capacitor.config.json', 'www/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Dependencias y sincronización de Capacitor
+        run: |
+          npm ci
+          npx cap sync android
+
+      - name: Compilar APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../peak-physique.apk
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: peak-physique-apk
+          path: peak-physique.apk
+
+      - name: Publicar en la release «android»
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android >/dev/null 2>&1 || gh release create android --title "App Android" --prerelease \
+            --notes "APK de Peak Physique con Health Connect. Se actualiza en cada cambio de la parte nativa. Instálalo en el móvil (permite instalar apps de origen desconocido)."
+          gh release upload android peak-physique.apk --clobber

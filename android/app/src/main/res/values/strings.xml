@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Peak Physique</string>
+    <string name="title_activity_main">Peak Physique</string>
+    <string name="package_name">es.peakphysique.app</string>
+    <string name="custom_url_scheme">es.peakphysique.app</string>
+    <!-- Health Connect muestra esta política al pedir permisos -->
+    <string name="health_connect_privacy_policy_url">https://adrian-ramati.github.io/gymtracker/privacidad.html</string>
+</resources>

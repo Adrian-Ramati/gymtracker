@@ -8,9 +8,9 @@ let MUSCLES=[];
 async function loadExercisesDB(){
   if(!sbClient){return;}
   try{
-    const{data,error}=await sbClient.from('exercises').select('name,muscle,equipment,reps,description,execution,cues').order('muscle').order('num');
+    const{data,error}=await sbClient.from('exercises').select('id,name,muscle,equipment,reps,description,execution,cues').order('muscle').order('num');
     if(error||!data?.length)return;
-    ALL_EX=data.map(r=>({name:PPCore.canonExName(r.name),muscle:r.muscle,equipment:r.equipment||'',reps:r.reps||'',description:r.description||'',execution:r.execution||'',cues:r.cues||[]}));
+    ALL_EX=data.map(r=>({id:r.id,name:PPCore.canonExName(r.name),muscle:r.muscle,equipment:r.equipment||'',reps:r.reps||'',description:r.description||'',execution:r.execution||'',cues:r.cues||[]}));
     MUSCLES=[...new Set(ALL_EX.map(e=>e.muscle))];
   }catch(e){console.warn('exercises load error:',e);}
 }

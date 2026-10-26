@@ -4,7 +4,7 @@
 // · Animaciones de ejercicios (GitHub): primero caché; se guardan al verlas o al precargarlas.
 // · Librerías (Chart.js, Supabase, fuentes): caché y se refrescan en segundo plano.
 // · Supabase y el resto de APIs: siempre por red (no se guardan).
-const VERSION = 'pp-2026-10-20';
+const VERSION = 'pp-2026-10-25';
 const APP_CACHE = 'app-' + VERSION;
 const GIF_CACHE = 'pp-gifs-v1';   // mismo nombre en js/gifs.js (precarga)
 const CDN_CACHE = 'pp-cdn-v1';
@@ -13,7 +13,7 @@ const ASSETS = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './exgifs.json', './css/app.css',
   './js/core.js', './js/state.js', './js/data.js', './js/train.js', './js/library.js', './js/body.js',
   './js/activity.js', './js/timers.js', './js/calendar.js', './js/figure.js', './js/gifs.js', './js/nav.js',
-  './js/exview.js', './js/hyper.js', './js/meso.js', './js/main.js',
+  './js/exview.js', './js/hyper.js', './js/meso.js', './js/registro.js', './js/health.js', './js/main.js',
 ];
 const CDN_HOSTS = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 const isGif = u => u.hostname === 'raw.githubusercontent.com' && u.pathname.startsWith('/hasaneyldrm/exercises-dataset/');
