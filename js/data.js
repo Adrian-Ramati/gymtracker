@@ -216,21 +216,34 @@ async function saveSessionV2(sess){
     if(v.sets.length){r=await sbClient.from('set_entries').insert(v.sets);if(r.error)throw r.error;}
   }catch(e){console.warn('Modelo v2: no se pudo escribir la sesión (se recupera re-ejecutando la migración):',e);}
 }
-// Biometría diaria: {date, hrv, rhr, sleepMin, sleepEff, steps, weight, subj:{sleep,soreness,energy}, src:{...}}
+// Biometría diaria: {date, hrv, rhr, sleepMin, sleepEff, steps, weight, subj, src:{...}}
+// subj v1: {sleep,soreness,energy} (1–5) · v2: {v:2, sleepH (1–4), energy, motivation (1–5), muscles:{Pectoral:'fatigue'|'doms'|'pain'}}
 function bioFromRow(x){return{date:x.day,hrv:x.hrv_rmssd_ms!=null?+x.hrv_rmssd_ms:null,rhr:x.resting_hr_bpm!=null?+x.resting_hr_bpm:null,sleepMin:x.sleep_min??null,sleepEff:x.sleep_efficiency!=null?+x.sleep_efficiency:null,steps:x.steps??null,weight:x.weight_kg!=null?+x.weight_kg:null,
-  subj:(x.subj_sleep||x.subj_soreness||x.subj_energy)?{sleep:x.subj_sleep,soreness:x.subj_soreness,energy:x.subj_energy}:null,src:x.sources||{}};}
+  subj:x.checkin?.v===2?x.checkin:(x.subj_sleep||x.subj_soreness||x.subj_energy)?{sleep:x.subj_sleep,soreness:x.subj_soreness,energy:x.subj_energy}:null,src:x.sources||{}};}
 function bioToRow(b,uid){return{user_id:uid,day:b.date,hrv_rmssd_ms:b.hrv??null,resting_hr_bpm:b.rhr??null,sleep_min:b.sleepMin!=null?Math.round(b.sleepMin):null,sleep_efficiency:b.sleepEff??null,steps:b.steps??null,weight_kg:b.weight??null,
-  subj_sleep:b.subj?.sleep??null,subj_soreness:b.subj?.soreness??null,subj_energy:b.subj?.energy??null,sources:b.src||{},updated_at:new Date().toISOString()};}
+  ...bioSubjCols(b.subj),sources:b.src||{},updated_at:new Date().toISOString()};}
+// Check-in v2 (sueño en horas, motivación, músculos) va entero en la columna jsonb `checkin`; las columnas antiguas
+// guardan una aproximación (sueño 1–4 y energía) por si la columna aún no existe (sql/2026-10-26-checkin.sql).
+let bioCheckinCol=true;
+function bioSubjCols(q){
+  if(q?.v===2){const o={subj_sleep:q.sleepH??null,subj_soreness:null,subj_energy:q.energy??null};if(bioCheckinCol)o.checkin=q;return o;}
+  const o={subj_sleep:q?.sleep??null,subj_soreness:q?.soreness??null,subj_energy:q?.energy??null};if(bioCheckinCol)o.checkin=null;return o;
+}
 // La nube manda en los campos que trae; lo local se conserva en el resto (y los días que la nube aún no tiene)
 function mergeBiometrics(local,remote){
   const by={};(local||[]).forEach(b=>{if(b?.date)by[b.date]={...b};});
-  (remote||[]).forEach(b=>{const o=by[b.date]||{};Object.entries(b).forEach(([k,v])=>{if(v!=null&&!(k==='src'&&!Object.keys(v).length))o[k]=v;});by[b.date]=o;});
+  // un check-in v2 local no se pisa con la aproximación de las columnas antiguas
+  (remote||[]).forEach(b=>{const o=by[b.date]||{};Object.entries(b).forEach(([k,v])=>{if(v!=null&&!(k==='src'&&!Object.keys(v).length)&&!(k==='subj'&&o.subj?.v===2&&v.v!==2))o[k]=v;});by[b.date]=o;});
   return Object.values(by).sort((a,b)=>a.date.localeCompare(b.date));
 }
 async function saveBiometricRemote(b){
   saveDB();
   if(!v2Ready||!useSupabase||!sbClient||!supabaseUser||!b?.date)return;
-  try{const{error}=await sbClient.from('biometric_daily').upsert(bioToRow(b,supabaseUser.id));if(error)throw error;}
+  try{
+    let{error}=await sbClient.from('biometric_daily').upsert(bioToRow(b,supabaseUser.id));
+    if(error&&bioCheckinCol&&/checkin/i.test(error.message||'')){bioCheckinCol=false;({error}=await sbClient.from('biometric_daily').upsert(bioToRow(b,supabaseUser.id)));}
+    if(error)throw error;
+  }
   catch(e){console.warn('Biometría: no se pudo guardar en la nube (queda en local):',e);}
 }
 async function deleteSessionRemote(id){

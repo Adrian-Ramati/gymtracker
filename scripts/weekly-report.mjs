@@ -121,7 +121,7 @@ if (DRY) {
     // Biometría diaria (sueño, pulso en reposo, HRV, check-in) para la modulación β del IHO; la tabla puede no existir aún
     const b = await supabase.from('biometric_daily').select('*').eq('user_id', SUPABASE_USER_ID).gte('day', new Date(Date.now() - 100 * 864e5).toISOString().slice(0, 10));
     if (!b.error) biometrics = (b.data || []).map(x => ({ date: x.day, hrv: x.hrv_rmssd_ms, rhr: x.resting_hr_bpm, sleepMin: x.sleep_min,
-      subj: (x.subj_sleep || x.subj_soreness || x.subj_energy) ? { sleep: x.subj_sleep, soreness: x.subj_soreness, energy: x.subj_energy } : null }));
+      subj: x.checkin?.v === 2 ? x.checkin : (x.subj_sleep || x.subj_soreness || x.subj_energy) ? { sleep: x.subj_sleep, soreness: x.subj_soreness, energy: x.subj_energy } : null }));
   }
 }
 sessions.forEach(s => { if (typeof s.exercises === 'string') s.exercises = JSON.parse(s.exercises); if (s.meta?.plannedSets) s.plannedSets = s.meta.plannedSets; });

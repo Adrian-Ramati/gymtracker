@@ -103,6 +103,7 @@ create table if not exists biometric_daily (
   updated_at       timestamptz not null default now(),
   primary key (user_id, day)
 );
+alter table biometric_daily add column if not exists checkin jsonb;   -- check-in v2 (jsonb completo)
 
 -- ── Historial del IHO (lo guarda el informe semanal) ──
 create table if not exists iho_snapshots (
