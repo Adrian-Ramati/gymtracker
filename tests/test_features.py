@@ -63,6 +63,19 @@ with sync_playwright() as p:
     bal = ev("()=>document.getElementById('bal-body').innerText")
     pos = ev("()=>[...document.querySelectorAll('#vol-bars .vbar.lm')].map(b=>['mev','mav','mrv'].map(k=>{const t=b.querySelector('.tick.'+k);return t?Math.round(t.getBoundingClientRect().left+t.getBoundingClientRect().width/2):null}))")
     check('S8. Pantalla Volumen: barras con secundarios, marcas alineadas entre filas y reparto por patrón con las mismas series efectivas', any('Tríceps' in x for x in bars) and 'Empuje' in bal and len(pos) >= 2 and all(r == pos[0] for r in pos), (bars, bal, pos))
+    # editor de ejercicio nuevo: secundarios sugeridos, editables y guardados
+    ev("()=>{openExEditor(null,'Press inclinado mancuernas');document.getElementById('exed-muscle').value='Pectoral';exedRefreshSec()}")
+    on = ev("()=>[...document.querySelectorAll('#exed-sec .exv-mchip.on')].map(b=>b.dataset.m)")
+    check('S9. El editor de ejercicio nuevo sugiere los secundarios según nombre y músculo', set(on) == {'Tríceps', 'Deltoides anterior'}, on)
+    ev("()=>{exedToggleSec('Tríceps');exedToggleSec('Glúteos')}")
+    on2 = ev("()=>[...document.querySelectorAll('#exed-sec .exv-mchip.on')].map(b=>b.dataset.m)")
+    ev("async()=>{await saveExEditor()}"); page.wait_for_timeout(300)
+    sm = ev("()=>db.profile.secMap['press inclinado mancuernas']")
+    cr = ev("()=>PPCore.credits(db.profile,{name:'Press inclinado mancuernas',muscle:'Pectoral'}).map(c=>c.m+':'+c.w)")
+    check('S10. Los secundarios elegidos se guardan y son los que cuentan ½ serie', set(on2) == {'Deltoides anterior', 'Glúteos'} and set(sm or []) == {'Deltoides anterior', 'Glúteos'} and 'Glúteos:0.5' in cr and 'Tríceps:0.5' not in cr, (on2, sm, cr))
+    ev("()=>{openExEditor(null,'Zzz raro');exedRefreshSec()}")
+    check('S11. Un nombre sin regla automática avisa de que no hay secundarios', 'Ninguno' in ev("()=>document.getElementById('exed-sec-note').innerText"))
+    ev("()=>closeExEditor()")
     ev("()=>navHome()")
     # sincronización de ajustes en Supabase
     cap = ev("""async()=>{let cap=null;const old={sb:sbClient,u:useSupabase,us:supabaseUser};
