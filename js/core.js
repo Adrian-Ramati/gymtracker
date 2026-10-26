@@ -105,6 +105,36 @@
     const lm = { ...(C.DEFAULT_LANDMARKS[k] || {}), ...(ov[k] || {}), ...(ov[m] || {}) };
     return (lm.mev != null && lm.mav != null && lm.mrv != null && lm.mev <= lm.mav && lm.mav <= lm.mrv) ? lm : null;
   };
+  // Escala común de las barras de volumen: MEV, MAV y MRV caen SIEMPRE en la misma posición (%) de la barra,
+  // sea cual sea el músculo o sus valores; entre marcas la escala es lineal. Así las marcas se alinean entre filas.
+  C.VOL_POS = { mev: 25, mav: 55, mrv: 85 };
+  C.volPos = (v, lm) => {
+    const { mev, mav, mrv } = lm && lm.mev != null && lm.mav != null && lm.mrv != null ? lm : { mev: 6, mav: 14, mrv: 20 };
+    const P = C.VOL_POS, end = mrv + Math.max(2, (mrv - mav) * 0.5);
+    const k = [[0, 0], [mev, P.mev], [mav, P.mav], [mrv, P.mrv], [end, 100]].filter((p, i, a) => i === 0 || p[0] > a[i - 1][0]);
+    if (!(v > 0)) return 0;
+    for (let i = 1; i < k.length; i++) if (v <= k[i][0]) return k[i - 1][1] + (v - k[i - 1][0]) / (k[i][0] - k[i - 1][0]) * (k[i][1] - k[i - 1][1]);
+    return 100;
+  };
+  // Reparto por patrón de movimiento (empuje / tirón / piernas / core) a partir del nombre del músculo.
+  C.MOVE_GROUPS = ['Empuje', 'Tirón', 'Piernas', 'Core'];
+  C.muscleGroup = m => {
+    const f = fold(m);
+    if (/cuadriceps|isquio|femoral|gluteo|gemelo|soleo|aductor|abductor|pierna/.test(f)) return 'Piernas';
+    if (/posterior|espalda|dorsal|trapecio|romboid|biceps|antebrazo/.test(f)) return 'Tirón';
+    if (/pectoral|pecho|triceps|deltoid|hombro/.test(f)) return 'Empuje';
+    if (/abdom|core|oblicuo|lumbar/.test(f)) return 'Core';
+    return 'Otros';
+  };
+  // by: {músculo: series efectivas} → {total, grupos: [{g, v, muscles: [[m, v]]}]} (solo grupos con series), y cociente tirón/empuje.
+  C.groupSets = by => {
+    const G = {};
+    Object.entries(by || {}).forEach(([m, v]) => { const g = C.muscleGroup(m); (G[g] = G[g] || { g, v: 0, muscles: [] }); G[g].v += v; G[g].muscles.push([m, v]); });
+    const order = [...C.MOVE_GROUPS, 'Otros'];
+    const grupos = order.filter(g => G[g]).map(g => { G[g].muscles.sort((a, b) => b[1] - a[1]); return G[g]; });
+    const total = grupos.reduce((a, x) => a + x.v, 0), push = G['Empuje']?.v || 0, pull = G['Tirón']?.v || 0;
+    return { total, grupos, pullPush: push > 0 ? pull / push : null };
+  };
 
   // ── Músculos secundarios ──
   // Una serie cuenta 1 para el músculo principal y 0,5 para cada secundario: el método "fraccional",

@@ -145,7 +145,7 @@ function renderVolScr(){
   document.getElementById('vol-sub').textContent=`${f(days[0])} – ${f(days[6])} · ${st.sets} series · ${st.sessions.length} sesiones`;
   renderBodyHeat(st.by);
   renderVolBars(st.by);
-  renderDashDonut(st.byDirect,st.sets);
+  renderBalance(st.by,st.sets);
   renderDashWeekChart();
   renderVol(); // histórico por músculo (chips + bandas)
 }
@@ -153,11 +153,13 @@ function renderVolBars(by){
   const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]);
   const el=document.getElementById('vol-bars');
   if(!ent.length){el.innerHTML='<div style="font-size:12px;color:var(--t3)">Sin series registradas esta semana</div>';return;}
-  el.innerHTML=ent.map(([m,v])=>{
-    const lm=getLandmarks(m)||{};const mx=(lm.mrv||20)*1.15;const z=lm.mav?lmZone(v,lm):null;
-    const tick=(x,c)=>lm[x]?`<div class="tick ${x}" style="left:${Math.min(100,lm[x]/mx*100)}%"></div>`:'';
-    return `<div class="vbar-wrap"><div class="vbar-label"><span>${esc(m)}${z?`<span class="vbar-zone" style="color:${z.color}">${z.txt}</span>`:''}</span><span style="font-family:var(--mono)">${v} <span style="color:var(--t3)">/ ${lm.mev??'–'}·${lm.mav??'–'}·${lm.mrv??'–'}</span></span></div>
-    <div class="vbar"><div class="vfill" style="width:${Math.min(100,Math.round(v/mx*100))}%;background:${z?z.color:VC[m]||'#4f8ef7'}"></div>${tick('mev')}${tick('mav')}${tick('mrv')}</div></div>`;
+  // Escala común (PPCore.volPos): MEV, MAV y MRV caen en la misma columna en todas las filas
+  const axis='<div class="vaxis"><span class="mev">MEV</span><span class="mav">MAV</span><span class="mrv">MRV</span></div>';
+  el.innerHTML=axis+ent.map(([m,v])=>{
+    const lm=getLandmarks(m);const z=lm?lmZone(v,lm):null;
+    const tick=x=>lm?`<div class="tick ${x}"></div>`:'';
+    return `<div class="vbar-wrap"><div class="vbar-label"><span>${esc(m)}${z?`<span class="vbar-zone" style="color:${z.color}">${z.txt}</span>`:''}</span><span style="font-family:var(--mono)">${v} <span style="color:var(--t3)">/ ${lm?.mev??'–'}·${lm?.mav??'–'}·${lm?.mrv??'–'}</span></span></div>
+    <div class="vbar lm"><div class="vfill" style="width:${PPCore.volPos(v,lm).toFixed(1)}%;background:${z?z.color:VC[m]||'#4f8ef7'}"></div>${tick('mev')}${tick('mav')}${tick('mrv')}</div></div>`;
   }).join('');
 }
 // ─── PERFIL (rutinas · biblioteca · datos) ───────────────────────────

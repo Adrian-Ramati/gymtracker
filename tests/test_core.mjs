@@ -302,5 +302,24 @@ t('salud: pulso de cada serie con su hora', () => {
   assert.equal(ss[0].exercises[0].sets[1].hr, undefined);
 });
 
+t('volumen: MEV/MAV/MRV caen en la misma posición de la barra para cualquier músculo', () => {
+  for (const lm of [{ mev: 6, mav: 12, mrv: 18 }, { mev: 10, mav: 18, mrv: 25 }, { mev: 2, mav: 8, mrv: 12 }, { mev: 4, mav: 4, mrv: 9 }]) {
+    assert.equal(C.volPos(lm.mev, lm), C.VOL_POS.mev); assert.equal(C.volPos(lm.mrv, lm), C.VOL_POS.mrv);
+    if (lm.mav > lm.mev) assert.equal(C.volPos(lm.mav, lm), C.VOL_POS.mav);
+    assert.equal(C.volPos(0, lm), 0); assert.equal(C.volPos(999, lm), 100);
+    let prev = -1; for (let v = 0; v <= lm.mrv * 1.5; v += 0.5) { const p = C.volPos(v, lm); assert.ok(p >= prev && p <= 100); prev = p; }
+  }
+  assert.ok(C.volPos(12.5, { mev: 6, mav: 12, mrv: 18 }) > C.VOL_POS.mav);
+});
+t('reparto semanal: grupos por patrón, suma = series efectivas y cociente tirón/empuje', () => {
+  const by = { 'Tríceps': 12.5, 'Bíceps': 12, 'Glúteos': 10, 'Cuádriceps': 10, 'Isquiosurales': 9, 'Espalda': 9, 'Pectoral': 9, 'Deltoides anterior': 8.5, 'Deltoides lateral': 8, 'Gemelo/Sóleo': 6, 'Aductores': 5.5, 'Deltoides posterior': 1.5, 'Antebrazo': 1.5, 'Abdomen': 3 };
+  const G = C.groupSets(by), g = Object.fromEntries(G.grupos.map(x => [x.g, x.v]));
+  assert.deepEqual(g, { Empuje: 38, 'Tirón': 24, Piernas: 40.5, Core: 3 });
+  assert.equal(G.total, Object.values(by).reduce((a, b) => a + b, 0));
+  assert.equal(G.pullPush, 24 / 38);
+  assert.equal(C.groupSets({}).pullPush, null);
+  assert.equal(C.muscleGroup('Bíceps femoral'), 'Piernas');
+});
+
 console.log(`\n${ok}/${ok + fail} OK`);
 process.exit(fail ? 1 : 0);
