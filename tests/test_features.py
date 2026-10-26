@@ -60,8 +60,9 @@ with sync_playwright() as p:
     ev("()=>closeExView()")
     ev("()=>{navTo('vol')}"); page.wait_for_timeout(500)
     bars = ev("()=>[...document.querySelectorAll('#vol-bars .vbar-label')].map(e=>e.innerText.split('\\n')[0])")
-    donut = ev("()=>dashDonut?dashDonut.data.labels:null")
-    check('S8. Pantalla Volumen: barras con secundarios y donut solo con series directas', any('Tríceps' in x for x in bars) and donut == ['Pectoral'], (bars, donut))
+    bal = ev("()=>document.getElementById('bal-body').innerText")
+    pos = ev("()=>[...document.querySelectorAll('#vol-bars .vbar.lm')].map(b=>['mev','mav','mrv'].map(k=>{const t=b.querySelector('.tick.'+k);return t?Math.round(t.getBoundingClientRect().left+t.getBoundingClientRect().width/2):null}))")
+    check('S8. Pantalla Volumen: barras con secundarios, marcas alineadas entre filas y reparto por patrón con las mismas series efectivas', any('Tríceps' in x for x in bars) and 'Empuje' in bal and len(pos) >= 2 and all(r == pos[0] for r in pos), (bars, bal, pos))
     ev("()=>navHome()")
     # sincronización de ajustes en Supabase
     cap = ev("""async()=>{let cap=null;const old={sb:sbClient,u:useSupabase,us:supabaseUser};

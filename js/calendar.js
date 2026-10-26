@@ -38,7 +38,7 @@ function renderCal(){
 }
 
 // ─── Dashboard semanal ───────────────────────────────────────────────
-let dashOff=0,dashWeekChart=null,dashDonut=null;
+let dashOff=0,dashWeekChart=null;
 // Sirve a Semana y Volumen
 function dashMove(d){dashOff=Math.min(0,dashOff+d);const c=curScr();if(c==='train'){renderWeekScr();const days=weekRange(dashOff);const[y,m]=days[0].split('-');calYear=+y;calMonth=+m-1;selDate=days[0];renderCal();renderDayPanel();}else renderVolScr();}
 function weekRange(off){const mon=mondayOf(todayStr());mon.setDate(mon.getDate()+off*7);const days=[];for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);days.push(isoDate(x));}return days;}
@@ -70,15 +70,22 @@ function renderDashWeekChart(){
       y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#555',font:{size:9,family:'DM Mono'}},beginAtZero:true},
       y2:{position:'right',grid:{display:false},ticks:{color:'#c084fc',font:{size:9,family:'DM Mono'},stepSize:1},beginAtZero:true,suggestedMax:6}}}});
 }
-function renderDashDonut(by,total){
-  const c=document.getElementById('dashDonut'),lg=document.getElementById('donut-legend');if(!c)return;
-  const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('donut-sub').textContent=total?`${total} series`:'';
-  if(dashDonut)dashDonut.destroy();
-  if(!ent.length){dashDonut=null;lg.innerHTML='<div style="font-size:11px;color:var(--t3)">Sin series registradas esta semana</div>';c.getContext('2d').clearRect(0,0,c.width,c.height);return;}
-  dashDonut=new Chart(c,{type:'doughnut',data:{labels:ent.map(e=>e[0]),datasets:[{data:ent.map(e=>e[1]),backgroundColor:ent.map(e=>VC[e[0]]||'#9ca3af'),borderColor:'#0d0d0f',borderWidth:2,hoverOffset:4}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.label}: ${i.raw} series (${Math.round(i.raw/total*100)}%)`}}}}});
-  lg.innerHTML=ent.slice(0,9).map(([m,v])=>`<div class="dl-row"><i style="background:${VC[m]||'#9ca3af'}"></i><span>${esc(m)}</span><b>${v}</b><em>${Math.round(v/total*100)}%</em></div>`).join('')+(ent.length>9?`<div class="dl-row"><i style="background:var(--t4)"></i><span>+${ent.length-9} más</span></div>`:'');
+// Reparto de la semana por patrón de movimiento. Usa las MISMAS series efectivas que las barras de arriba
+// (principal 1 · secundario 0,5), así los totales cuadran; `real` son las series reales registradas.
+const MOVE_COL={Empuje:'#fb923c','Tirón':'#38bdf8',Piernas:'#4ade80',Core:'#c084fc',Otros:'#8b93a7'};
+function renderBalance(by,real){
+  const el=document.getElementById('bal-body');if(!el)return;
+  const G=PPCore.groupSets(by),sub=document.getElementById('donut-sub');
+  if(!G.grupos.length){sub.textContent='';el.innerHTML='<div style="font-size:12px;color:var(--t3)">Sin series registradas esta semana</div>';return;}
+  sub.textContent=`${PPCore.f1(G.total)} efectivas · ${real} series`;
+  const pc=v=>Math.round(v/G.total*100);
+  let h='<div class="bal-bar">'+G.grupos.map(x=>`<div style="flex:${x.v};background:${MOVE_COL[x.g]}" title="${x.g} ${pc(x.v)}%">${pc(x.v)>=12?pc(x.v)+'%':''}</div>`).join('')+'</div>';
+  h+=G.grupos.map(x=>`<div class="bal-row"><div class="bal-h"><i style="background:${MOVE_COL[x.g]}"></i><span>${x.g}</span><b>${PPCore.f1(x.v)}</b><em>${pc(x.v)}%</em></div><div class="bal-m">${x.muscles.map(([m,v])=>`${esc(m)} ${PPCore.f1(v)}`).join(' · ')}</div></div>`).join('');
+  if(G.pullPush!=null){
+    const r=G.pullPush,txt=r<0.8?'Más empuje que tirón: valora añadir remo, jalón o deltoides posterior.':r>1.5?'Bastante más tirón que empuje.':'Empuje y tirón equilibrados.';
+    h+=`<div class="bal-note"><b>Tirón : empuje ${r.toFixed(2)}</b> · ${txt} <span>Orientativo.</span></div>`;
+  }
+  el.innerHTML=h;
 }
 
 // ─── Mapa muscular (SVG) ─────────────────────────────────────────────
