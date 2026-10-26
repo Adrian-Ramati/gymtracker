@@ -225,6 +225,7 @@ function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t
 function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());
   const f=opt.loadFactor||1;
   let exs=t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round((ns[i]||ex.sets||3)*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
+  const madj=opt.muscles?PPCore.muscleAdjust(exs,opt.muscles):[]; // cansancio / agujetas / dolor por músculo
   const plan=opt.timeBudget?planTimeBudget(exs,t.rest,opt.timeBudget):null;
   if(plan)exs=plan.exs;
   startSess(t.name,exs,t.rest);
@@ -232,6 +233,7 @@ function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===
   activeSess.plannedSets=t.exercises.reduce((a,ex,i)=>a+(ns[i]||ex.sets||3),0);
   if(opt.timeBudget){activeSess.timeBudget=opt.timeBudget;activeSess.timePlan=plan?{estMin:plan.estMin,cut:plan.cut}:null;}
   if(opt.readiness)activeSess.readiness=opt.readiness;
+  if(madj.length)activeSess.muscleAdj=madj;
   renderSessExs();
 }
 function startBlank(){startSess('Entrenamiento',[]);}
@@ -329,6 +331,7 @@ function renderExCard(ex,ei){
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
+    ${ex.adj&&PPCore.MUSCLE_ST[ex.adj.st]?`<div class="ec-adj st-${ex.adj.st}">${esc(ex.adj.txt)}</div>`:''}
     ${progRow}
     <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">rpe</div><div></div></div>
     <div id="sets_${ei}">${sets}</div>

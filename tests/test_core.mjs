@@ -217,7 +217,7 @@ t('IHO: readiness con sueño, pulso, HRV y check-in', () => {
   assert.ok(C.readinessSeries(bad, start, end)[end] < .2, 'semana mala → readiness baja');
   assert.equal(C.readinessSeries([], start, end)[end], null);
   const sub = C.readinessSeries([{ date: end, subj: { sleep: 5, soreness: 1, energy: 5 } }], start, end)[end];
-  assert.ok(Math.abs(sub - .9) < 1e-9, `check-in ${sub}`);
+  assert.ok(Math.abs(sub - 1) < 1e-9, `check-in ${sub}`);
   assert.deepEqual([.7, .5, .3].map(C.targetLoad), [1, .8, .6]);
 });
 t('IHO: sin biometría β = 1 y sin penalización', () => {
@@ -336,6 +336,29 @@ t('revisión de secundarios: origen, series extra y multiarticulares sin secunda
   assert.equal(A.revisar, 0); assert.equal(A.extra, 5 * 2 * .5 + 2 * .5 + 2 * .5);
   const B = C.secAudit({}, ses, '2026-09-27', '2026-10-26');
   assert.equal(B.revisar, 1); assert.equal(B.rows[0].name, 'Movimiento raro'); assert.equal(B.seriesRevisar, 2); assert.equal(B.sesionesRevisar, 1);
+});
+
+t('check-in v2: escala 0–100, día normal = 70 como el reloj, sueño en horas y motivación', () => {
+  const R = q => C.subjReadiness({ v: 2, ...q });
+  assert.equal(R({ sleepH: 4, energy: 5, motivation: 5 }), 1);
+  assert.equal(R({ sleepH: 1, energy: 1, motivation: 1 }), 0);
+  assert.ok(Math.abs(R({ sleepH: 3, energy: 3, motivation: 3 }) - .7) < 1e-9);
+  assert.ok(R({ sleepH: 2, energy: 3, motivation: 3 }) < R({ sleepH: 3, energy: 3, motivation: 3 }));
+  assert.ok(R({ sleepH: 3, energy: 3, motivation: 1 }) < .7 && R({ sleepH: 3, energy: 3, motivation: 5 }) > .7);
+  assert.equal(R({ muscles: { Pectoral: 'doms' } }), null); // el cansancio por músculo no entra en la nota
+  assert.equal(C.readinessAdvice(R({ sleepH: 3, energy: 3, motivation: 3 })).key, 'full');
+  assert.equal(C.readinessAdvice(R({ sleepH: 1, energy: 1, motivation: 1 })).key, 'reduce_40');
+  assert.ok(Math.abs(C.subjReadiness({ sleep: 3, soreness: 3, energy: 3 }) - .7) < 1e-9); // check-ins antiguos, misma escala
+  assert.deepEqual([300, 359, 360, 419, 420, 479, 480, 600].map(C.sleepBucket), [1, 1, 2, 2, 3, 3, 4, 4]);
+  assert.equal(C.sleepBucket(null), null);
+});
+t('check-in v2: cansancio, agujetas y dolor solo tocan los ejercicios de ese músculo', () => {
+  const ex = () => [{ name: 'Press banca', muscle: 'Pectoral', sets: [1, 2, 3] }, { name: 'Aperturas', muscle: 'pectoral', sets: [1] }, { name: 'Sentadilla', muscle: 'Cuádriceps', sets: [1, 2, 3] }, { name: 'Remo', muscle: 'Espalda', sets: [1, 2] }];
+  let e = ex(); const a = C.muscleAdjust(e, { Pectoral: 'doms', 'Cuádriceps': 'fatigue', Espalda: 'pain' });
+  assert.deepEqual(e.map(x => x.sets.length), [2, 1, 3, 2]); // −1 serie con agujetas (mínimo 1); cansancio y dolor no quitan series
+  assert.deepEqual(e.map(x => x.adj?.st), ['doms', 'doms', 'fatigue', 'pain']);
+  assert.deepEqual(a.map(x => [x.name, x.from, x.to]), [['Press banca', 3, 2], ['Aperturas', 1, 1], ['Sentadilla', 3, 3], ['Remo', 2, 2]]);
+  e = ex(); assert.deepEqual(C.muscleAdjust(e, null), []); assert.ok(e.every(x => !x.adj));
 });
 
 console.log(`\n${ok}/${ok + fail} OK`);

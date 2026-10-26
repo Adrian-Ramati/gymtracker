@@ -299,10 +299,43 @@
   C.SLEEP_NEED_H = 7.5;
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const pstdev = a => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  // Check-in subjetivo → 0–1 (se muestra 0–100). Un día normal (todo 😐, 7–8 h de sueño) da 0,70, igual que un
+  // día normal del reloj; lo mejor posible da 1 y lo peor 0. v2: sueño en horas 35 % · energía 35 % · motivación 30 %
+  // (el cansancio por músculo no entra en la nota: ajusta solo los ejercicios de ese músculo, ver muscleAdjust).
+  // v1 (check-ins antiguos): sueño 1–5, agujetas 1–5, energía 1–5 a partes iguales.
+  C.SLEEP_OPTS = ['< 6 h', '6–7 h', '7–8 h', '8 h o más'];
+  const SLEEP_ITEM = [0, .25, .5, 1];
+  C.sleepBucket = min => !(min > 0) ? null : min < 360 ? 1 : min < 420 ? 2 : min < 480 ? 3 : 4;
+  const subjCurve = m => m <= .5 ? 1.4 * m : .7 + .6 * (m - .5);
   C.subjReadiness = q => {
     if (!q) return null;
-    const v = [q.sleep != null ? (q.sleep - 1) / 4 : null, q.soreness != null ? (5 - q.soreness) / 4 : null, q.energy != null ? (q.energy - 1) / 4 : null].filter(x => x != null);
-    return v.length ? 0.3 + 0.6 * mean(v) : null;
+    const it = (v, f) => v != null && v !== '' && isFinite(v) ? f(+v) : null;
+    const parts = (q.v === 2
+      ? [[.35, it(q.sleepH, x => SLEEP_ITEM[x - 1])], [.35, it(q.energy, x => (x - 1) / 4)], [.30, it(q.motivation, x => (x - 1) / 4)]]
+      : [[1, it(q.sleep, x => (x - 1) / 4)], [1, it(q.soreness, x => (5 - x) / 4)], [1, it(q.energy, x => (x - 1) / 4)]])
+      .filter(([, v]) => v != null && isFinite(v));
+    if (!parts.length) return null;
+    return subjCurve(clip01(parts.reduce((a, [w, v]) => a + w * v, 0) / parts.reduce((a, [w]) => a + w, 0)));
+  };
+  // Estado por músculo del check-in: solo cambia los ejercicios cuyo músculo PRINCIPAL está marcado
+  C.MUSCLE_ST = {
+    fatigue: { t: 'cansado', adj: 'Cansancio: mismas series, deja 1 repetición más en reserva' },
+    doms: { t: 'agujetas', adj: 'Agujetas: una serie menos y sin ir al fallo' },
+    pain: { t: 'dolor', adj: 'Dolor: cámbialo por otro que no moleste o sáltalo' },
+  };
+  C.MUSCLE_ST_CYCLE = [null, 'fatigue', 'doms', 'pain'];
+  C.muscleAdjust = (exs, muscles) => {
+    const out = [];
+    if (!muscles) return out;
+    (exs || []).forEach(ex => {
+      const m = C.normMuscle(ex.muscle), st = muscles[m];
+      if (!C.MUSCLE_ST[st]) return;
+      const from = (ex.sets || []).length;
+      if (st === 'doms' && from > 1) ex.sets = ex.sets.slice(0, from - 1);
+      ex.adj = { st, txt: C.MUSCLE_ST[st].adj };
+      out.push({ m, st, name: ex.name, from, to: ex.sets.length });
+    });
+    return out;
   };
   C.readinessSeries = (biometrics, start, end) => {
     const by = {};
