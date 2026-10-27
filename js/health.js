@@ -45,7 +45,7 @@ function hcDiagHtml(){
     :hcDiag.days?'':'Hay registros pero ninguno se pudo agrupar por día.';
   return `<details class="hc-diag" ${tot&&!denied.length?'':'open'}><summary>Diagnóstico · ${hcDiag.days} días importados</summary>${rows}${tip?`<p class="hc-p" style="margin-top:8px">${tip}</p>`:''}</details>`;
 }
-function hcDisconnect(){if(db.profile){db.profile.healthConnect=false;saveDB();}renderHealthCard();}
+function hcDisconnect(){if(db.profile){db.profile.healthConnect=false;saveDB();}renderHealthCard();renderHomeHealth();}
 
 let hcBusy=false,hcDiag=null;
 async function hcSync(full){
@@ -81,7 +81,7 @@ async function hcSync(full){
     for(const s of recent)if(s._hrChanged){delete s._hrChanged;await saveSession(s);}
     db.profile.hcLastSync=new Date().toISOString();saveDB();
     hcDiag={at:Date.now(),types:diag,days:nb,from:PPCore.isoDate(start)};
-    renderHealthCard();
+    renderHealthCard();renderHomeHealth();
     if(full)toast(nb?`Reloj: ${nb} días importados ✓`:'Health Connect no devolvió datos — mira el diagnóstico en Perfil',5000);
     return {days:nb};
   }catch(e){console.warn('Health Connect sync:',e);return null;}
@@ -105,4 +105,20 @@ function renderHealthCard(){
   else if(!db.profile?.healthConnect)body=`<p class="hc-p">Conecta Health Connect para leer sueño, pulso en reposo, HRV, peso y pasos. Mi Fitness (Xiaomi) escribe ahí; Huawei Health necesita un puente como Health Sync.</p><button class="rest-btn hc-btn" onclick="hcConnect()">Conectar el reloj</button>`;
   else body=`<p class="hc-p">Conectado${db.profile.hcLastSync?` · última lectura ${new Date(db.profile.hcLastSync).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`:''}</p><div style="display:flex;gap:8px"><button class="rest-btn hc-btn" onclick="hcCheck()">Revisar conexión</button><button class="rest-btn hc-btn" onclick="hcOpenSettings()">Abrir Health Connect</button><button class="rest-btn hc-btn hc-off" onclick="hcDisconnect()">Desconectar</button></div>${hcDiagHtml()}`;
   el.innerHTML=`<div class="card-title">Reloj y recuperación <span>Health Connect</span></div>${body}${lastLine}`;
+}
+
+// Recordatorio en Inicio: conectar el reloj o traer los datos de hoy antes de entrenar.
+// Solo en la app Android: en el navegador no hay Health Connect que sincronizar.
+function renderHomeHealth(){
+  const el=document.getElementById('home-health');if(!el)return;
+  if(!isNativeApp()||!hcPlugin()){el.innerHTML='';return;}
+  if(!db?.profile?.healthConnect){
+    el.innerHTML=`<button class="home-hc" onclick="hcConnect()"><b>⌚ Conectar el reloj</b><small>Sueño, pulso y HRV para la readiness de hoy</small></button>`;
+    return;
+  }
+  const last=db.profile.hcLastSync?Date.parse(db.profile.hcLastSync):0;
+  const mins=last?Math.round((Date.now()-last)/60000):null;
+  const stale=!last||mins>=120;
+  const txt=mins==null?'sin sincronizar todavía':mins<2?'hace un momento':mins<60?`hace ${mins} min`:`hace ${Math.floor(mins/60)} h`;
+  el.innerHTML=`<button class="home-hc${stale?' stale':''}" onclick="hcSync(true)"><b>⌚ ${stale?'Sincroniza el reloj':'Reloj al día'}</b><small>Última lectura ${txt}${stale?' · tócalo antes de entrenar':''}</small></button>`;
 }

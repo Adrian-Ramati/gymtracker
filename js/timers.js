@@ -57,13 +57,26 @@ async function ensureNotifPermission(){
 }
 // App Android (Capacitor): notificación local nativa, que suena aunque la pantalla esté apagada
 function localNotif(){try{return window.Capacitor?.isNativePlatform?.()?(window.Capacitor.Plugins?.LocalNotifications||null):null;}catch(e){return null;}}
+// Canal propio del descanso: en Android 8+ el sonido y la vibración los pone el canal, no el aviso.
+// Importancia 4 (alta) = suena y salta en pantalla aunque el móvil esté bloqueado. Se crea una vez.
+let restChannel=null;
+async function ensureRestChannel(LN){
+  if(restChannel!==null)return restChannel;
+  try{
+    await LN.createChannel({id:'rest-timer',name:'Descanso entre series',description:'Aviso de fin del descanso',importance:4,visibility:1,vibration:true,lights:true,lightColor:'#4f7cff'});
+    restChannel='rest-timer';
+  }catch(e){restChannel='';}
+  return restChannel;
+}
 async function scheduleRestNotification(endTs){
   const LN=localNotif();
   if(LN){
     try{
       const p=await LN.checkPermissions();if(p.display!=='granted'&&(await LN.requestPermissions()).display!=='granted')return;
+      const ch=await ensureRestChannel(LN);
       await LN.cancel({notifications:[{id:7001}]}).catch(()=>{});
-      await LN.schedule({notifications:[{id:7001,title:'Descanso terminado',body:'A por la siguiente serie 💪',schedule:{at:new Date(endTs),allowWhileIdle:true}}]});
+      await LN.schedule({notifications:[{id:7001,title:'Descanso terminado',body:'A por la siguiente serie 💪',
+        ...(ch?{channelId:ch}:{}),isExactNotification:true,schedule:{at:new Date(endTs),allowWhileIdle:true}}]});
     }catch(e){}
     return;
   }
@@ -114,20 +127,17 @@ document.addEventListener('visibilitychange',()=>{
     scheduleRestNotification(restEndTs);
   }
 });
+// Repetir abre la misma hoja «Antes de empezar» que una rutina: el check-in también cuenta aquí
 function repeatSession(id){
   const src=(db.sessions||[]).find(s=>s.id===id);if(!src)return;
-  if(activeSess){toast('Ya hay un entrenamiento en curso — termínalo o cancélalo primero');return;}
-  const exs=(src.exercises||[]).map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:(ex.sets||[]).map(()=>({kg:null,reps:null,rpe:null,done:false}))}));
-  startSess(src.name||'Entrenamiento',exs,src.rest,todayStr());
-  toast(`Repitiendo: ${src.name} (hoy)`);
+  if(sessBusy())return;
+  openPreSess(src);
 }
 function repeatLastSession(){
-  const ss=(db.sessions||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const ss=(db.sessions||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date)||(b.id>a.id?1:-1));
   if(!ss.length){toast('No hay sesiones previas');return;}
-  const last=ss[0];
-  const exs=last.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:ex.sets.map(()=>({kg:null,reps:null,rpe:null,done:false}))}));
-  startSess(last.name||'Entrenamiento',exs);
-  toast(`Repitiendo: ${last.name}`);
+  if(sessBusy())return;
+  openPreSess(ss[0]);
 }
 window.addEventListener('online',()=>{if(useSupabase&&db&&Object.keys(db).length){saveDB();flushSyncQueue();toast('Conexión recuperada — sincronizando');}});
 window.addEventListener('offline',()=>toast('Sin conexión — guardando en local'));

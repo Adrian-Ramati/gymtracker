@@ -23,7 +23,7 @@ function renderHomeHyper(){
 const HI_METHOD=`<details class="card hi-method"><summary>Cómo se calcula <span>›</span></summary><ul>
 <li><b>Fórmula:</b> IHO = β · (suma ponderada de 5 componentes) − Φ, de 0 a 100. Ventana: últimos 28 días (8 semanas para la progresión). Las semanas de descarga no cuentan.</li>
 <li><b>Esfuerzo real:</b> cada serie estimula según las repeticiones que te quedaban (RIR): RIR 0–1 = 1 · 2 = 0,95 · 3 = 0,85 · 4 = 0,60 · 5 = 0,35 · más = 0. Solo cuenta el esfuerzo que marcas tú; el copiado de otra sesión no cuenta.</li>
-<li><b>Volumen efectivo (35%):</b> series ponderadas por esfuerzo por semana de cada músculo (principal 1, secundarios 0,5) frente a tus MEV/MAV/MRV. Sube hasta el MAV, meseta hasta el MRV y cae por encima. Más de 10 series efectivas por músculo en una sesión cuentan la mitad.</li>
+<li><b>Volumen efectivo (35%):</b> series ponderadas por esfuerzo por semana de cada músculo (principal 1, secundarios 0,5) frente a tus Volume Landmarks. Sube hasta el Vol Óptimo, meseta hasta el Vol Máx y cae por encima. Más de 10 series efectivas por músculo en una sesión cuentan la mitad.</li>
 <li><b>Proximidad al fallo (20%):</b> estímulo medio de tus series. Necesita el esfuerzo registrado en al menos la mitad de las series.</li>
 <li><b>Sobrecarga progresiva (20%):</b> pendiente del e1RM de cada ejercicio con 3+ sesiones en 8 semanas (+2,5% al mes ≈ 88; plano = 50).</li>
 <li><b>Adherencia (15%):</b> sesiones por semana frente a tu plan y series hechas frente a las planificadas al empezar.</li>

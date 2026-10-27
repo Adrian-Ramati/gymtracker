@@ -49,9 +49,9 @@ with sync_playwright() as p:
     zc = ev("()=>VOL_ZONES.map(z=>z.c)")
     check('A9. Cinco colores distintos', len(set(zc)) == 5, zc)
     lg = ev("()=>[...document.querySelectorAll('#vol-legend span')].map(s=>s.textContent)")
-    check('A10. Leyenda con las 5 zonas', lg == ['Sin entrenar', 'Por debajo de MEV', 'MEV–MAV', 'Cerca del máximo (MAV–MRV)', 'Por encima de MRV'], lg)
+    check('A10. Leyenda con las 5 zonas', lg == ['Sin entrenar', 'Vol Insuficiente', 'Vol Suficiente', 'Volumen Óptimo', 'Sobrecarga de volumen'], lg)
     z = ev("()=>{const lm={mev:8,mav:16,mrv:22};return [0,0.5,7.5,8,16,16.5,22,22.5].map(v=>volZone(v,lm))}")
-    check('A11. Cortes: 0 | <MEV | MEV–MAV (incl.) | MAV–MRV (incl.) | >MRV', z == [0, 1, 1, 2, 2, 3, 3, 4], z)
+    check('A11. Cortes: 0 | < Vol Mín | Mín–Óptimo (incl.) | Óptimo–Máx (incl.) | > Vol Máx', z == [0, 1, 1, 2, 2, 3, 3, 4], z)
     # Una semana con cada zona: pinta y comprueba el color de cada músculo en la figura
     got = ev("""()=>{const w=document.getElementById('body-wrap');
       const by={'Pectoral':4,'Cuádriceps':12,'Bíceps':19,'Glúteos':40};
@@ -62,7 +62,7 @@ with sync_playwright() as p:
     rgb = lambda h: 'rgb(%d, %d, %d)' % tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
     check('A12. Cada músculo con el color de su zona', got == {'chest': rgb(zc[1]), 'quads': rgb(zc[2]), 'bic': rgb(zc[3]), 'glu': rgb(zc[4]), 'abs': rgb(zc[0])}, got)
     tip = ev("()=>document.querySelector('#body-wrap .body-m[data-id=\"f-chest\"]').dataset.t")
-    check('A13. Al tocar un músculo dice su zona', 'Por debajo de MEV' in tip and 'MEV 8' in tip, tip)
+    check('A13. Al tocar un músculo dice su zona', 'Vol Insuficiente' in tip and 'Vol Mín 8' in tip, tip)
     check('A14. La portada usa los mismos colores', ev("()=>{navHome();const e=document.querySelector('#hc-body .body-m[data-id=\"f-abs\"]');return e.style.fill}") == rgb(zc[0]))
 
     # ── Entrenamiento: volver al inicio sin cortar la sesión ──

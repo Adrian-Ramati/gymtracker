@@ -36,6 +36,7 @@ function tmplSetCount(t){return (t.exercises||[]).reduce((a,e)=>a+(e.sets||3),0)
 // ─── HOME ────────────────────────────────────────────────────────────
 function renderHome(){
   dashOff=0;
+  if(typeof renderHomeHealth==='function')renderHomeHealth();
   const nt=nextTemplate();
   const ICO_R='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
   const ICO_C='<svg class="r" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
@@ -153,8 +154,8 @@ function renderVolBars(by){
   const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]);
   const el=document.getElementById('vol-bars');
   if(!ent.length){el.innerHTML='<div style="font-size:12px;color:var(--t3)">Sin series registradas esta semana</div>';return;}
-  // Escala común (PPCore.volPos): MEV, MAV y MRV caen en la misma columna en todas las filas
-  const axis='<div class="vaxis"><span class="mev">MEV</span><span class="mav">MAV</span><span class="mrv">MRV</span></div>';
+  // Escala común (PPCore.volPos): Vol Mín, Óptimo y Máx caen en la misma columna en todas las filas
+  const axis='<div class="vaxis"><span class="mev">Vol Mín</span><span class="mav">Óptimo</span><span class="mrv">Máx</span></div>';
   el.innerHTML=axis+ent.map(([m,v])=>{
     const lm=getLandmarks(m);const z=lm?lmZone(v,lm):null;
     const tick=x=>lm?`<div class="tick ${x}"></div>`:'';

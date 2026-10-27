@@ -46,6 +46,7 @@
     <!-- HOME (dashboard) -->
     <div id="s-home" class="scr on">
       <div class="cta" id="home-cta"></div>
+      <div id="home-health"></div>
       <div class="hcard" onclick="navTo('train')">
         <div class="hcard-head"><span>Calendario semanal</span><em id="hc-week-sub"></em><i>›</i></div>
         <div class="wk-strip" id="hc-strip"></div>
@@ -68,17 +69,17 @@
           <div class="wknav"><button onclick="dashMove(-1)">&#8249;</button><button id="vol-next" onclick="dashMove(1)">&#8250;</button></div>
         </div>
         <div class="card">
-          <div class="card-title">Mapa muscular <span id="heat-sub">series vs. MEV/MAV/MRV</span></div>
+          <div class="card-title">Mapa muscular <span id="heat-sub">series vs. Vol Mín/Óptimo/Máx</span></div>
           <div class="body-wrap" id="body-wrap"></div>
           <div class="body-lbl"><span>frente</span><span>espalda</span></div>
           <div class="body-tip" id="body-tip">Toca un músculo</div>
           <div class="vol-legend" id="vol-legend"></div>
         </div>
         <div class="card">
-          <div class="card-title">Series por músculo <span id="vol-week-lbl">vs MEV · MAV · MRV</span></div>
+          <div class="card-title">Volume Landmarks <span id="vol-week-lbl">vs Vol Mín · Óptimo · Máx</span></div>
           <div id="vol-bars"></div>
           <div class="vol-note">Series efectivas: 1 por músculo principal y 0,5 por cada secundario.</div>
-          <button onclick="openLandmarks()" class="rest-btn" style="margin:6px 0 0">Editar MEV · MAV · MRV</button>
+          <button onclick="openLandmarks()" class="rest-btn" style="margin:6px 0 0">Editar Vol Mín · Óptimo · Máx</button>
           <button onclick="openSecAudit()" class="rest-btn" style="margin:6px 0 0">Revisar secundarios · últimos 30 días</button>
         </div>
         <div class="card">
@@ -106,7 +107,8 @@
       <div class="card" id="meso-card"></div>
       <div class="card" id="health-card"></div>
       <div class="card">
-        <div class="card-title">Biblioteca de ejercicios</div>
+        <button class="card-title bib-head" onclick="toggleBib()" aria-expanded="false" aria-controls="bib-body">Biblioteca de ejercicios <span id="bib-count"></span><i id="bib-caret">›</i></button>
+        <div id="bib-body" hidden>
         <div style="position:relative;margin-bottom:10px">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px">🔍</span>
           <input id="bib-search" type="text" placeholder="Buscar ejercicio..." style="width:100%;padding:9px 12px 9px 32px;border:1px solid var(--b1);border-radius:var(--r);background:var(--s2);color:var(--t1);font-family:var(--font);font-size:13px;outline:none" oninput="renderBiblioteca()">
@@ -115,6 +117,7 @@
         <div class="mf-row" id="bib-eq-filters"></div>
         <button onclick="openExEditor(null)" style="width:100%;margin-bottom:10px;padding:9px;background:var(--s2);border:1px dashed var(--b2);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">+ Añadir nuevo ejercicio</button>
         <div id="bib-list"></div>
+        </div>
       </div>
       <!-- DATOS + PERFILES (merged) -->
       <div class="card">
@@ -537,16 +540,16 @@
     <div class="mscroll" id="secaudit-body"></div>
   </div>
 </div>
-<!-- LANDMARKS (MEV/MAV/MRV) MODAL -->
+<!-- VOLUME LANDMARKS (Vol Mín / Óptimo / Máx) MODAL -->
 <div class="overlay" id="ov-landmarks" onclick="closeLandmarks(event)">
   <div class="modal">
     <div class="mhandle"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span class="mtitle" style="margin-bottom:0;flex:1">Landmarks de volumen</span>
+      <span class="mtitle" style="margin-bottom:0;flex:1">Volume Landmarks</span>
       <button onclick="closeLandmarks()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">×</button>
     </div>
     <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.4">Series semanales por músculo. Vacío = valor por defecto (guía RP). Se dibujan como bandas en el histórico al seleccionar un músculo.</div>
-    <div style="display:grid;grid-template-columns:1fr 52px 52px 52px;gap:6px;font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;padding:0 2px"><span></span><span style="text-align:center">MEV</span><span style="text-align:center">MAV</span><span style="text-align:center">MRV</span></div>
+    <div style="display:grid;grid-template-columns:1fr 52px 52px 52px;gap:6px;font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:4px;padding:0 2px"><span></span><span style="text-align:center">Mín</span><span style="text-align:center">Ópt</span><span style="text-align:center">Máx</span></div>
     <div class="mscroll" id="lm-rows"></div>
     <button class="save-measure-btn" style="margin-top:10px" onclick="saveLandmarks()">Guardar</button>
   </div>

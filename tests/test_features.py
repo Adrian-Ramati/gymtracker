@@ -86,6 +86,20 @@ with sync_playwright() as p:
     au = ev("()=>document.getElementById('secaudit-body').innerText")
     check('S13. La revisión lista los ejercicios del mes y marca el multiarticular sin secundarios', 'sin secundarios' in au and 'Movimiento raro' in au and 'normal aquí' in au and '1 ejercicio multiarticular' in au, au[:300])
     ev("()=>closeSecAudit()")
+    # biblioteca plegada y chips del histórico
+    ev("()=>{navTo('perfil')}"); page.wait_for_timeout(400)
+    shown = ev("()=>!document.getElementById('bib-body').hidden")
+    cnt = ev("()=>document.getElementById('bib-count').innerText")
+    check('S14. La biblioteca arranca plegada, con el número de ejercicios en el título', not shown and 'ejercicios' in cnt, (shown, cnt))
+    page.click('.bib-head'); page.wait_for_timeout(300)
+    check('S15. Al tocar el título se abre y lista los ejercicios', ev("()=>!document.getElementById('bib-body').hidden") and ev("()=>document.querySelectorAll('#bib-list [id^=bibcard-]').length") > 0)
+    page.click('.bib-head'); page.wait_for_timeout(200)
+    check('S16. Y se vuelve a plegar', ev("()=>document.getElementById('bib-body').hidden"))
+    ev("()=>{navTo('vol')}"); page.wait_for_timeout(500)
+    chips = ev("()=>[...document.querySelectorAll('#vol-muscle-chips .mf')].map(e=>e.innerText)")
+    on = ev("()=>[...document.querySelectorAll('#vol-muscle-chips .mf.on')].map(e=>e.dataset.m)")
+    sets = ev("()=>vChart?vChart.data.datasets.map(d=>d.label):null")
+    check('S17. El histórico por músculo: sin chip «Todos» y con un solo músculo marcado de salida', chips and 'Todos' not in chips and on == ['Pectoral'] and sets == ['Pectoral'], (chips, on, sets))
     ev("()=>navHome()")
     # sincronización de ajustes en Supabase
     cap = ev("""async()=>{let cap=null;const old={sb:sbClient,u:useSupabase,us:supabaseUser};

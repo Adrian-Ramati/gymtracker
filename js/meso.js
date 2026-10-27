@@ -37,7 +37,7 @@ function renderMesoCard(){
       :`Esta semana: <b>RIR ${wk.rir}</b> (RPE ${wk.rpe}) en las series de trabajo${wk.progress&&wk.idx>1?` · +${wk.idx-1} serie${wk.idx>2?'s':''} en el primer ejercicio de cada músculo`:''}.`}</div>`;
     h+=`<div class="meso-row"><span>Duración <small>incluida la descarga</small></span><div class="meso-seg">${[4,5,6,7].map(n=>`<button class="${n===weeks?'on':''}" onclick="mesoSet({weeks:${n}})">${n}</button>`).join('')}</div></div>`;
     h+=`<div class="meso-row"><span>Semana de descarga al final</span><button class="toggle${dl?' on':''}" onclick="mesoSet({deload:${!dl}})" aria-label="Descarga"></button></div>`;
-    h+=`<div class="meso-row"><span>Subir 1 serie por semana <small>con tope en tu MRV</small></span><button class="toggle${pr?' on':''}" onclick="mesoSet({progress:${!pr}})" aria-label="Progresión de series"></button></div>`;
+    h+=`<div class="meso-row"><span>Subir 1 serie por semana <small>con tope en tu Vol Máx</small></span><button class="toggle${pr?' on':''}" onclick="mesoSet({progress:${!pr}})" aria-label="Progresión de series"></button></div>`;
     h+=`<div class="meso-btns"><button onclick="mesoRestart()">Empezar de nuevo</button>${dl&&!wk.deload?'<button onclick="mesoDeloadNow()">Descargar esta semana</button>':''}</div>`;
   }else h+=`<div class="meso-off">Bloques de ${weeks} semanas: el esfuerzo sube cada semana (RIR 3 → 0), las series aumentan poco a poco y la última semana es de descarga. Las series de tus rutinas se ajustan solas al iniciarlas.</div>`;
   el.innerHTML=h;

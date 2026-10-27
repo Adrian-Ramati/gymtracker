@@ -28,7 +28,7 @@ function saveLandmarks(){
   for(const m of Object.keys(rows)){
     const eff={...(DEFAULT_LANDMARKS[m]||{}),...rows[m]};
     if(eff.mev!=null&&eff.mav!=null&&eff.mrv!=null&&!(eff.mev<=eff.mav&&eff.mav<=eff.mrv)){
-      toast(`${m}: se necesita MEV ≤ MAV ≤ MRV`);return;
+      toast(`${m}: se necesita Vol Mín ≤ Óptimo ≤ Máx`);return;
     }
   }
   db.profile=db.profile||{};
@@ -46,9 +46,13 @@ function renderVol(){
   // Populate multi-select chips
   const allMuscles=[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[]))];
   const chips=document.getElementById('vol-muscle-chips');
-  if(chips&&!chips.dataset.init){
+  if(chips&&!chips.dataset.init&&allMuscles.length){
     chips.dataset.init='1';
-    chips.innerHTML=`<div class="mf on" data-m="all" onclick="volToggle('all')">Todos</div>`+allMuscles.map(m=>`<div class="mf" data-m="${esc(m)}" onclick="volToggle(this.dataset.m)">${esc(m)}</div>`).join('');
+    // sin chip «Todos»: no seleccionar ninguno ya muestra todos los músculos.
+    // De salida se marca uno solo (Pectoral si lo hay): con varios a la vez la gráfica no se lee,
+    // y con uno aparecen además las bandas de Vol Mín · Óptimo · Máx.
+    if(!volSel.size)volSel.add(allMuscles.find(m=>normMuscle(m)==='Pectoral')||allMuscles[0]);
+    chips.innerHTML=allMuscles.map(m=>`<div class="mf${volSel.has(m)?' on':''}" data-m="${esc(m)}" onclick="volToggle(this.dataset.m)">${esc(m)}</div>`).join('');
   }
   const selSet=volSel.size?volSel:null;
   const vbm={};
@@ -57,7 +61,7 @@ function renderVol(){
     PPCore.credits(db.profile,e).forEach(({m,w})=>{if(selSet&&!selSet.has(m))return;vbm[m]=(vbm[m]||0)+n*w;});
   }));
   const total=Object.values(vbm).reduce((a,b)=>a+b,0);
-  // MEV/MAV/MRV context: bands + zone card only with a single muscle selected
+  // Volume Landmarks: bands + zone card only with a single muscle selected
   const selMuscle=(selSet&&selSet.size===1)?[...selSet][0]:null;
   const lm=selMuscle?getLandmarks(selMuscle):null;
   const zone=lm?lmZone(total,lm):null;

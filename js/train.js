@@ -236,6 +236,23 @@ function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===
   if(madj.length)activeSess.muscleAdj=madj;
   renderSessExs();
 }
+// Repetir una sesión pasada: mismas series que aquel día, con los ajustes de la hoja «Antes de empezar»
+function startRepeatNow(src,opt={}){
+  if(!src?.exercises)return;
+  const f=opt.loadFactor||1,base=src.exercises.map(ex=>Math.max(1,(ex.sets||[]).length));
+  let exs=src.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round(base[i]*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
+  const madj=opt.muscles?PPCore.muscleAdjust(exs,opt.muscles):[];
+  const rest=src.rest||90;
+  const plan=opt.timeBudget?planTimeBudget(exs,rest,opt.timeBudget):null;
+  if(plan)exs=plan.exs;
+  startSess(src.name||'Entrenamiento',exs,rest,todayStr());
+  if(!activeSess)return;
+  activeSess.plannedSets=base.reduce((a,b)=>a+b,0);
+  if(opt.timeBudget){activeSess.timeBudget=opt.timeBudget;activeSess.timePlan=plan?{estMin:plan.estMin,cut:plan.cut}:null;}
+  if(opt.readiness)activeSess.readiness=opt.readiness;
+  if(madj.length)activeSess.muscleAdj=madj;
+  renderSessExs();
+}
 function startBlank(){startSess('Entrenamiento',[]);}
 // Ahora se puede salir al inicio con un entrenamiento abierto: no se puede empezar otro encima
 function sessBusy(){if(!sessCanLeave())return false;toast('Ya hay un entrenamiento en curso — termínalo o cancélalo primero');resumeSession();return true;}
