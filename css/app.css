@@ -347,12 +347,12 @@ input[type=date]{color-scheme:dark}
 .vbar.lm{height:8px;border-radius:4px;overflow:visible;background:linear-gradient(90deg,rgba(79,142,247,.13) 0 25%,rgba(52,211,153,.11) 25% 55%,rgba(251,191,36,.11) 55% 85%,rgba(244,63,94,.14) 85% 100%)}
 .vbar.lm .vfill{border-radius:4px}
 .vbar.lm .tick{top:-4px;height:16px;width:2px;margin-left:-1px;border-radius:1px;z-index:2}
-.vbar.lm .tick.mev{left:25%;background:rgba(255,255,255,.35);height:12px;top:-2px;width:1px}
+.vbar.lm .tick.mev{left:25%;background:#f1f5f9}
 .vbar.lm .tick.mav{left:55%;background:#f1f5f9}
 .vbar.lm .tick.mrv{left:85%;background:#fb7185}
 .vaxis{position:relative;height:14px;margin-bottom:4px;font:600 9px var(--mono);letter-spacing:.04em}
 .vaxis span{position:absolute;transform:translateX(-50%);color:var(--t3)}
-.vaxis .mev{left:25%}.vaxis .mav{left:55%;color:#f1f5f9}.vaxis .mrv{left:85%;color:#fb7185}
+.vaxis .mev{left:25%;color:#f1f5f9}.vaxis .mav{left:55%;color:#f1f5f9}.vaxis .mrv{left:85%;color:#fb7185}
 .vol-note{font-size:10.5px;color:var(--t3);margin:2px 0 8px}
 .bal-bar{display:flex;height:22px;border-radius:7px;overflow:hidden;gap:2px;margin-bottom:12px}
 .bal-bar div{display:grid;place-items:center;font:700 10.5px var(--mono);color:#0b0b0e;min-width:2px}
@@ -670,7 +670,7 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
 .hc-dr{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--b1)}.hc-dr small{color:var(--t3)}
 
 /* Biblioteca plegable y recordatorio del reloj en Inicio */
-.bib-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-align:left}
+.bib-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);text-align:left}
 .bib-head span{margin-left:auto;font-size:10px;color:var(--t3);font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0}
 .bib-head i{font-style:normal;color:var(--t3);font-size:16px;transition:transform .2s;flex-shrink:0}
 .bib-head i.on{transform:rotate(90deg)}

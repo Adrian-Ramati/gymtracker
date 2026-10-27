@@ -46,10 +46,13 @@ function renderVol(){
   // Populate multi-select chips
   const allMuscles=[...new Set(sessions.flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[]))];
   const chips=document.getElementById('vol-muscle-chips');
-  if(chips&&!chips.dataset.init){
+  if(chips&&!chips.dataset.init&&allMuscles.length){
     chips.dataset.init='1';
-    // sin chip «Todos»: no seleccionar ninguno ya muestra todos los músculos
-    chips.innerHTML=allMuscles.map(m=>`<div class="mf" data-m="${esc(m)}" onclick="volToggle(this.dataset.m)">${esc(m)}</div>`).join('');
+    // sin chip «Todos»: no seleccionar ninguno ya muestra todos los músculos.
+    // De salida se marca uno solo (Pectoral si lo hay): con varios a la vez la gráfica no se lee,
+    // y con uno aparecen además las bandas de Vol Mín · Óptimo · Máx.
+    if(!volSel.size)volSel.add(allMuscles.find(m=>normMuscle(m)==='Pectoral')||allMuscles[0]);
+    chips.innerHTML=allMuscles.map(m=>`<div class="mf${volSel.has(m)?' on':''}" data-m="${esc(m)}" onclick="volToggle(this.dataset.m)">${esc(m)}</div>`).join('');
   }
   const selSet=volSel.size?volSel:null;
   const vbm={};

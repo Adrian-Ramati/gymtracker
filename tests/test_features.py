@@ -97,7 +97,9 @@ with sync_playwright() as p:
     check('S16. Y se vuelve a plegar', ev("()=>document.getElementById('bib-body').hidden"))
     ev("()=>{navTo('vol')}"); page.wait_for_timeout(500)
     chips = ev("()=>[...document.querySelectorAll('#vol-muscle-chips .mf')].map(e=>e.innerText)")
-    check('S17. El histórico por músculo ya no muestra el chip «Todos»', chips and 'Todos' not in chips, chips)
+    on = ev("()=>[...document.querySelectorAll('#vol-muscle-chips .mf.on')].map(e=>e.dataset.m)")
+    sets = ev("()=>vChart?vChart.data.datasets.map(d=>d.label):null")
+    check('S17. El histórico por músculo: sin chip «Todos» y con un solo músculo marcado de salida', chips and 'Todos' not in chips and on == ['Pectoral'] and sets == ['Pectoral'], (chips, on, sets))
     ev("()=>navHome()")
     # sincronización de ajustes en Supabase
     cap = ev("""async()=>{let cap=null;const old={sb:sbClient,u:useSupabase,us:supabaseUser};
