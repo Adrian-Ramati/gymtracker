@@ -63,6 +63,9 @@ jobs:
       - name: Modo sin conexión (service worker y GIF)
         run: python tests/test_offline.py
 
+      - name: Volumen (pestaña, landmarks permanentes, Gemelo/Sóleo)
+        run: python tests/test_volumen.py
+
       - name: Informe semanal en modo prueba
         run: |
           npm install --prefix scripts

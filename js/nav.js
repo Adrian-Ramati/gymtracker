@@ -18,8 +18,8 @@ function updateHdr(n){
   const t=document.getElementById('hdr-title');t.textContent=SCR_TITLES[n]||'Peak Physique';t.classList.toggle('sub',!home);
   document.getElementById('hdr').classList.toggle('home',home);
   const nb=document.getElementById('bnav');if(nb){nb.classList.toggle('hide',sessy);
-    const act=n==='stats'?'stats':n==='perfil'?'perfil':'home';
-    ['home','stats','perfil'].forEach(k=>document.getElementById('bn-'+k)?.classList.toggle('on',k===act));}
+    const act=n==='stats'?'stats':n==='perfil'?'perfil':n==='vol'?'vol':'home';
+    ['home','vol','stats','perfil'].forEach(k=>document.getElementById('bn-'+k)?.classList.toggle('on',k===act));}
 }
 function tabGo(n){if(n==='home'){navHome();return;}navStack=[];showScr(n,null);document.querySelector('.content').scrollTo(0,0);}
 
@@ -51,11 +51,6 @@ function renderHome(){
   const dl=(a,b)=>{const d=a-b;if(!d||(!a&&!b))return'';return `<em class="${d>0?'up':'dn'}">${d>0?'+':'−'}${Math.abs(d)}</em>`;};
   document.getElementById('hc-week-sub').textContent=`${st.sessions.length} de ${Math.max((db.templates||[]).length,1)} sesiones`;
   document.getElementById('hc-kpis').innerHTML=`<div><b>${st.sessions.length}${dl(st.sessions.length,pv.sessions.length)}</b><small>sesiones</small></div><div><b>${st.sets}${dl(st.sets,pv.sets)}</b><small>series</small></div><div><b>${st.ton>=1000?(st.ton/1000).toFixed(1)+'t':st.ton}</b><small>kg movidos</small></div><div><b>${st.min>=60?(st.min/60).toFixed(1)+'h':st.min+'m'}</b><small>tiempo</small></div>`;
-  // Volumen
-  const hb=document.getElementById('hc-body');if(!hb.dataset.init){hb.innerHTML=bodySvg('f')+bodySvg('b');hb.dataset.init='1';}
-  paintBody(hb,st.by);
-  const ent=Object.entries(st.by).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('hc-vol-sub').textContent=st.sets?`${st.sets} series · ${ent.length} músculos`:'sin series esta semana';
   renderHomeHyper();
 }
 // ── utilidades de gráfica (línea violeta con degradado, como la maqueta) ──

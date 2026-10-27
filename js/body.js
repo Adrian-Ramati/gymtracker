@@ -1,13 +1,16 @@
 // body.js — Volumen histórico, landmarks, perfil, peso, medidas, % graso, copias de seguridad y Excel.
 // ═══ VOLUME ═══
 // ═══ LANDMARKS EDITOR ═══
+// Fuera del editor: Abductores (casi nunca se trabaja aparte). Gemelos/Sóleo/Hombro posterior ya no salen:
+// normMuscle los une en 'Gemelo/Sóleo' y 'Deltoides posterior'.
+const LM_HIDE=new Set(['Abductores']);
+function lmOverride(m){const ov=db.profile?.landmarks||{};return Object.keys(ov).filter(x=>x!==m&&normMuscle(x)===m).reduce((a,x)=>({...a,...ov[x]}),{...(ov[m]||{})});}
 function openLandmarks(){
   const seen=new Set([...(db.sessions||[]).flatMap(s=>s.exercises?.map(e=>normMuscle(e.muscle))||[])]);
   Object.keys(DEFAULT_LANDMARKS).forEach(m=>seen.add(m));
-  Object.keys(db.profile?.landmarks||{}).forEach(m=>seen.add(m));
-  const muscles=[...seen].sort((a,b)=>a.localeCompare(b,'es'));
-  const ov=db.profile?.landmarks||{};
-  const inp=(m,f)=>{const v=ov[m]?.[f];const ph=DEFAULT_LANDMARKS[m]?.[f]??'';
+  Object.keys(db.profile?.landmarks||{}).forEach(m=>seen.add(normMuscle(m)));
+  const muscles=[...seen].filter(m=>m&&!LM_HIDE.has(m)).sort((a,b)=>a.localeCompare(b,'es'));
+  const inp=(m,f)=>{const v=lmOverride(m)[f];const ph=DEFAULT_LANDMARKS[m]?.[f]??'';
     return `<input type="number" min="0" max="40" step="1" data-m="${esc(m)}" data-f="${f}" value="${v??''}" placeholder="${ph}" style="width:100%;padding:6px 4px;text-align:center;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--t1);font-family:var(--mono);font-size:12px;outline:none">`;};
   document.getElementById('lm-rows').innerHTML=muscles.map(m=>`
     <div style="display:grid;grid-template-columns:1fr 52px 52px 52px;gap:6px;align-items:center;margin-bottom:6px">
@@ -32,10 +35,15 @@ function saveLandmarks(){
     }
   }
   db.profile=db.profile||{};
+  // Los músculos ocultos conservan lo que tuvieran; los nombres antiguos se sustituyen por el canónico
+  const prev=db.profile.landmarks||{};
+  Object.keys(prev).forEach(m=>{if(LM_HIDE.has(normMuscle(m))&&!rows[m])rows[m]=prev[m];});
+  // Se guarda para siempre (no depende de la semana que se esté viendo) y con fecha, para que la
+  // copia de Supabase no la pise al volver a abrir la app
   db.profile.landmarks=rows;
   saveDB();
   closeLandmarks();
-  renderVol();
+  if(curScr()==='vol')renderVolScr();else renderVol();
   toast('Landmarks guardados ✓');
 }
 function renderVol(){
