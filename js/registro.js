@@ -132,17 +132,21 @@ function renderSessPlan(){
 const PRE_Q=[['energy','Energía',['🪫','😕','😐','🙂','⚡']],['motivation','Motivación',['😒','😕','😐','🙂','🔥']]];
 let preSess=null;
 // Músculos de la rutina (principales primero, luego secundarios) para marcar cansancio / agujetas / dolor
-function preSessMuscles(t){
+function preSessMuscles(exs){
   const prim=[],sec=[];
-  (t.exercises||[]).forEach(e=>{PPCore.credits(db.profile,e).forEach(({m,w})=>{if(!m)return;(w===1?prim:sec).push(m);});});
+  (exs||[]).forEach(e=>{PPCore.credits(db.profile,e).forEach(({m,w})=>{if(!m)return;(w===1?prim:sec).push(m);});});
   return [...new Set([...prim,...sec])];
 }
-function openPreSess(tid){
-  const t=(db.templates||[]).find(x=>x.id===tid);if(!t)return;
+// src: id de plantilla · o una sesión pasada que se va a repetir ({name, exercises, rest})
+function openPreSess(src){
+  const t=(src&&typeof src==='object')?null:(db.templates||[]).find(x=>x.id===src);
+  const from=t||src;if(!from||!from.exercises)return;
   const day=selDate||todayStr(),bt=(db.biometrics||[]).find(b=>b.date===day);
   const q=bt?.subj?.v===2?bt.subj:{},auto=q.sleepH==null?PPCore.sleepBucket(bt?.sleepMin):null;
-  preSess={tid,day,budget:null,apply:true,sleepH:q.sleepH??auto,sleepAuto:auto!=null,energy:q.energy??null,motivation:q.motivation??null,muscles:{...(q.muscles||{})},mlist:preSessMuscles(t)};
-  document.getElementById('presess-title').textContent=t.name;
+  // prev: ejercicios con su número de series, para la vista previa de los ajustes por músculo
+  const prev=from.exercises.map(e=>({name:e.name,muscle:e.muscle,n:Math.max(1,Array.isArray(e.sets)?e.sets.length:(e.sets||3))}));
+  preSess={tid:t?t.id:null,repeat:t?null:from,prev,day,budget:null,apply:true,sleepH:q.sleepH??auto,sleepAuto:auto!=null,energy:q.energy??null,motivation:q.motivation??null,muscles:{...(q.muscles||{})},mlist:preSessMuscles(from.exercises)};
+  document.getElementById('presess-title').textContent=from.name||'Entrenamiento';
   renderPreSess();document.getElementById('ov-presess').classList.add('on');
 }
 function preSessSubj(p){
@@ -172,8 +176,7 @@ function renderPreSess(){
   const watch=bt&&(bt.sleepMin||bt.rhr||bt.hrv)?`⌚ ${bt.sleepMin?`${Math.floor(bt.sleepMin/60)} h ${Math.round(bt.sleepMin%60)} min de sueño`:''}${bt.rhr?` · ${Math.round(bt.rhr)} lpm en reposo`:''}${bt.hrv?` · HRV ${Math.round(bt.hrv)} ms`:''}`:'';
   const R=preSessReadiness(),a=PPCore.readinessAdvice(R);
   // vista previa de los ajustes por músculo
-  const t=(db.templates||[]).find(x=>x.id===preSess.tid);
-  const sim=t?PPCore.muscleAdjust(t.exercises.map(e=>({name:e.name,muscle:e.muscle,sets:Array.from({length:e.sets||3})})),preSess.muscles):[];
+  const sim=PPCore.muscleAdjust(preSess.prev.map(e=>({name:e.name,muscle:e.muscle,sets:Array.from({length:e.n})})),preSess.muscles);
   const madj=sim.length?`<div class="ps-madj">${sim.map(x=>`<div><b>${esc(x.name)}</b> · ${x.st==='doms'&&x.to<x.from?`${x.from} → ${x.to} series, sin fallo`:x.st==='doms'?'sin ir al fallo':x.st==='fatigue'?'1 repetición más en reserva':'cámbialo o sáltalo'} <span>(${esc(x.m)}: ${PPCore.MUSCLE_ST[x.st].t})</span></div>`).join('')}</div>`:'';
   document.getElementById('presess-ready').innerHTML=(watch?`<div class="ps-watch">${watch}</div>`:'')+madj+(a?`<div class="ps-advice" style="border-color:${a.f===1?'var(--green)':a.f>=.8?'var(--amber)':'var(--red)'}"><b>Readiness ${Math.round(R*100)}</b> · ${a.t}${a.f<1?`<label><input type="checkbox" ${preSess.apply?'checked':''} onchange="preSess.apply=this.checked"> Aplicar</label>`:''}</div>`:'<div class="ps-watch">Responde el check-in para ajustar la carga de hoy.</div>');
 }
@@ -187,13 +190,14 @@ function closePreSess(e){if(e&&e.target!==document.getElementById('ov-presess'))
 function preSessGo(skip){
   const p=preSess;if(!p)return;
   document.getElementById('ov-presess').classList.remove('on');preSess=null;
-  if(skip){startFromTmplNow(p.tid);return;}
+  if(skip){preSessStart(p,{});return;}
   const subj=preSessSubj(p);
   if(subj&&p.day===todayStr())saveCheckin(p.day,subj);
   preSess=p;const R=preSessReadiness();preSess=null;
   const a=PPCore.readinessAdvice(R),applied=!!(a&&a.f<1&&p.apply);
-  startFromTmplNow(p.tid,{timeBudget:p.budget,loadFactor:applied?a.f:1,muscles:subj?.muscles||null,readiness:R!=null?{score:Math.round(R*1000)/1000,rec:a.key,applied,subj}:null});
+  preSessStart(p,{timeBudget:p.budget,loadFactor:applied?a.f:1,muscles:subj?.muscles||null,readiness:R!=null?{score:Math.round(R*1000)/1000,rec:a.key,applied,subj}:null});
 }
+function preSessStart(p,opt){p.tid?startFromTmplNow(p.tid,opt):startRepeatNow(p.repeat,opt);}
 // Guarda el check-in del día con la biometría (alimenta la readiness del IHO)
 function saveCheckin(day,subj){
   db.biometrics=db.biometrics||[];

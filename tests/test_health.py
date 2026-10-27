@@ -37,6 +37,7 @@ BRIDGE = """(()=>{
       requestAuthorization:async o=>{HC_CALLS.push(['auth',o]);return{readAuthorized:o.read,readDenied:[]};},
       readSamples:async o=>{HC_CALLS.push(['read',o.dataType]);if(window.HC_EMPTY)return{samples:[]};if(window.HC_DENY&&window.HC_DENY.includes(o.dataType))throw new Error('java.lang.SecurityException: Caller doesn\\'t have android.permission.health.READ_'+o.dataType);const a=Date.parse(o.startDate),b=Date.parse(o.endDate);return{samples:(S[o.dataType]||[]).filter(x=>{const t=Date.parse(x.startDate);return t>=a&&t<=b;})};}},
     LocalNotifications:{checkPermissions:async()=>({display:'granted'}),requestPermissions:async()=>({display:'granted'}),
+      createChannel:async o=>{LN_CALLS.push(['channel',o]);},
       schedule:async o=>{LN_CALLS.push(['schedule',o]);return{}},cancel:async o=>{LN_CALLS.push(['cancel',o]);}}}};
 })()"""
 
@@ -60,6 +61,7 @@ with sync_playwright() as p:
     href = ev("()=>document.querySelector('#health-card a')?.href||''")
     check('W1. En el navegador, la tarjeta del reloj ofrece la app Android', 'Descargar la app Android' in card and href.endswith('/releases/download/android/peak-physique.apk'), (card[:80], href))
     check('W2. Sin la app nativa no se intenta leer nada', ev("()=>hcPlugin()") is None and ev("()=>hcSync(true)") is None)
+    check('W2b. En el navegador, Inicio no muestra el botón del reloj', ev("()=>{navHome();return document.getElementById('home-health').innerHTML}") == '')
     check('W3. Sin errores de JavaScript (navegador)', not errors, errors[:3])
     ctx.close()
 
@@ -100,7 +102,9 @@ with sync_playwright() as p:
     ev("()=>{LN_CALLS.length=0;toggleDone(1,0)}"); page.wait_for_timeout(300)
     sch = ev("()=>LN_CALLS.find(c=>c[0]==='schedule')?.[1]?.notifications?.[0]")
     end = ev("()=>restEndTs")
+    ch = ev("()=>LN_CALLS.find(c=>c[0]==='channel')?.[1]")
     check('H11. El descanso programa una notificación nativa para cuando acaba', sch and abs(ev(f"()=>Date.parse('{sch['schedule']['at']}')") - end) < 1500, sch)
+    check('H11b. Canal propio de importancia alta y alarma exacta: suena con la pantalla bloqueada', ch and ch['importance'] == 4 and ch['vibration'] and sch.get('channelId') == ch['id'] and sch.get('isExactNotification') is True and sch['schedule'].get('allowWhileIdle') is True, (ch, sch))
     ev("()=>{LN_CALLS.length=0;stopRest()}"); page.wait_for_timeout(100)
     check('H12. Parar el descanso cancela la notificación', ev("()=>LN_CALLS.some(c=>c[0]==='cancel')"))
     n0 = ev("()=>HC_CALLS.length"); ev("()=>hcAutoSync()"); page.wait_for_timeout(300)
@@ -121,6 +125,15 @@ with sync_playwright() as p:
     ev("()=>hcOpenSettings()"); page.wait_for_timeout(100)
     check('H17. El botón abre los ajustes de Health Connect', ev("()=>!!window.HC_OPENED"))
     ev("()=>{window.HC_DENY=null}")
+    # recordatorio del reloj en Inicio
+    ev("()=>{db.profile.hcLastSync=new Date(Date.now()-3*3600e3).toISOString();navHome()}"); page.wait_for_timeout(300)
+    hh = ev("()=>document.getElementById('home-health').innerText")
+    check('H18. Inicio recuerda sincronizar el reloj cuando la lectura es vieja', 'Sincroniza el reloj' in hh and 'hace 3 h' in hh and ev("()=>!!document.querySelector('#home-health .home-hc.stale')"), hh)
+    ev("()=>{db.profile.hcLastSync=new Date().toISOString();renderHomeHealth()}")
+    check('H19. …y dice que está al día si acaba de leerse', 'Reloj al día' in ev("()=>document.getElementById('home-health').innerText") and not ev("()=>!!document.querySelector('#home-health .home-hc.stale')"))
+    ev("()=>{db.profile.healthConnect=false;renderHomeHealth()}")
+    check('H20. Sin conectar, el botón de Inicio ofrece conectarlo', 'Conectar el reloj' in ev("()=>document.getElementById('home-health').innerText"))
+    ev("()=>{db.profile.healthConnect=true}")
     check('Z1. Sin errores de JavaScript (app)', not errors, errors[:3])
     ctx.close()
 

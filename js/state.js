@@ -21,18 +21,18 @@ function ciProxy(o){return new Proxy(o,{get:(t,k)=>{if(typeof k!=='string'||t[k]
 MC_RAW['Abdomen']=['#2a2a10','#e2e8a0'];MC_RAW['Antebrazo']=['#1e2a2a','#94d3c8'];MC_RAW['Trapecio']=['#2a1a10','#f5b28a'];
 VC_RAW['Abdomen']='#e2e8a0';VC_RAW['Antebrazo']='#94d3c8';VC_RAW['Trapecio']='#f5b28a';
 const MC=ciProxy(MC_RAW),VC=ciProxy(VC_RAW);
-// ═══ VOLUME LANDMARKS (MEV/MAV/MRV, series/semana) ═══
+// ═══ VOLUME LANDMARKS (Vol Mín / Óptimo / Máx, series/semana) ═══
 // Defaults follow RP-style guidelines; editable per muscle via el botón ⚙ de la
 // pestaña Volumen. Overrides live in db.profile.landmarks → sync with the profile.
 // DEFAULT_LANDMARKS vive en js/core.js. Admite nombres con otra capitalización ('Deltoides Anterior').
 function getLandmarks(m){return PPCore.landmarks(db.profile,m);}
 function lmZone(total,lm){
-  if(total<lm.mev)return{txt:`&lt; MEV`,detail:`${total} de ${lm.mev} mín.`,color:'#4f8ef7'};
-  if(total<=lm.mav)return{txt:`MEV–MAV ✓`,detail:`zona productiva`,color:'#34d399'};
-  if(total<=lm.mrv)return{txt:`MAV–MRV ⚠`,detail:`alta fatiga`,color:'#fbbf24'};
-  return{txt:`&gt; MRV ✕`,detail:`sobre el máximo recuperable`,color:'#f87171'};
+  if(total<lm.mev)return{txt:`Vol Insuficiente`,detail:`${total} de ${lm.mev} mín.`,color:'#4f8ef7'};
+  if(total<=lm.mav)return{txt:`Vol Suficiente ✓`,detail:`zona productiva`,color:'#34d399'};
+  if(total<=lm.mrv)return{txt:`Vol Óptimo`,detail:`cerca del máximo · alta fatiga`,color:'#fbbf24'};
+  return{txt:`Sobrecarga de volumen ✕`,detail:`sobre el máximo recuperable`,color:'#f87171'};
 }
-// Chart.js inline plugin: shaded MEV–MAV / MAV–MRV bands + threshold lines,
+// Chart.js inline plugin: shaded Vol Mín–Óptimo / Óptimo–Máx bands + threshold lines,
 // drawn only when exactly one muscle is selected in the chips.
 const volBandsPlugin={id:'volBands',beforeDatasetsDraw(chart,args,opts){
   const lm=opts?.lm;if(!lm)return;
@@ -48,9 +48,9 @@ const volBandsPlugin={id:'volBands',beforeDatasetsDraw(chart,args,opts){
   line(lm.mev,'rgba(52,211,153,.7)');line(lm.mav,'rgba(251,191,36,.6)');line(lm.mrv,'rgba(248,113,113,.8)');
   ctx.setLineDash([]);
   ctx.font='9px DM Mono';ctx.textAlign='right';
-  ctx.fillStyle='rgba(52,211,153,.95)';ctx.fillText('MEV '+lm.mev,right-4,Y(lm.mev)-3);
-  ctx.fillStyle='rgba(251,191,36,.95)';ctx.fillText('MAV '+lm.mav,right-4,Y(lm.mav)-3);
-  ctx.fillStyle='rgba(248,113,113,.95)';ctx.fillText('MRV '+lm.mrv,right-4,Y(lm.mrv)-3);
+  ctx.fillStyle='rgba(52,211,153,.95)';ctx.fillText('Vol Mín '+lm.mev,right-4,Y(lm.mev)-3);
+  ctx.fillStyle='rgba(251,191,36,.95)';ctx.fillText('Vol Óptimo '+lm.mav,right-4,Y(lm.mav)-3);
+  ctx.fillStyle='rgba(248,113,113,.95)';ctx.fillText('Vol Máx '+lm.mrv,right-4,Y(lm.mrv)-3);
   ctx.restore();
 }};
 const MONTH_ABBR=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];

@@ -90,7 +90,7 @@
     return pct ? Math.round(kg / (pct / 100) * 10) / 10 : null;
   };
 
-  // ── Landmarks de volumen (MEV/MAV/MRV, series/semana) ──
+  // ── Volume Landmarks (Vol Mín / Óptimo / Máx, series/semana) ──
   C.DEFAULT_LANDMARKS = {
     'Pectoral': { mev: 8, mav: 16, mrv: 22 }, 'Espalda': { mev: 10, mav: 18, mrv: 25 }, 'Tríceps': { mev: 6, mav: 12, mrv: 18 },
     'Bíceps': { mev: 8, mav: 14, mrv: 20 }, 'Glúteos': { mev: 4, mav: 12, mrv: 16 }, 'Isquiosurales': { mev: 6, mav: 12, mrv: 16 },
@@ -105,7 +105,7 @@
     const lm = { ...(C.DEFAULT_LANDMARKS[k] || {}), ...(ov[k] || {}), ...(ov[m] || {}) };
     return (lm.mev != null && lm.mav != null && lm.mrv != null && lm.mev <= lm.mav && lm.mav <= lm.mrv) ? lm : null;
   };
-  // Escala común de las barras de volumen: MEV, MAV y MRV caen SIEMPRE en la misma posición (%) de la barra,
+  // Escala común de las barras de volumen: Vol Mín, Óptimo y Máx caen SIEMPRE en la misma posición (%) de la barra,
   // sea cual sea el músculo o sus valores; entre marcas la escala es lineal. Así las marcas se alinean entre filas.
   C.VOL_POS = { mev: 25, mav: 55, mrv: 85 };
   C.volPos = (v, lm) => {
@@ -239,7 +239,7 @@
   C.isDeloadDate = (profile, ds) => !!C.mesoWeekAt(profile, ds)?.deload;
   // Series objetivo de cada ejercicio de una rutina para la semana de `ds`:
   // descarga → mitad; acumulación → +1 serie/semana en el 1.er ejercicio de cada músculo,
-  // con tope en el MRV semanal (suponiendo que cada rutina se hace una vez por semana).
+  // con tope en el Vol Máx semanal (suponiendo que cada rutina se hace una vez por semana).
   C.mesoSets = (profile, templates, t, ds) => {
     const base = (t.exercises || []).map(e => Math.max(1, +e.sets || 3));
     const wk = C.mesoWeekAt(profile, ds);
@@ -463,7 +463,7 @@
   C.HI_W = { vol: .35, int: .20, prog: .20, adh: .15, den: .10 };
   C.HI_NAMES = { vol: 'Volumen efectivo', int: 'Proximidad al fallo', prog: 'Sobrecarga progresiva', adh: 'Adherencia', den: 'Densidad del estímulo' };
   C.hiLabel = (sc, risk) => risk ? { t: 'Sobrecarga / riesgo', c: '#f43f5e' } : sc >= 80 ? { t: 'Óptimo', c: '#34d399' } : sc >= 60 ? { t: 'Productivo', c: '#4f7cff' } : sc >= 40 ? { t: 'Mantenimiento', c: '#fbbf24' } : { t: 'Insuficiente', c: '#f87171' };
-  // Volumen efectivo semanal → 0–100: lineal hasta el MEV (60), sube al MAV (100), meseta hasta el MRV (90) y cae
+  // Volumen efectivo semanal → 0–100: lineal hasta el Vol Mín (60), sube al Óptimo (100), meseta hasta el Máx (90) y cae
   C.hiVolScore = (v, lm) => {
     if (!(v > 0)) return 0;
     if (v < lm.mev) return 60 * v / lm.mev;
@@ -526,7 +526,7 @@
       R.muscles.push({ m, v, f, lm, score: sc, major, rv: (raw[m] || 0) / weeks });
     });
     R.muscles.sort((a, b) => (b.major - a.major) || (b.v - a.v));
-    R.comp.vol = { score: vw ? vs / vw : null, detail: `${inZone} de ${nLm} grupos en zona productiva (MEV–MAV), series ponderadas por esfuerzo` };
+    R.comp.vol = { score: vw ? vs / vw : null, detail: `${inZone} de ${nLm} grupos en zona productiva (Vol Mín–Óptimo), series ponderadas por esfuerzo` };
     // 2 · Proximidad al fallo (solo esfuerzo real: el copiado o inferido no cuenta)
     const cov = work ? logged / work : 0, junkS = logged ? junk / logged : 0, failS = compLogged ? failC / compLogged : 0;
     R.junk = junkS;
@@ -599,12 +599,12 @@
     const regNote = x => x.rv - x.v >= 1 ? ` (${f1(x.rv)} registradas)` : '';
     if (lows.length >= 3) {
       const nm = lows.slice(0, 3).map(x => `<b>${esc(x.m)}</b>`);
-      rec(90, `Sube el volumen efectivo de ${nm.slice(0, -1).join(', ')} y ${nm[nm.length - 1]}${lows.length > 3 ? ` (y ${lows.length - 3} más)` : ''}: están por debajo de su MEV. Añade 2–4 series duras por semana a cada uno.`);
+      rec(90, `Sube el volumen efectivo de ${nm.slice(0, -1).join(', ')} y ${nm[nm.length - 1]}${lows.length > 3 ? ` (y ${lows.length - 3} más)` : ''}: están por debajo de su Vol Mín. Añade 2–4 series duras por semana a cada uno.`);
     } else lows.forEach(x => {
       const gap = Math.ceil(x.lm.mev - x.v);
-      rec(92 - x.v, `Sube <b>${esc(x.m)}</b>: ${f1(x.v)} series efectivas/sem${regNote(x)}, por debajo de tu MEV (${x.lm.mev}). Añade ${gap}–${gap + 2} series a la semana.`);
+      rec(92 - x.v, `Sube <b>${esc(x.m)}</b>: ${f1(x.v)} series efectivas/sem${regNote(x)}, por debajo de tu Vol Mín (${x.lm.mev}). Añade ${gap}–${gap + 2} series a la semana.`);
     });
-    R.muscles.filter(x => x.lm && x.v > x.lm.mrv).forEach(x => rec(86, `Baja <b>${esc(x.m)}</b>: ${f1(x.v)} series/sem superan tu MRV (${x.lm.mrv}). Quita ${Math.ceil(x.v - x.lm.mav)} para volver a la zona productiva.`));
+    R.muscles.filter(x => x.lm && x.v > x.lm.mrv).forEach(x => rec(86, `Baja <b>${esc(x.m)}</b>: ${f1(x.v)} series/sem superan tu Vol Máx (${x.lm.mrv}). Quita ${Math.ceil(x.v - x.lm.mav)} para volver a la zona productiva.`));
     if (junkS > .5) rec(96, `El ${Math.round(junkS * 100)}% de tus series se quedan a 5 o más repeticiones del fallo y apenas estimulan: llévalas a RIR 1–3 (te quedan 1–3 reps). Mientras sea así, el índice no pasa de 59.`);
     else if (junkS > .2) rec(76, `El ${Math.round(junkS * 100)}% de tus series se quedan lejos del fallo (RIR ≥5): acércalas a RIR 1–3 o elimínalas.`);
     if (failS > .25 && compLogged >= 6) rec(70, `Llevas al fallo el ${Math.round(failS * 100)}% de las series de multiarticulares: el fallo fatiga mucho más de lo que estimula. Resérvalo para aislamientos.`);

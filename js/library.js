@@ -3,7 +3,7 @@
 let statsTab='prog', bibMFilter='all', bibEqFilter='all';
 let pendingBibOpenName=null;
 function goToExInBiblioteca(name){
-  pendingBibOpenName=name;bibMFilter='all';bibEqFilter='all';
+  pendingBibOpenName=name;bibMFilter='all';bibEqFilter='all';toggleBib(true);
   const search=document.getElementById('bib-search');if(search)search.value='';
   document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent==='Todos'));
   document.querySelectorAll('#bib-eq-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent==='Todos'));
@@ -11,6 +11,16 @@ function goToExInBiblioteca(name){
   setTimeout(()=>{document.getElementById('bib-list')?.scrollIntoView({behavior:'smooth',block:'start'});},50);
 }
 function setStatsTab(tab){if(tab==='bib'){navTo('perfil');}else if(tab==='vol'){navTo('vol');}else{renderProg();}}
+let bibOpen=false;
+// La biblioteca son cientos de ejercicios: se deja plegada y se abre al tocar el título
+function toggleBib(force){
+  bibOpen=force==null?!bibOpen:!!force;
+  const b=document.getElementById('bib-body'),h=document.querySelector('.bib-head'),c=document.getElementById('bib-caret');
+  if(b)b.hidden=!bibOpen;
+  if(h)h.setAttribute('aria-expanded',bibOpen?'true':'false');
+  if(c)c.classList.toggle('on',bibOpen);
+  if(bibOpen)renderBiblioteca();
+}
 function renderBibliotecaInit(){
   const mf=document.getElementById('bib-muscle-filters');
   if(mf&&!mf.innerHTML){
@@ -20,7 +30,8 @@ function renderBibliotecaInit(){
   if(ef&&!ef.innerHTML){
     ef.innerHTML=`<div class="mf on" onclick="setBibEqFilter('all')">Todos</div>`+['Peso libre','Poleas','Máquina'].map(eq=>`<div class="mf" onclick="setBibEqFilter('${eq}')">${eq}</div>`).join('');
   }
-  renderBiblioteca();
+  const n=document.getElementById('bib-count');if(n)n.textContent=ALL_EX.length?`${ALL_EX.length} ejercicios`:'';
+  if(bibOpen)renderBiblioteca();
 }
 function setBibEqFilter(eq){
   bibEqFilter=eq;
@@ -28,7 +39,7 @@ function setBibEqFilter(eq){
   renderBiblioteca();
 }
 function setBibFilter(m){
-  bibMFilter=m;
+  bibMFilter=m;bibOpen=true;
   document.querySelectorAll('#bib-muscle-filters .mf').forEach(el=>el.classList.toggle('on',el.textContent===(m==='all'?'Todos':m)));
   renderBiblioteca();
 }

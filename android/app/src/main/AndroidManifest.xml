@@ -40,4 +40,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Health Connect: leer más de 30 días hacia atrás (línea base de la recuperación) -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
+    <!-- Temporizador de descanso: el aviso tiene que sonar a su hora con la pantalla bloqueada.
+         Desde Android 13 SCHEDULE_EXACT_ALARM ya no se concede sola y la alarma cae en «inexacta»,
+         que el sistema retrasa en reposo. USE_EXACT_ALARM se concede al instalar y es la pensada
+         para apps de alarmas y temporizadores, que es justo lo que hace el descanso entre series. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

@@ -20,7 +20,7 @@ function renderBodyHeat(by){
   const wrap=document.getElementById('body-wrap');if(!wrap)return;
   if(!wrap.dataset.init){wrap.innerHTML=bodySvg('f')+bodySvg('b');wrap.dataset.init='1';
     wrap.querySelectorAll('.body-m').forEach(el=>el.addEventListener('click',()=>{const t=el.dataset.t;document.getElementById('body-tip').textContent=t||(el.dataset.l+' · sin series');}));}
-  paintVolFigure(wrap,by); // 5 zonas: sin entrenar, < MEV, MEV–MAV, MAV–MRV, > MRV
+  paintVolFigure(wrap,by); // 5 zonas: sin entrenar, insuficiente, suficiente, óptimo, sobrecarga
   const lg=document.getElementById('vol-legend');if(lg&&!lg.innerHTML)lg.innerHTML=volLegendHtml();
   const tip=document.getElementById('body-tip');if(tip)tip.textContent=Object.keys(by).length?'Toca un músculo':'Sin entrenos esta semana';
 }
