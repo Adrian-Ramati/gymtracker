@@ -72,7 +72,7 @@ function calcTMB(dateStr){
 // trained" idea), work density (sets/min captures short-rest metabolic work),
 // and mean session RPE. Clamped to the physiological 2.5–6.0 MET band.
 // If the user logged the watch's kcal for the session (kcalWatch), it wins as-is.
-const MET_LOWER=new Set(['Cuádriceps','Isquiosurales','Glúteos','Gemelos','Sóleo','Aductores','Abductores']);
+const MET_LOWER=new Set(['Cuádriceps','Isquiosurales','Glúteos','Gemelo/Sóleo','Aductores','Abductores']);
 const MET_BIG_UPPER=new Set(['Espalda','Pectoral']);
 function sessionMET(s){
   let sets=0,lower=0,big=0,rs=0,rc=0;

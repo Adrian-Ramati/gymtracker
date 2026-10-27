@@ -68,13 +68,15 @@
 
   // ── Músculos: nombre canónico (une 'Deltoides Anterior'/'deltoides anterior', 'Isquiotibiales'/'Isquiosurales'…) ──
   C.MUSCLES = ['Pectoral', 'Espalda', 'Deltoides anterior', 'Deltoides lateral', 'Deltoides posterior', 'Bíceps', 'Tríceps',
-    'Antebrazo', 'Trapecio', 'Abdomen', 'Lumbar', 'Cuádriceps', 'Isquiosurales', 'Glúteos', 'Aductores', 'Abductores', 'Gemelos', 'Sóleo'];
+    'Antebrazo', 'Trapecio', 'Abdomen', 'Lumbar', 'Cuádriceps', 'Isquiosurales', 'Glúteos', 'Aductores', 'Abductores', 'Gemelo/Sóleo'];
   const CANON = Object.fromEntries(C.MUSCLES.map(m => [fold(m), m]));
   C.normMuscle = m => {
     if (!m) return m;
     const f = fold(m);
     if (/^isquio/.test(f)) return 'Isquiosurales';
     if (/hombro posterior|deltoides? posterior/.test(f)) return 'Deltoides posterior';
+    // Gemelo, Gemelos, Sóleo y Gemelo/Sóleo son un solo grupo: así no salen repetidos ni partidos
+    if (/gemelo|soleo|\bcalf|\bcalves/.test(f)) return 'Gemelo/Sóleo';
     return CANON[f] || m;
   };
 
@@ -94,15 +96,17 @@
   C.DEFAULT_LANDMARKS = {
     'Pectoral': { mev: 8, mav: 16, mrv: 22 }, 'Espalda': { mev: 10, mav: 18, mrv: 25 }, 'Tríceps': { mev: 6, mav: 12, mrv: 18 },
     'Bíceps': { mev: 8, mav: 14, mrv: 20 }, 'Glúteos': { mev: 4, mav: 12, mrv: 16 }, 'Isquiosurales': { mev: 6, mav: 12, mrv: 16 },
-    'Cuádriceps': { mev: 8, mav: 14, mrv: 20 }, 'Gemelos': { mev: 8, mav: 14, mrv: 20 }, 'Sóleo': { mev: 6, mav: 10, mrv: 16 },
+    'Cuádriceps': { mev: 8, mav: 14, mrv: 20 }, 'Gemelo/Sóleo': { mev: 8, mav: 14, mrv: 20 },
     'Deltoides anterior': { mev: 2, mav: 8, mrv: 12 }, 'Deltoides lateral': { mev: 8, mav: 18, mrv: 26 },
-    'Deltoides posterior': { mev: 6, mav: 14, mrv: 22 }, 'Hombro posterior': { mev: 6, mav: 14, mrv: 22 },
+    'Deltoides posterior': { mev: 6, mav: 14, mrv: 22 },
     'Aductores': { mev: 4, mav: 8, mrv: 12 }, 'Abductores': { mev: 4, mav: 8, mrv: 12 },
   };
-  const lmKey = m => { const c = C.normMuscle(m); if (C.DEFAULT_LANDMARKS[c]) return c; return /gemelo|soleo/.test(fold(m)) ? 'Gemelos' : c; };
+  // Ajustes guardados con nombres antiguos (p. ej. 'Gemelos', 'Hombro posterior') siguen valiendo
+  // para su grupo canónico; el nombre canónico manda sobre los antiguos.
   C.landmarks = (profile, m) => {
-    const ov = profile?.landmarks || {}, k = lmKey(m);
-    const lm = { ...(C.DEFAULT_LANDMARKS[k] || {}), ...(ov[k] || {}), ...(ov[m] || {}) };
+    const ov = profile?.landmarks || {}, k = C.normMuscle(m);
+    const old = Object.keys(ov).filter(x => x !== k && C.normMuscle(x) === k).reduce((a, x) => ({ ...a, ...ov[x] }), {});
+    const lm = { ...(C.DEFAULT_LANDMARKS[k] || {}), ...old, ...(ov[k] || {}) };
     return (lm.mev != null && lm.mav != null && lm.mrv != null && lm.mev <= lm.mav && lm.mav <= lm.mrv) ? lm : null;
   };
   // Escala común de las barras de volumen: Vol Mín, Óptimo y Máx caen SIEMPRE en la misma posición (%) de la barra,
@@ -179,7 +183,7 @@
 
   // Revisión de secundarios en un rango de fechas: por ejercicio, de dónde salen (catálogo / personalizado / automático / ninguno)
   // y cuántas series efectivas aportan. «revisar» = ejercicio multiarticular de un músculo grande sin secundarios (en aislamiento y músculos pequeños es lo normal).
-  const NO_SEC_OK_M = new Set(['Bíceps', 'Tríceps', 'Antebrazo', 'Deltoides lateral', 'Deltoides posterior', 'Gemelos', 'Sóleo', 'Aductores', 'Abductores', 'Abdomen', 'Lumbar', 'Trapecio']);
+  const NO_SEC_OK_M = new Set(['Bíceps', 'Tríceps', 'Antebrazo', 'Deltoides lateral', 'Deltoides posterior', 'Gemelo/Sóleo', 'Aductores', 'Abductores', 'Abdomen', 'Lumbar', 'Trapecio']);
   C.secAudit = (profile, sessions, from, to) => {
     const R = {}, ses = (sessions || []).filter(s => s.date >= from && s.date <= to), flagged = new Set();
     let seriesTotal = 0, seriesCon = 0, extra = 0, nSes = 0;

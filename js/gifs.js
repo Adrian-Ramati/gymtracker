@@ -109,8 +109,19 @@ function setGif(id){
   if(typeof renderBiblioteca==='function'&&document.getElementById('stats-panel-bib')?.style.display!=='none')renderBiblioteca();
 }
 // ─── Ajustes (descansos, gifs, landmarks) → Supabase profiles.settings (best-effort)
+// settingsAt: cuándo se cambió algo por última vez. Al abrir la app gana la copia más reciente (local o
+// Supabase); antes ganaba siempre Supabase y, si la subida había fallado, los cambios se perdían.
+const SETTINGS_KEYS=['restDays','gifMap','landmarks','secMap','mesoLog'];
+function settingsObj(p){p=p||{};return {restDays:p.restDays||[],gifMap:p.gifMap||{},landmarks:p.landmarks||{},secMap:p.secMap||{},mesoLog:p.mesoLog||[]};}
+function stampSettings(){
+  if(!db.profile)db.profile={};
+  const sig=JSON.stringify(settingsObj(db.profile));
+  if(sig!==db.profile.settingsSig){db.profile.settingsSig=sig;db.profile.settingsAt=Date.now();}
+}
 async function saveSettingsRemote(){
   if(!useSupabase||!sbClient||!supabaseUser)return;
-  try{const {error}=await sbClient.from('profiles').update({settings:{restDays:db.profile?.restDays||[],gifMap:db.profile?.gifMap||{},landmarks:db.profile?.landmarks||{},secMap:db.profile?.secMap||{},mesoLog:db.profile?.mesoLog||[]}}).eq('id',supabaseUser.id);if(error)console.warn('settings sync (añade columna profiles.settings jsonb):',error.message);}catch(e){}
+  try{const {data,error}=await sbClient.from('profiles').update({settings:{...settingsObj(db.profile),settingsAt:db.profile?.settingsAt||0}}).eq('id',supabaseUser.id).select('id');
+    if(error)console.warn('settings sync (añade columna profiles.settings jsonb):',error.message);
+    else if(Array.isArray(data)&&!data.length)console.warn('settings sync: no se actualizó ninguna fila de profiles');}catch(e){}
 }
 document.addEventListener('DOMContentLoaded',()=>{loadGifIndex();});

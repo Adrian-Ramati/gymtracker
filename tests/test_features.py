@@ -47,7 +47,7 @@ with sync_playwright() as p:
     check('S3. La ficha muestra los secundarios automáticos', on == ['Tríceps', 'Deltoides anterior'] and 'automáticamente' in txt, (on, txt[:120]))
     page.click('#exv-body .exv-mchip.edit'); page.wait_for_timeout(150)
     n = ev("()=>document.querySelectorAll('#exv-body .exv-mchip:not(.edit)').length")
-    check('S4. "Editar" muestra todos los músculos candidatos (sin el principal)', n == 17, n)
+    check('S4. "Editar" muestra todos los músculos candidatos (sin el principal)', n == len(ev('()=>PPCore.MUSCLES')) - 1 == 16, n)
     page.click('#exv-body .exv-mchip[data-m="Deltoides anterior"]'); page.wait_for_timeout(150)
     st = ev("()=>({map:db.profile.secMap,by:weekStats(weekRange(0)).by,txt:document.getElementById('exv-body').innerText})")
     check('S5. Quitar un secundario se guarda y actualiza el volumen', st['map'] == {'press banca': ['Tríceps']} and 'Deltoides anterior' not in st['by'] and 'Personalizados' in st['txt'], st['map'])

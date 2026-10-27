@@ -169,7 +169,7 @@ def run():
         check('H10. Pantalla con todas las secciones', all(k.upper() in txt.upper() for k in ['Qué cambiar', 'Componentes', 'Por músculo', 'Progresión', 'Cómo se calcula']), txt[:300])
         rows = ev("()=>({m:document.querySelectorAll('#hyper-body .hi-mrow').length,c:document.querySelectorAll('#hyper-body .hi-comp').length,x:document.querySelectorAll('#hyper-body .hi-xrow').length})")
         check('H11. 8 grupos musculares, 5 componentes y lista de ejercicios', rows['m'] >= 8 and rows['c'] == 5 and rows['x'] >= 5, rows)
-        on = ev("()=>['home','stats','perfil'].filter(k=>document.getElementById('bn-'+k).classList.contains('on'))")
+        on = ev("()=>['home','vol','stats','perfil'].filter(k=>document.getElementById('bn-'+k).classList.contains('on'))")
         check('H12. Barra inferior visible con "Inicio" activo', on == ['home'] and not ev("()=>document.getElementById('bnav').classList.contains('hide')"), on)
         if SHOTS:
             page.screenshot(path=SHOT_DIR+'/hyper_a.png')
@@ -224,7 +224,7 @@ def run():
         ev(SEED); page.wait_for_timeout(700)
         st = ev("""()=>({name:document.querySelector('.cta-main b').textContent,btns:[...document.querySelectorAll('.cta-row button')].map(b=>b.textContent.trim()),
            titles:[...document.querySelectorAll('#s-home .hcard-head span')].map(e=>e.textContent),kpis:[...document.querySelectorAll('#hc-kpis small')].map(e=>e.textContent)})""")
-        check('R8. Portada: Siguiente rutina T2, Repetir/Otra, tarjetas y fichas', st['name'] == 'T2' and st['btns'] == ['Repetir', 'Otra'] and st['titles'] == ['Calendario semanal', 'Volumen muscular', 'Índice de hipertrofia'] and st['kpis'] == ['sesiones', 'series', 'kg movidos', 'tiempo'], st)
+        check('R8. Portada: Siguiente rutina T2, Repetir/Otra, tarjetas y fichas', st['name'] == 'T2' and st['btns'] == ['Repetir', 'Otra'] and st['titles'] == ['Calendario semanal', 'Índice de hipertrofia'] and st['kpis'] == ['sesiones', 'series', 'kg movidos', 'tiempo'], st)
         page.click('#bn-stats'); page.wait_for_timeout(800)
         st = ev("()=>({t:document.querySelector('.px-title').textContent,d:document.getElementById('px-delta').textContent,best:document.querySelector('.px-tile.best b').textContent,n:pChart?.data.datasets[0].data.length,mus:document.querySelectorAll('.px-mrow').length,act:document.getElementById('px-act').innerText})")
         check('R9. Pantalla Progreso: gráfica, mejor 1RM, progresión y músculo activado', st['t'] == 'Progreso de Fuerza' and st['d'] == ': +4.2kg' and st['best'] == '26.2' and st['n'] == 7 and st['mus'] >= 1 and 'Pasos hoy' in st['act'], st)

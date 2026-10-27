@@ -26,7 +26,7 @@ with sync_playwright() as p:
 
     # ── Portada ──
     t = ev("()=>[...document.querySelectorAll('#s-home .hcard-head span')].map(e=>e.textContent)")
-    check('A1. Portada sin la tarjeta "Progreso de fuerza"', 'Progreso de fuerza' not in t and t == ['Calendario semanal', 'Volumen muscular', 'Índice de hipertrofia'], t)
+    check('A1. Portada sin la tarjeta "Progreso de fuerza"', 'Progreso de fuerza' not in t and t == ['Calendario semanal', 'Índice de hipertrofia'], t)
     check('A2. El menú inferior sigue llevando a Progreso', ev("()=>!!document.getElementById('bn-stats')"))
 
     # ── Progreso: músculo activado según el ejercicio ──
@@ -63,7 +63,7 @@ with sync_playwright() as p:
     check('A12. Cada músculo con el color de su zona', got == {'chest': rgb(zc[1]), 'quads': rgb(zc[2]), 'bic': rgb(zc[3]), 'glu': rgb(zc[4]), 'abs': rgb(zc[0])}, got)
     tip = ev("()=>document.querySelector('#body-wrap .body-m[data-id=\"f-chest\"]').dataset.t")
     check('A13. Al tocar un músculo dice su zona', 'Vol Insuficiente' in tip and 'Vol Mín 8' in tip, tip)
-    check('A14. La portada usa los mismos colores', ev("()=>{navHome();const e=document.querySelector('#hc-body .body-m[data-id=\"f-abs\"]');return e.style.fill}") == rgb(zc[0]))
+    check('A14. El volumen ya no está en la portada', ev("()=>{navHome();return !document.getElementById('hc-body')}"))
 
     # ── Entrenamiento: volver al inicio sin cortar la sesión ──
     ev("()=>{startFromTmpl('t1');preSessGo(true)}"); page.wait_for_timeout(600)

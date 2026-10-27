@@ -120,7 +120,7 @@ async function loadDBFromSupabase(){
   try {
     const uid = supabaseUser.id;
     // Load all tables in parallel
-    let prevBio=[];try{prevBio=JSON.parse(localStorage.getItem(lsKey()))?.biometrics||[];}catch(e){}
+    let prevBio=[],prevProf=null;try{const pv=JSON.parse(localStorage.getItem(lsKey()));prevBio=pv?.biometrics||[];prevProf=pv?.profile||null;}catch(e){}
     const bioFrom=addDays(todayStr(),-120);
     const [sessRes, wRes, stRes, mRes, pRes, bRes] = await Promise.all([
       sbClient.from('sessions').select('*').eq('user_id',uid).order('date',{ascending:false}),
@@ -141,7 +141,14 @@ async function loadDBFromSupabase(){
     if(!mRes.error) db.measures = (mRes.data||[]).map(r=>({...r.data,week:r.week,date:r.date}));
     if(!pRes.error&&pRes.data){
       db.profile = {height:pRes.data.height,sex:pRes.data.sex||'male',age:pRes.data.age||30,username:pRes.data.username};
-      if(pRes.data.settings&&typeof pRes.data.settings==='object'){const st=pRes.data.settings;if(st.restDays)db.profile.restDays=st.restDays;if(st.gifMap)db.profile.gifMap=st.gifMap;if(st.landmarks)db.profile.landmarks=st.landmarks;if(st.secMap)db.profile.secMap=st.secMap;if(Array.isArray(st.mesoLog))db.profile.mesoLog=st.mesoLog;}
+      const st=(pRes.data.settings&&typeof pRes.data.settings==='object')?pRes.data.settings:{};
+      // Ajustes (landmarks, descansos, gifs, secundarios, mesociclo): gana la copia cambiada más tarde.
+      // Si la local es más nueva (la subida falló o no llegó), se queda y se vuelve a subir.
+      const localNewer=prevProf&&(prevProf.settingsAt||0)>(st.settingsAt||0);
+      const src=localNewer?prevProf:st;
+      if(src.restDays)db.profile.restDays=src.restDays;if(src.gifMap)db.profile.gifMap=src.gifMap;if(src.landmarks)db.profile.landmarks=src.landmarks;if(src.secMap)db.profile.secMap=src.secMap;if(Array.isArray(src.mesoLog))db.profile.mesoLog=src.mesoLog;
+      db.profile.settingsAt=src.settingsAt||0;db.profile.settingsSig=JSON.stringify(settingsObj(db.profile));
+      if(localNewer)setTimeout(saveSettingsRemote,0);
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;
     }
     // No seed data — new users start clean
@@ -165,6 +172,7 @@ function canonExNames(){
 
 async function saveDB(){
   invalidateExCache();
+  stampSettings();
   // Always save to localStorage first (fast, offline-safe) + copia sin límite de tamaño en IndexedDB
   try{localStorage.setItem(lsKey(),JSON.stringify(db));}catch(e){console.warn('localStorage lleno: queda la copia de IndexedDB',e);}
   idbPut(lsKey(),db);
