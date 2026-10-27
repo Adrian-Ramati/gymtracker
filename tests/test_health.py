@@ -32,8 +32,10 @@ BRIDGE = """(()=>{
   window.HR_FOR=(t0)=>{S.heartRate=[-20,-10,0,4].map((s,i)=>({startDate:new Date(t0+s*1000).toISOString(),value:118+i*6}));};
   window.Capacitor={isNativePlatform:()=>true,Plugins:{
     Health:{isAvailable:async()=>({available:true,platform:'android'}),
+      checkAuthorization:async o=>({readAuthorized:window.HC_DENY?o.read.filter(t=>!window.HC_DENY.includes(t)):o.read,readDenied:window.HC_DENY||[]}),
+      openHealthConnectSettings:async()=>{window.HC_OPENED=true;},
       requestAuthorization:async o=>{HC_CALLS.push(['auth',o]);return{readAuthorized:o.read,readDenied:[]};},
-      readSamples:async o=>{HC_CALLS.push(['read',o.dataType]);const a=Date.parse(o.startDate),b=Date.parse(o.endDate);return{samples:(S[o.dataType]||[]).filter(x=>{const t=Date.parse(x.startDate);return t>=a&&t<=b;})};}},
+      readSamples:async o=>{HC_CALLS.push(['read',o.dataType]);if(window.HC_EMPTY)return{samples:[]};if(window.HC_DENY&&window.HC_DENY.includes(o.dataType))throw new Error('java.lang.SecurityException: Caller doesn\\'t have android.permission.health.READ_'+o.dataType);const a=Date.parse(o.startDate),b=Date.parse(o.endDate);return{samples:(S[o.dataType]||[]).filter(x=>{const t=Date.parse(x.startDate);return t>=a&&t<=b;})};}},
     LocalNotifications:{checkPermissions:async()=>({display:'granted'}),requestPermissions:async()=>({display:'granted'}),
       schedule:async o=>{LN_CALLS.push(['schedule',o]);return{}},cancel:async o=>{LN_CALLS.push(['cancel',o]);}}}};
 })()"""
@@ -105,6 +107,20 @@ with sync_playwright() as p:
     check('H13. Al volver a la app no repite la lectura si se hizo hace menos de 30 min', ev("()=>HC_CALLS.length") == n0)
     ev("()=>{db.profile.hcLastSync=new Date(Date.now()-31*60000).toISOString();hcAutoSync()}"); page.wait_for_timeout(500)
     check('H14. …y la repite pasados 30 min', ev("()=>HC_CALLS.length") > n0)
+    # diagnóstico: Health Connect vacío y permisos denegados
+    ev("()=>{window.HC_EMPTY=true;db.biometrics=[];db.profile.hcLastSync=null}")
+    ev("()=>{clearInterval(timerIv);activeSess=null;clearActiveStash();navHome()}")
+    ev("()=>hcCheck()"); page.wait_for_timeout(600)
+    page.click('#bn-perfil'); page.wait_for_timeout(300)
+    t = ev("()=>document.getElementById('health-card').innerText")
+    check('H15. Health Connect vacío: el diagnóstico lo dice y explica qué hacer', 'Diagnóstico · 0 días' in t and t.count('sin datos') == 6 and 'Mi Fitness no está escribiendo' in t, t)
+    ev("()=>{window.HC_EMPTY=false;window.HC_DENY=['sleep','steps']}")
+    ev("()=>hcCheck()"); page.wait_for_timeout(600)
+    t = ev("()=>document.getElementById('health-card').innerText")
+    check('H16. Permisos denegados: lista cuáles faltan y los demás tipos se importan', t.count('sin permiso') == 2 and 'Faltan permisos (Sueño, Pasos)' in t and 'registros' in t, t)
+    ev("()=>hcOpenSettings()"); page.wait_for_timeout(100)
+    check('H17. El botón abre los ajustes de Health Connect', ev("()=>!!window.HC_OPENED"))
+    ev("()=>{window.HC_DENY=null}")
     check('Z1. Sin errores de JavaScript (app)', not errors, errors[:3])
     ctx.close()
 

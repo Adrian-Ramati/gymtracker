@@ -4,7 +4,7 @@
 // · Animaciones de ejercicios (GitHub): primero caché; se guardan al verlas o al precargarlas.
 // · Librerías (Chart.js, Supabase, fuentes): caché y se refrescan en segundo plano.
 // · Supabase y el resto de APIs: siempre por red (no se guardan).
-const VERSION = 'pp-2026-10-26c';
+const VERSION = 'pp-2026-10-27';
 const APP_CACHE = 'app-' + VERSION;
 const GIF_CACHE = 'pp-gifs-v1';   // mismo nombre en js/gifs.js (precarga)
 const CDN_CACHE = 'pp-cdn-v1';
