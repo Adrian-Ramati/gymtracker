@@ -104,7 +104,7 @@ function renderHealthCard(){
   else if(!hcPlugin())body='<p class="hc-p">Esta versión de la app no trae Health Connect.</p>';
   else if(!db.profile?.healthConnect)body=`<p class="hc-p">Conecta Health Connect para leer sueño, pulso en reposo, HRV, peso y pasos. Mi Fitness (Xiaomi) escribe ahí; Huawei Health necesita un puente como Health Sync.</p><button class="rest-btn hc-btn" onclick="hcConnect()">Conectar el reloj</button>`;
   else body=`<p class="hc-p">Conectado${db.profile.hcLastSync?` · última lectura ${new Date(db.profile.hcLastSync).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`:''}</p><div style="display:flex;gap:8px"><button class="rest-btn hc-btn" onclick="hcCheck()">Revisar conexión</button><button class="rest-btn hc-btn" onclick="hcOpenSettings()">Abrir Health Connect</button><button class="rest-btn hc-btn hc-off" onclick="hcDisconnect()">Desconectar</button></div>${hcDiagHtml()}`;
-  el.innerHTML=`<div class="card-title">Reloj y recuperación <span>Health Connect</span></div>${body}${lastLine}`;
+  el.innerHTML=`<div class="card-title">Reloj y recuperación <span>Health Connect</span></div>${body}${lastLine}${typeof alarmTestHtml==="function"?alarmTestHtml():""}`;
 }
 
 // Recordatorio en Inicio: conectar el reloj o traer los datos de hoy antes de entrenar.

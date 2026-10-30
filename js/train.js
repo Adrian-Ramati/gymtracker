@@ -23,7 +23,7 @@ function renderDayPanel(){
           <span style="font-size:13px;font-weight:600;cursor:pointer;color:var(--blue)" onclick="openSessionDetail(${s.id})">${esc(s.name)}${prCount>0?` 🏆${prCount}`:''}</span>
           <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${s.exercises?.length||0} ej.</span>
         </div>`;
-      const meta=sessMetaTag(s);
+      const meta=[sessMetaTag(s),sessReadyTag(s)].filter(Boolean).join(' · ');
       if(meta)html+=`<div style="font-size:10px;color:var(--t2);font-family:var(--mono);margin:-2px 0 4px">${meta}</div>`;
       s.exercises?.slice(0,3).forEach(e=>{const ds2=e.sets?.filter(s=>s.done||s.kg).length||0;html+=`<div style="font-size:11px;color:var(--t2);padding:2px 0">${esc(e.name)} — ${ds2} series</div>`;});
       if((s.exercises?.length||0)>3)html+=`<div style="font-size:11px;color:var(--t3)">+${s.exercises.length-3} más</div>`;
@@ -84,12 +84,26 @@ let savedActiveSess=null;
 function openEditTmpl(tid){
   const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;
   savedActiveSess=activeSess;
-  activeSess={name:t.name,exercises:t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,ex.sets||3)},()=>({kg:null,reps:null,rpe:null,done:false}))})),rest:t.rest||90,isTmplEdit:tid};
+  activeSess={name:t.name,exercises:t.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,ex.sets||3)},()=>({kg:null,reps:null,rpe:null,done:false}))})),rest:t.rest||90,restMode:t.restMode||'auto',isTmplEdit:tid};
   document.getElementById('tmpledit-name').value=t.name;
   document.getElementById('tmpledit-rest').value=t.rest||90;
+  renderTmplRestMode();
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
   showScr('tmpledit',null);renderSessExs();
 }
+// Descansos de la rutina: el mismo para todos o automático (ejercicio + músculo; en el entreno, también readiness)
+function renderTmplRestMode(){
+  const el=document.getElementById('tmpledit-restmode');if(!el||!activeSess?.isTmplEdit)return;
+  const m=activeSess.restMode==='same'?'same':'auto';
+  el.innerHTML=`<button class="rm-btn${m==='same'?' on':''}" onclick="setTmplRestMode('same')">⏱ Mismo descanso para todos</button><button class="rm-btn${m==='auto'?' on':''}" onclick="setTmplRestMode('auto')">✨ Descansos automáticos</button>
+    <div class="rm-note">${m==='same'?'Todos los ejercicios descansan lo que pongas arriba.':'Según ejercicio y músculo, partiendo de lo que pongas arriba para los multiarticulares. En el entreno se alarga si la readiness del día es baja.'}</div>`;
+  const ri=document.getElementById('tmpledit-rest');if(ri)ri.closest('.sess-timer').title=m==='same'?'Descanso de todos los ejercicios':'Descanso base de los multiarticulares';
+}
+function setTmplRestMode(m){if(!activeSess?.isTmplEdit)return;collectInputs();activeSess.restMode=m;renderTmplRestMode();renderSessExs();}
+function tmplRestInput(){if(!activeSess?.isTmplEdit)return;collectInputs();activeSess.rest=Math.max(15,parseInt(document.getElementById('tmpledit-rest').value)||90);renderSessExs();}
+// Descanso de un ejercicio en la sesión o rutina abierta
+function exRestNow(ex){const a=activeSess||{};return PPCore.exRest(ex,a.rest||90,a.restMode,a.isTmplEdit?null:a.readiness?.score);}
+const fmtRest=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 function saveTmplEdit(){
   if(!activeSess?.isTmplEdit)return;
   collectInputs();
@@ -98,6 +112,7 @@ function saveTmplEdit(){
     t.name=document.getElementById('tmpledit-name').value||t.name;
     t.exercises=activeSess.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,sets:ex.sets.length}));
     t.rest=Math.max(15,parseInt(document.getElementById('tmpledit-rest').value)||90);
+    t.restMode=activeSess.restMode==='same'?'same':'auto';
     saveDB();
   }
   exitTmplEdit();toast('Rutina guardada ✓');
@@ -141,6 +156,35 @@ function getPRsForSession(sess){
 }
 function sessionHasPR(sess){return getPRsForSession(sess).size>0;}
 
+// ═══ READINESS Y RENDIMIENTO DE LA SESIÓN ═══
+function sessReadyInfo(s){return PPCore.sessReadiness(s,db.biometrics||[]);}
+// Etiqueta corta: 🔋 72 · 📈 +2,1 % (para listas)
+function sessReadyTag(s){
+  const r=sessReadyInfo(s),p=PPCore.sessPerf(db.sessions,s),out=[];
+  if(r)out.push(`<span class="rd-tag" style="color:${PPCore.readinessColor(r.score)}" title="Readiness ${r.src==='sesion'?'al empezar':'del día (reloj)'}">🔋 ${Math.round(r.score*100)}</span>`);
+  if(p)out.push(`<span class="rd-tag" style="color:${p.pct>=0.5?'#34d399':p.pct<=-0.5?'#f87171':'var(--t2)'}" title="Mejor e1RM frente a la última vez (${p.n} ejercicios)">${p.pct>=0?'📈 +':'📉 −'}${Math.abs(p.pct).toFixed(1).replace('.',',')} %</span>`);
+  return out.join(' ');
+}
+function sessReadyHtml(s){
+  const r=sessReadyInfo(s),p=PPCore.sessPerf(db.sessions,s);
+  if(!r&&!p)return '';
+  const done=(s.exercises||[]).reduce((a,e)=>a+(e.sets||[]).filter(x=>(x.kg||x.reps)&&(x.type||'normal')!=='warmup').length,0);
+  let h='<div class="rd-card">';
+  if(r){
+    const a=PPCore.readinessAdvice(r.score),q=r.subj||{};
+    const bits=[];
+    if(q.sleepH)bits.push(`😴 ${PPCore.SLEEP_OPTS[q.sleepH-1]||''}`);
+    if(q.energy)bits.push(`Energía ${['🪫','😕','😐','🙂','⚡'][q.energy-1]||''}`);
+    if(q.motivation)bits.push(`Motivación ${['😒','😕','😐','🙂','🔥'][q.motivation-1]||''}`);
+    const mus=Object.entries(q.muscles||{}).map(([m,st])=>`${esc(m)}: ${PPCore.MUSCLE_ST[st]?.t||st}`);
+    h+=`<div class="rd-head"><b style="color:${PPCore.readinessColor(r.score)}">🔋 Readiness ${Math.round(r.score*100)}</b><span>${r.src==='sesion'?esc(a.t)+(r.applied?' · aplicado':''):'del reloj ese día'}</span></div>`;
+    if(bits.length||mus.length)h+=`<div class="rd-sub">${bits.join(' · ')}${mus.length?`${bits.length?'<br>':''}💪 ${mus.join(' · ')}`:''}</div>`;
+  }
+  const pl=s.plannedSets?`<div class="rd-row"><span>Series hechas</span><b>${done} de ${s.plannedSets}</b></div>`:'';
+  const pf=p?`<div class="rd-row"><span>Rendimiento vs. la última vez <small>(mejor e1RM, ${p.n} ej.)</small></span><b style="color:${p.pct>=0.5?'#34d399':p.pct<=-0.5?'#f87171':'var(--t1)'}">${p.pct>=0?'+':'−'}${Math.abs(p.pct).toFixed(1).replace('.',',')} %</b></div>`:'';
+  return h+pl+pf+'</div>';
+}
+
 // ═══ SESSION DETAIL ═══
 function openSessionDetail(id){
   const sess=(db.sessions||[]).find(s=>s.id===id);if(!sess)return;
@@ -157,6 +201,7 @@ function openSessionDetail(id){
     <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-bottom:4px">${fmtFull(sess.date)}</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:12px">${esc(sess.name)}${prCount>0?` 🏆${prCount}`:''}</div>
     ${metaLine?`<div style="font-size:11px;color:var(--t2);font-family:var(--mono);margin:-6px 0 12px">${metaLine}</div>`:''}
+    ${sessReadyHtml(sess)}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
       <div class="detail-stat"><div class="detail-stat-val">${totalSets}</div><div class="detail-stat-lbl">Series</div></div>
       <div class="detail-stat"><div class="detail-stat-val">${totalVol}</div><div class="detail-stat-lbl">Vol kg</div></div>
@@ -226,10 +271,11 @@ function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===
   const f=opt.loadFactor||1;
   let exs=t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round((ns[i]||ex.sets||3)*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
   const madj=opt.muscles?PPCore.muscleAdjust(exs,opt.muscles):[]; // cansancio / agujetas / dolor por músculo
-  const plan=opt.timeBudget?planTimeBudget(exs,t.rest,opt.timeBudget):null;
+  const plan=opt.timeBudget?planTimeBudget(exs,t.rest,opt.timeBudget,t.restMode):null;
   if(plan)exs=plan.exs;
   startSess(t.name,exs,t.rest);
   if(!activeSess)return;
+  activeSess.restMode=t.restMode||'auto';
   activeSess.plannedSets=t.exercises.reduce((a,ex,i)=>a+(ns[i]||ex.sets||3),0);
   if(opt.timeBudget){activeSess.timeBudget=opt.timeBudget;activeSess.timePlan=plan?{estMin:plan.estMin,cut:plan.cut}:null;}
   if(opt.readiness)activeSess.readiness=opt.readiness;
@@ -243,10 +289,11 @@ function startRepeatNow(src,opt={}){
   let exs=src.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round(base[i]*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
   const madj=opt.muscles?PPCore.muscleAdjust(exs,opt.muscles):[];
   const rest=src.rest||90;
-  const plan=opt.timeBudget?planTimeBudget(exs,rest,opt.timeBudget):null;
+  const plan=opt.timeBudget?planTimeBudget(exs,rest,opt.timeBudget,src.restMode):null;
   if(plan)exs=plan.exs;
   startSess(src.name||'Entrenamiento',exs,rest,todayStr());
   if(!activeSess)return;
+  activeSess.restMode=src.restMode||(db.templates||[]).find(t=>t.name===src.name)?.restMode||'auto';
   activeSess.plannedSets=base.reduce((a,b)=>a+b,0);
   if(opt.timeBudget){activeSess.timeBudget=opt.timeBudget;activeSess.timePlan=plan?{estMin:plan.estMin,cut:plan.cut}:null;}
   if(opt.readiness)activeSess.readiness=opt.readiness;
@@ -345,7 +392,7 @@ function renderExCard(ex,ei){
       <span class="drag-handle">⠿</span>
       ${thumbHtml(ex.name,'exthumb sm')}
       <span class="ec-name" data-exn="${esc(ex.name)}" onclick="openExView(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
-      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}
+      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}<span class="ec-rest" title="Descanso entre series">⏱ ${fmtRest(exRestNow(ex))}</span>
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
     ${ex.adj&&PPCore.MUSCLE_ST[ex.adj.st]?`<div class="ec-adj st-${ex.adj.st}">${esc(ex.adj.txt)}</div>`:''}
@@ -513,7 +560,7 @@ function toggleDone(ei,si){
     const gap=prev?(now-prev)/1000:null;
     if(gap!=null&&gap<=20*60)s.restS=Math.max(0,Math.round(gap-3*(s.reps||0)));else delete s.restS;
   }else if(!s.done){delete s.doneAt;delete s.restS;}
-  if(s.done){vib(30);startRest(PPCore.restFor(PPCore.exKind(ex),activeSess.rest||90));if((s.type||'normal')!=='warmup'&&!hasRpe(s))askRir(ei,si);else hideRirAsk();}
+  if(s.done){vib(30);startRest(exRestNow(ex));if((s.type||'normal')!=='warmup'&&!hasRpe(s))askRir(ei,si);else hideRirAsk();}
   else hideRirAsk();
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
   const num=document.getElementById(`sn_${ei}_${si}`);

@@ -210,7 +210,7 @@ async function saveSession(sess){
 // (workout_sessions · exercise_entries · set_entries) se reemplazan enteras en cada guardado. Si algo falla,
 // volver a ejecutar sql/2026-10-25-modelo-v2.sql rellena los huecos desde sessions.
 let v2Ready=false;
-const SESS_META=['uid','plannedSets','readiness','timeBudget','timePlan'];
+const SESS_META=['uid','plannedSets','readiness','timeBudget','timePlan','restMode'];
 function sessMetaOut(s){const m={};SESS_META.forEach(k=>{if(s[k]!=null)m[k]=s[k];});return Object.keys(m).length?m:null;}
 function sessMetaIn(m){const o={};if(m&&typeof m==='object')SESS_META.forEach(k=>{if(m[k]!=null)o[k]=m[k];});return o;}
 function exIdOf(name){const k=normExName(name);return ALL_EX.find(e=>normExName(e.name)===k)?.id??null;}
