@@ -288,6 +288,25 @@
   C.REST_TARGET = { compound_heavy: [120, 240], compound: [90, 180], isolation: [60, 150] };
   // Temporizador: el descanso de la rutina es el de los multiarticulares; pesados +60 s, aislamientos −30 s (mín. 60)
   C.restFor = (kind, base) => { const b = +base || 90; return kind === 'compound_heavy' ? b + 60 : kind === 'isolation' ? Math.max(60, b - 30) : b; };
+  // Descanso de cada ejercicio según el modo de la rutina:
+  //  'same' → el mismo para todos (base);
+  //  'auto' (por defecto) → tipo de ejercicio (pesado +60 s, aislamiento −30 s) + músculo (multiarticular de
+  //  pierna/espalda/pecho +15 s, aislamiento de músculo pequeño −15 s) + readiness del día (< 40 → +30 s,
+  //  < 60 → +15 s: con peor recuperación se descansa algo más en vez de solo quitar series).
+  //  Redondeado a 15 s, entre 1 y 5 min.
+  const REST_BIG = new Set(['Cuádriceps', 'Isquiosurales', 'Glúteos', 'Espalda', 'Pectoral']);
+  const REST_SMALL = new Set(['Bíceps', 'Tríceps', 'Deltoides lateral', 'Deltoides posterior', 'Gemelo/Sóleo', 'Antebrazo', 'Abdomen', 'Aductores', 'Abductores', 'Trapecio']);
+  C.REST_MODES = ['auto', 'same'];
+  C.exRest = (ex, base, mode, readiness) => {
+    const b = Math.max(15, +base || 90);
+    if (mode === 'same') return b;
+    const kind = C.exKind(ex), m = C.normMuscle(ex?.muscle);
+    let r = C.restFor(kind, b);
+    if (kind !== 'isolation' && REST_BIG.has(m)) r += 15;
+    if (kind === 'isolation' && REST_SMALL.has(m)) r -= 15;
+    if (readiness != null && isFinite(readiness)) r += readiness < 0.4 ? 30 : readiness < 0.6 ? 15 : 0;
+    return Math.max(60, Math.min(300, Math.round(r / 15) * 15));
+  };
   C.density = (r, lo, hi) => r < lo ? Math.max(0, Math.min(1, 1 - 1.5 * (lo - r) / lo)) : r <= hi ? 1 : Math.max(0.6, 1 - 0.4 * (r - hi) / (2 * hi));
   // Esfuerzo real de una serie en RIR (null si no hay o si es copiado/inferido: no se inventa)
   // RPE válido: entre 1 y 10 (un 14 tecleado por error no cuenta como esfuerzo)
@@ -367,6 +386,35 @@
   C.targetLoad = r => r >= 0.6 ? 1 : r >= 0.4 ? 0.8 : 0.6;
   C.readinessAdvice = r => r == null ? null : r >= 0.6 ? { key: 'full', t: 'Sesión completa', f: 1 } : r >= 0.4 ? { key: 'reduce_20', t: 'Quita un 20 % de las series', f: 0.8 } : { key: 'reduce_40', t: 'Quita un 40 % de las series y no vayas al fallo', f: 0.6 };
   function clip01(x) { return Math.max(0, Math.min(1, x)); }
+
+  // ── Readiness y rendimiento de una sesión ya hecha (para analizar cómo rindes según cómo llegas) ──
+  // Readiness: la guardada al empezar (hoja «Antes de empezar»); si no hay, la del reloj/check-in de ese día.
+  C.sessReadiness = (sess, biometrics) => {
+    const st = sess?.readiness;
+    if (st && st.score != null && isFinite(st.score)) return { score: +st.score, src: 'sesion', subj: st.subj || null, applied: !!st.applied };
+    if (!sess?.date) return null;
+    const r = C.readinessSeries(biometrics, sess.date, sess.date)[sess.date];
+    return r != null ? { score: r, src: 'dia', subj: null, applied: false } : null;
+  };
+  // Rendimiento: cambio medio del mejor e1RM de cada ejercicio frente a la última vez que se hizo.
+  const bestE1 = ex => { const v = (ex.sets || []).filter(s => (s.type || 'normal') !== 'warmup').map(s => C.calcE1RM(+s.kg, +s.reps, s.rpe != null && s.rpe !== '' ? +s.rpe : null)).filter(Boolean); return v.length ? Math.max(...v) : null; };
+  C.sessPerf = (sessions, sess) => {
+    const before = (sessions || []).filter(x => x !== sess && x.id !== sess.id && (x.date < sess.date || (x.date === sess.date && (x.id || 0) < (sess.id || 0))))
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.id || 0) - (a.id || 0));
+    const out = [];
+    (sess.exercises || []).forEach(ex => {
+      const cur = bestE1(ex); if (!cur) return;
+      const k = C.normExName(ex.name);
+      for (const p of before) {
+        const pe = (p.exercises || []).find(e => C.normExName(e.name) === k), prev = pe && bestE1(pe);
+        if (prev) { out.push({ name: ex.name, cur, prev, pct: (cur - prev) / prev * 100 }); break; }
+      }
+    });
+    if (!out.length) return null;
+    return { pct: out.reduce((a, x) => a + x.pct, 0) / out.length, n: out.length, ex: out };
+  };
+  // Color de la readiness con los mismos cortes que el consejo (≥ 60 completa, ≥ 40 recorta un 20 %)
+  C.readinessColor = r => r == null ? null : r >= 0.6 ? '#34d399' : r >= 0.4 ? '#fbbf24' : '#f87171';
 
   // ── Modelo de datos v2 (una fila por serie) ──
   // UUID v7: 48 bits de milisegundos + aleatorio → único entre dispositivos y ordenable por tiempo

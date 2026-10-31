@@ -24,6 +24,9 @@
 
         </activity>
 
+        <!-- Fin del descanso: lo dispara AlarmManager (RestAlarmPlugin) y suena por el canal de alarma -->
+        <receiver android:name=".RestAlarmReceiver" android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -45,4 +48,6 @@
          que el sistema retrasa en reposo. USE_EXACT_ALARM se concede al instalar y es la pensada
          para apps de alarmas y temporizadores, que es justo lo que hace el descanso entre series. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

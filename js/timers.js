@@ -68,8 +68,21 @@ async function ensureRestChannel(LN){
   }catch(e){restChannel='';}
   return restChannel;
 }
+// APK desde la 1.0.12: alarma nativa (RestAlarmPlugin) que suena por el VOLUMEN DE ALARMA. La notificación
+// normal a veces llegaba muda (móvil en vibración, Android 15 baja el sonido de avisos seguidos, MIUI/HyperOS
+// silencia canales nuevos). Si el APK es anterior se usa la notificación local como hasta ahora.
+function restAlarm(){try{return window.Capacitor?.isNativePlatform?.()?(window.Capacitor.Plugins?.RestAlarm||null):null;}catch(e){return null;}}
+let restNativeArmed=false; // hay una alarma nativa programada para el descanso en curso
 async function scheduleRestNotification(endTs){
-  const LN=localNotif();
+  const LN=localNotif(),RA=restAlarm();
+  if(RA){
+    try{
+      if(LN){const p=await LN.checkPermissions();if(p.display!=='granted')await LN.requestPermissions();}
+      await RA.schedule({at:endTs,title:'Descanso terminado',body:'A por la siguiente serie 💪'});
+      restNativeArmed=true;
+    }catch(e){restNativeArmed=false;}
+    return;
+  }
   if(LN){
     try{
       const p=await LN.checkPermissions();if(p.display!=='granted'&&(await LN.requestPermissions()).display!=='granted')return;
@@ -77,6 +90,7 @@ async function scheduleRestNotification(endTs){
       await LN.cancel({notifications:[{id:7001}]}).catch(()=>{});
       await LN.schedule({notifications:[{id:7001,title:'Descanso terminado',body:'A por la siguiente serie 💪',
         ...(ch?{channelId:ch}:{}),isExactNotification:true,schedule:{at:new Date(endTs),allowWhileIdle:true}}]});
+      restNativeArmed=true;
     }catch(e){}
     return;
   }
@@ -87,6 +101,8 @@ async function scheduleRestNotification(endTs){
   }catch(e){}
 }
 function cancelRestNotification(){
+  restNativeArmed=false;
+  const RA=restAlarm();if(RA){RA.cancel().catch(()=>{});return;}
   const LN=localNotif();if(LN){LN.cancel({notifications:[{id:7001}]}).catch(()=>{});return;}
   try{
     navigator.serviceWorker?.ready.then(reg=>{
@@ -95,6 +111,9 @@ function cancelRestNotification(){
     });
   }catch(e){}
 }
+// Botón «Probar alarma» (Perfil → Reloj y recuperación), solo en el APK con alarma nativa
+function testRestAlarm(){const RA=restAlarm();if(RA){RA.test().catch(()=>{});toast('Debería sonar ya, con el volumen de alarma');}}
+function alarmTestHtml(){return restAlarm()?`<button class="rest-btn" style="margin:8px 0 0" onclick="testRestAlarm()">🔔 Probar alarma de descanso</button><div style="font-size:11px;color:var(--t3);margin-top:4px">Suena con el volumen de <b>alarma</b>, también con el móvil en vibración.</div>`:'';}
 function startRest(secs){
   stopRest();
   initAudio(); // inside the tap gesture → beep at rest end needs no new gesture
@@ -111,11 +130,21 @@ function tickRest(){
   if(restEndTs===null)return;
   restLeft=Math.max(0,Math.round((restEndTs-Date.now())/1000));
   updateRestUI();
-  if(restLeft<=0){stopRest();vib([300,100,300]);beep();toast('¡Descanso terminado!');}
+  if(restLeft<=0){
+    // Con alarma nativa programada, que suene ella (no se cancela: si la app la cancelase justo antes
+    // de dispararse, no sonaría nada). Sin ella, pitido y vibración desde la página.
+    // (Antes se cancelaba aquí también la notificación local: con la pantalla encendida la app la quitaba
+    // justo antes de sonar y solo quedaba el pitido de la página, que va por el volumen multimedia.)
+    const nat=restNativeArmed&&!!(restAlarm()||localNotif());
+    endRest(nat);
+    if(!nat){vib([300,100,300]);beep();}
+    toast('¡Descanso terminado!');
+  }
 }
-function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;}
+function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;if(lockOn)updateLockRest();}
 function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();if(restEndTs!==null)scheduleRestNotification(restEndTs);}
-function stopRest(){clearInterval(restIv);restIv=null;restEndTs=null;const p=document.getElementById('rest-pill');if(p)p.style.display='none';cancelRestNotification();}
+function endRest(keepAlarm){clearInterval(restIv);restIv=null;restEndTs=null;if(lockOn)setTimeout(updateLockRest,0);const p=document.getElementById('rest-pill');if(p)p.style.display='none';if(keepAlarm)restNativeArmed=false;else cancelRestNotification();}
+function stopRest(){endRest(false);}
 // On wake/foreground, immediately resync both timers with the wall clock
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
@@ -141,3 +170,37 @@ function repeatLastSession(){
 }
 window.addEventListener('online',()=>{if(useSupabase&&db&&Object.keys(db).length){saveDB();flushSyncQueue();toast('Conexión recuperada — sincronizando');}});
 window.addEventListener('offline',()=>toast('Sin conexión — guardando en local'));
+
+// ═══ BLOQUEO DE PANTALLA (durante el entreno) ═══
+// Capa oscura que se traga todos los toques (bolsillo, sudor, toques sin querer). Se ve la rutina detrás y
+// el descanso en marcha. Para desbloquear hay que MANTENER pulsado el candado ~0,8 s.
+let lockOn=false,lockHoldT=null;
+const LOCK_HOLD_MS=800;
+function lockScreen(){
+  const ov=document.getElementById('lock-ov');if(!ov)return;
+  if(typeof collectInputs==='function'&&activeSess)collectInputs();
+  try{document.activeElement?.blur();}catch(e){}
+  if(typeof npClose==='function')try{npClose();}catch(e){}
+  lockOn=true;ov.classList.add('on');ov.setAttribute('aria-hidden','false');updateLockRest();vib(20);
+}
+function unlockScreen(){
+  lockOn=false;clearTimeout(lockHoldT);lockHoldT=null;
+  const ov=document.getElementById('lock-ov');if(!ov)return;
+  ov.classList.remove('on','holding');ov.setAttribute('aria-hidden','true');vib(30);
+}
+function updateLockRest(){
+  const el=document.getElementById('lock-rest');if(!el||!lockOn)return;
+  el.textContent=restEndTs!==null?`Descanso ${Math.floor(restLeft/60)}:${String(restLeft%60).padStart(2,'0')}`:'';
+}
+(function initLock(){
+  const ov=document.getElementById('lock-ov'),ring=document.getElementById('lock-ring');if(!ov||!ring)return;
+  const stop=e=>{e.preventDefault();e.stopPropagation();};
+  // La capa no deja pasar nada: ni toques, ni clics, ni teclado, ni menú contextual
+  ['click','dblclick','touchstart','touchmove','touchend','mousedown','mouseup','contextmenu','wheel','keydown'].forEach(t=>ov.addEventListener(t,e=>{if(!lockOn)return;if(e.target.closest&&e.target.closest('#lock-ring')&&t!=='click'&&t!=='contextmenu'&&t!=='wheel'&&t!=='keydown'&&t!=='dblclick')return;stop(e);},{passive:false}));
+  const down=e=>{if(!lockOn)return;stop(e);ov.classList.add('holding');clearTimeout(lockHoldT);lockHoldT=setTimeout(unlockScreen,LOCK_HOLD_MS);};
+  const up=e=>{if(!lockOn)return;stop(e);ov.classList.remove('holding');clearTimeout(lockHoldT);lockHoldT=null;};
+  ring.addEventListener('pointerdown',down);
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>ring.addEventListener(t,up));
+  // Con la pantalla bloqueada, el teclado tampoco hace nada (salvo que el foco estuviese fuera de la app)
+  document.addEventListener('keydown',e=>{if(lockOn){e.preventDefault();e.stopPropagation();}},true);
+})();

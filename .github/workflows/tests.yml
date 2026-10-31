@@ -66,6 +66,9 @@ jobs:
       - name: Volumen (pestaña, landmarks permanentes, Gemelo/Sóleo)
         run: python tests/test_volumen.py
 
+      - name: Descansos, bloqueo de pantalla, alarma y readiness por sesión
+        run: python tests/test_descansos.py
+
       - name: Informe semanal en modo prueba
         run: |
           npm install --prefix scripts

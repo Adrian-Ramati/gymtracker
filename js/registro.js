@@ -106,11 +106,11 @@ function chooseRir(r){
 
 // ═══ PRESUPUESTO DE TIEMPO ═══
 // Minutos estimados: 5 de calentamiento/transiciones + por serie ~40 s de trabajo + el descanso de su tipo
-function estSessMin(exs,rest){return 5+exs.filter(e=>!e.optional).reduce((a,e)=>a+(e.sets||[]).length*(40+PPCore.restFor(PPCore.exKind(e),rest||90)),0)/60;}
+function estSessMin(exs,rest,mode){return 5+exs.filter(e=>!e.optional).reduce((a,e)=>a+(e.sets||[]).length*(40+PPCore.exRest(e,rest||90,mode)),0)/60;}
 // Si no cabe, los aislamientos (empezando por el final) pasan a opcionales y se mueven al final, en su orden
-function planTimeBudget(exs,rest,budget){
-  const out=exs.map(e=>({...e,optional:false}));let est=estSessMin(out,rest);const cut=[];
-  for(let i=out.length-1;i>=0&&est>budget;i--)if(PPCore.exKind(out[i])==='isolation'){out[i].optional=true;cut.unshift(out[i].name);est=estSessMin(out,rest);}
+function planTimeBudget(exs,rest,budget,mode){
+  const out=exs.map(e=>({...e,optional:false}));let est=estSessMin(out,rest,mode);const cut=[];
+  for(let i=out.length-1;i>=0&&est>budget;i--)if(PPCore.exKind(out[i])==='isolation'){out[i].optional=true;cut.unshift(out[i].name);est=estSessMin(out,rest,mode);}
   return{exs:[...out.filter(e=>!e.optional),...out.filter(e=>e.optional)],estMin:Math.round(est),cut,fits:est<=budget};
 }
 function renderSessPlan(){
