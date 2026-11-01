@@ -24,8 +24,19 @@ public class RestAlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
         final PendingResult pr = goAsync();
-        ring(ctx, intent.getStringExtra("title"), intent.getStringExtra("body"));
+        ringOnce(ctx, intent.getLongExtra("endTs", 0), intent.getStringExtra("title"), intent.getStringExtra("body"));
+        try { RestTimerService.stop(ctx); } catch (Exception ignored) { }
         new Handler(Looper.getMainLooper()).postDelayed(pr::finish, 3000);
+    }
+
+    /** Suena una sola vez por descanso: lo pueden disparar el servicio y la alarma de respaldo. */
+    static synchronized void ringOnce(Context ctx, long endTs, String title, String body) {
+        android.content.SharedPreferences sp = ctx.getSharedPreferences("rest-alarm", Context.MODE_PRIVATE);
+        long key = endTs > 0 ? endTs : System.currentTimeMillis();
+        long last = sp.getLong("rung", 0);
+        if (endTs > 0 && Math.abs(last - key) < 1500) return;
+        sp.edit().putLong("rung", key).apply();
+        ring(ctx, title, body);
     }
 
     static void ring(Context ctx, String title, String body) {

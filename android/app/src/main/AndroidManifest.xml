@@ -26,6 +26,15 @@
 
         <!-- Fin del descanso: lo dispara AlarmManager (RestAlarmPlugin) y suena por el canal de alarma -->
         <receiver android:name=".RestAlarmReceiver" android:exported="false" />
+        <!-- Cuenta atrás del descanso en primer plano: con la pantalla bloqueada el sistema no congela la app -->
+        <service
+            android:name=".RestTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Temporizador de descanso entre series: suena al terminar con la pantalla bloqueada" />
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -49,5 +58,8 @@
          para apps de alarmas y temporizadores, que es justo lo que hace el descanso entre series. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
