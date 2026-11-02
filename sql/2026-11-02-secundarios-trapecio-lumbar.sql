@@ -70,10 +70,10 @@ select v.exercise_id, v.muscle, v.credit from (values
   (488, $q$Antebrazo$q$, 0.25),  -- Peso Muerto Piernas Rígidas – SLDL
   (489, $q$Antebrazo$q$, 0.25),  -- Peso Muerto Unilateral con Mancuerna
   (496, $q$Antebrazo$q$, 0.25),  -- Peso Muerto Unilateral con Barra
-  (521, $q$Antebrazo$q$, 0.5),  -- Remo en máquina prono - Hammer Strength
+  (521, $q$Antebrazo$q$, 0.25),  -- Remo en máquina prono - Hammer Strength
   (530, $q$Antebrazo$q$, 0.25),  -- Peso Muerto Rumano en máquina - Technogym
   (534, $q$Antebrazo$q$, 0.25),  -- Jalón al pecho en máquina - Technogym
-  (536, $q$Antebrazo$q$, 0.5),  -- Jalón al pecho en máquina - Hammer Strength
+  (536, $q$Antebrazo$q$, 0.25),  -- Jalón al pecho en máquina - Hammer Strength
   (537, $q$Antebrazo$q$, 0.25),  -- Remo en máquina neutro - Technogym
   (304, $q$Lumbar$q$, 0.25),  -- Remo con Barra Supino
   (317, $q$Lumbar$q$, 0.25),  -- Meadows Row

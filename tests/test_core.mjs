@@ -65,6 +65,8 @@ t('secundarios: override del usuario y créditos 1 / 0,5', () => {
   assert.deepEqual(C.credits({}, { name: 'Curl martillo', muscle: 'Bíceps' }), [{ m: 'Bíceps', w: 1 }, { m: 'Antebrazo', w: .5 }]);
   assert.deepEqual(C.credits({}, { name: 'Hiperextensiones', muscle: 'Isquiosurales' }), [{ m: 'Isquiosurales', w: 1 }, { m: 'Glúteos', w: .5 }, { m: 'Lumbar', w: .5 }]);
   assert.equal(C.credits({}, { name: 'Peso muerto rumano', muscle: 'Isquiosurales' }).find(c => c.m === 'Lumbar').w, .25);
+  // «Hammer Strength» es una marca de máquinas, no un curl martillo
+  assert.equal(C.credits({}, { name: 'Remo en máquina prono - Hammer Strength', muscle: 'Espalda' }).find(c => c.m === 'Antebrazo').w, .25);
   // el peso del secundario también vale cuando lo elige el usuario a mano
   assert.deepEqual(C.credits({ secMap: { 'press banca': ['Antebrazo'] } }, { name: 'Press banca', muscle: 'Pectoral' }), [{ m: 'Pectoral', w: 1 }, { m: 'Antebrazo', w: .25 }]);
 });
