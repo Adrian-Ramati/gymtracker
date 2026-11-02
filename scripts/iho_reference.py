@@ -40,8 +40,8 @@ REST_TARGET = {              # segundos [mínimo, máximo] por tipo de ejercicio
     "isolation": (60, 150),
 }
 LANDMARKS = {                # series duras/semana: (MEV, MAV, MRV) — los mismos valores por defecto de la app
-    "Pectoral": (8, 16, 22), "Espalda": (10, 18, 25), "Tríceps": (6, 12, 18), "Bíceps": (8, 14, 20),
-    "Glúteos": (4, 12, 16), "Isquiosurales": (6, 12, 16), "Cuádriceps": (8, 14, 20), "Gemelos": (8, 14, 20),
+    "Pectoral": (8, 16, 22), "Espalda": (10, 18, 25), "Tríceps": (6, 12, 18), "Bíceps": (8, 14, 26),
+    "Glúteos": (6, 14, 22), "Isquiosurales": (6, 12, 20), "Cuádriceps": (8, 14, 20), "Gemelos": (8, 14, 20),
     "Deltoides lateral": (8, 18, 26),
 }
 MAJOR = {"Pectoral", "Espalda", "Cuádriceps", "Isquiosurales", "Glúteos", "Deltoides lateral", "Bíceps", "Tríceps"}

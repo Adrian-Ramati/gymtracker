@@ -84,7 +84,7 @@ with sync_playwright() as p:
     # revisión de secundarios del último mes
     ev("()=>{db.sessions.push({id:991,date:todayStr(),name:'T',exercises:[{name:'Movimiento raro',muscle:'Espalda',sets:[{kg:40,reps:10,done:true}]},{name:'Curl barra Z',muscle:'Bíceps',sets:[{kg:20,reps:10,done:true}]}]});openSecAudit()}"); page.wait_for_timeout(300)
     au = ev("()=>document.getElementById('secaudit-body').innerText")
-    check('S13. La revisión lista los ejercicios del mes y marca el multiarticular sin secundarios', 'sin secundarios' in au and 'Movimiento raro' in au and 'normal aquí' in au and '1 ejercicio multiarticular' in au, au[:300])
+    check('S13. La revisión lista los ejercicios del mes y marca el multiarticular sin secundarios', 'sin secundarios' in au and 'Movimiento raro' in au and 'Antebrazo' in au and '1 ejercicio multiarticular' in au, au[:300])
     ev("()=>closeSecAudit()")
     # biblioteca plegada y chips del histórico
     ev("()=>{navTo('perfil')}"); page.wait_for_timeout(400)

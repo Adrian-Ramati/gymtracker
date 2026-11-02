@@ -34,11 +34,12 @@ check('S3. Los remos mantienen bíceps y deltoides posterior', {'Bíceps', 'Delt
 check('S4. Peso muerto y rack pull: glúteos, isquios, lumbar y trapecio', all({'Glúteos', 'Isquiosurales', 'Lumbar', 'Trapecio'} <= set(out[k]) for k in ('rack', 'pm')), out)
 check('S5. RDL, buenos días e hiperextensiones: lumbar', all('Lumbar' in out[k] for k in ('rdl', 'bd', 'ext', 'extg')) and 'Glúteos' in out['rdl'] and 'Isquiosurales' in out['extg'], out)
 check('S6. Remo al mentón: trapecio · sentadilla con barra libre: lumbar', out['menton'] == ['Trapecio'] and 'Lumbar' in out['squat'], out)
-check('S7. Sin cambios donde no toca (jalón, hack, búlgara, curl martillo)', out['jalon'] == ['Bíceps'] and 'Lumbar' not in out['hack'] and 'Lumbar' not in out['bulg'] and out['curl'] == ['Antebrazo'], out)
-check('S8. Encogimientos apuntados como «Espalda» cuentan para el trapecio', out['shrug'] == ['Trapecio'], out)
-check('S9. Reparto de una serie de remo Pendlay: 1 espalda + 0,5 en cada secundario', out['cr'][0] == {'m': 'Espalda', 'w': 1} and {'m': 'Trapecio', 'w': 0.5} in out['cr'] and {'m': 'Lumbar', 'w': 0.5} in out['cr'], out['cr'])
+check('S7. Sin lumbar ni trapecio donde no toca (jalón, hack, búlgara, curl martillo)', out['jalon'] == ['Bíceps', 'Antebrazo'] and 'Lumbar' not in out['hack'] and 'Lumbar' not in out['bulg'] and out['curl'] == ['Antebrazo'], out)
+check('S8. Encogimientos apuntados como «Espalda» cuentan para el trapecio', out['shrug'] == ['Trapecio', 'Antebrazo'], out)
+check('S9. Remo Pendlay: 1 espalda · 0,5 trapecio, bíceps y deltoides posterior · 0,25 lumbar y antebrazo (solo sujetan)', out['cr'] == [{'m': 'Espalda', 'w': 1}, {'m': 'Bíceps', 'w': 0.5}, {'m': 'Deltoides posterior', 'w': 0.5}, {'m': 'Trapecio', 'w': 0.5}, {'m': 'Lumbar', 'w': 0.25}, {'m': 'Antebrazo', 'w': 0.25}], out['cr'])
 sql = open(os.path.join(ROOT, 'sql', '2026-11-02-secundarios-trapecio-lumbar.sql'), encoding='utf-8').read()
-check('S10. SQL para el catálogo de Supabase: solo añade (on conflict do nothing) trapecio y lumbar', 'on conflict (exercise_id, muscle) do nothing' in sql and set(re.findall(r"\$q\$(\w+)\$q\$", sql)) == {'Trapecio', 'Lumbar'} and len(re.findall(r'^\s+\(\d+,', sql, re.M)) >= 40)
+rows = re.findall(r"^\s+\((\d+), \$q\$(\w+)\$q\$, ([\d.]+)\)", sql, re.M)
+check('S10. SQL del catálogo: trapecio, lumbar y antebrazo con su crédito (0,5 o 0,25), repetible', 'on conflict (exercise_id, muscle) do update set credit = excluded.credit' in sql and {r[1] for r in rows} == {'Trapecio', 'Lumbar', 'Antebrazo'} and {r[2] for r in rows} == {'0.5', '0.25'} and len(rows) >= 100, len(rows))
 
 BRIDGE = """(()=>{
   const at=(dOff,h,m=0)=>{const d=new Date();d.setDate(d.getDate()-dOff);d.setHours(h,m,0,0);return d.toISOString();};
@@ -105,7 +106,7 @@ with sync_playwright() as p:
       dashOff=0;navTo('vol');}""")
     page.wait_for_timeout(600)
     by = ev("()=>weekStats(weekRange(0)).by")
-    check('S19. Volumen de la semana: trapecio 1,5 y lumbar 2,5 series efectivas', by.get('Trapecio') == 1.5 and by.get('Lumbar') == 2.5, by)
+    check('S19. Volumen de la semana: trapecio 1,5 · lumbar 1,25 · antebrazo 2 (con el curl de la semana)', by.get('Trapecio') == 1.5 and by.get('Lumbar') == 1.25 and by.get('Antebrazo') == 2, by)
     fills = ev("()=>{const w=document.getElementById('body-wrap');const ids=[...new Set([...w.querySelectorAll('.body-m')].map(e=>e.dataset.id))].filter(i=>/trap|lower-back|lumbar/.test(i));return ids.map(i=>[i,w.querySelector(`.body-m[data-id=\"${i}\"]`).style.fill])}")
     gray = ev("()=>{const w=document.getElementById('body-wrap');return w.querySelector('.body-m[data-id=\"f-abs\"]')?.style.fill}")
     check('S20. En el mapa ya no salen en gris', fills and all(f and f != gray for _, f in fills), (fills, gray))

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="pp-version" content="2026-11-02a">
+<meta name="pp-version" content="2026-11-02b">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#070b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -75,7 +75,7 @@
         <div class="card">
           <div class="card-title">Volume Landmarks <span id="vol-week-lbl">vs Vol Mín · Óptimo · Máx</span></div>
           <div id="vol-bars"></div>
-          <div class="vol-note">Series efectivas: 1 por músculo principal y 0,5 por cada secundario.</div>
+          <div class="vol-note">Series efectivas: 1 por músculo principal, 0,5 por cada secundario y 0,25 si solo sujeta (antebrazo en tracciones y curls, lumbar en remos inclinados y pesos muertos).</div>
           <button onclick="openLandmarks()" class="rest-btn" style="margin:6px 0 0">Editar Vol Mín · Óptimo · Máx</button>
           <button onclick="openSecAudit()" class="rest-btn" style="margin:6px 0 0">Revisar secundarios · últimos 30 días</button>
         </div>
@@ -593,7 +593,7 @@
         </div>
       </div>
       <div>
-        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Músculos secundarios · cuentan ½ serie</label>
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Músculos secundarios · ½ serie (¼ si solo sujetan: antebrazo, lumbar)</label>
         <div class="exv-sec2" id="exed-sec"></div>
         <div class="exv-auto" id="exed-sec-note"></div>
       </div>

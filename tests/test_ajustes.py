@@ -35,7 +35,7 @@ with sync_playwright() as p:
     figc = lambda: ev("()=>{const o={};document.querySelectorAll('#px-fig .body-m').forEach(e=>{if(e.style.fill&&e.style.fill!=='rgb(28, 36, 56)')o[e.dataset.id]=e.style.fill;});return o}")
     page.select_option('#prog-sel', 'Curl bíceps'); page.wait_for_timeout(400)
     r1, f1 = rows(), figc()
-    check('A3. Curl bíceps: solo Bíceps, al 100%', r1 == [{'m': 'Bíceps', 'w': 100}], r1)
+    check('A3. Curl bíceps: Bíceps al 100% y antebrazo al 25% (solo agarra)', r1 == [{'m': 'Bíceps', 'w': 100}, {'m': 'Antebrazo ¼', 'w': 25}], r1)
     check('A4. La figura pinta el bíceps', any('biceps' in k for k in f1) and not any('chest' in k for k in f1), f1)
     page.select_option('#prog-sel', 'Press banca'); page.wait_for_timeout(400)
     r2, f2 = rows(), figc()
