@@ -109,7 +109,7 @@ function invalidateExCache(){exCache=null;}
 function buildExCache(){
   const maxM=new Map(), lastM=new Map();
   // Most-recent-first, same ordering semantics as the old getLastEx
-  const sorted=[...(db.sessions||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const sorted=[...(db.sessions||[])].sort((a,b)=>new Date(b.date)-new Date(a.date)||(b.id||0)-(a.id||0)); // mismo día: la más reciente primero
   for(const s of sorted){
     for(const ex of (s.exercises||[])){
       const k=normExName(ex.name);

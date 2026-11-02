@@ -48,8 +48,10 @@ function hcDiagHtml(){
 function hcDisconnect(){if(db.profile){db.profile.healthConnect=false;saveDB();}renderHealthCard();renderHomeHealth();}
 
 let hcBusy=false,hcDiag=null;
-async function hcSync(full){
-  const H=hcPlugin();if(!H||!db.profile?.healthConnect||hcBusy)return null;
+async function hcSync(full,wait){
+  const H=hcPlugin();if(!H||!db.profile?.healthConnect)return null;
+  // wait: si ya hay una lectura en marcha (p. ej. la automática al abrir), se espera a que acabe
+  if(hcBusy){if(!wait)return null;for(let i=0;i<60&&hcBusy;i++)await new Promise(r=>setTimeout(r,300));return {days:0,waited:true};}
   hcBusy=true;
   try{
     const last=db.profile.hcLastSync?Date.parse(db.profile.hcLastSync):0;
@@ -82,6 +84,7 @@ async function hcSync(full){
     db.profile.hcLastSync=new Date().toISOString();saveDB();
     hcDiag={at:Date.now(),types:diag,days:nb,from:PPCore.isoDate(start)};
     renderHealthCard();renderHomeHealth();
+    if(typeof preSess!=='undefined'&&preSess&&typeof preSessFillWatch==='function'){preSessFillWatch();renderPreSess();}
     if(full)toast(nb?`Reloj: ${nb} días importados ✓`:'Health Connect no devolvió datos — mira el diagnóstico en Perfil',5000);
     return {days:nb};
   }catch(e){console.warn('Health Connect sync:',e);return null;}

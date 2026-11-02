@@ -104,6 +104,22 @@ function tmplRestInput(){if(!activeSess?.isTmplEdit)return;collectInputs();activ
 // Descanso de un ejercicio en la sesión o rutina abierta
 function exRestNow(ex){const a=activeSess||{};return PPCore.exRest(ex,a.rest||90,a.restMode,a.isTmplEdit?null:a.readiness?.score);}
 const fmtRest=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+// ── Descanso dividido (unilaterales en multiarticulares: búlgaras, zancadas, remo a una mano…) ──
+// Con el botón ⇄ activo, la serie se marca en dos toques: lado A → medio descanso → lado B → medio descanso.
+function canSplit(ex){return PPCore.exKind(ex)!=='isolation';}
+function halfRest(r){return Math.max(15,Math.round(r/2/5)*5);}
+function splitBtnHtml(ex,ei){
+  if(!activeSess||activeSess.isTmplEdit||!canSplit(ex))return '';
+  if(ex.split===undefined&&!activeSess.editing){const l=getLastEx(ex.name);if(l?.split)ex.split=true;} // como la última vez
+  return `<button class="ec-split${ex.split?' on':''}" onclick="toggleSplit(${ei})" title="Descanso dividido: un lado, medio descanso, el otro lado" aria-pressed="${!!ex.split}">⇄ ½</button>`;
+}
+function toggleSplit(ei){
+  if(!activeSess)return;const ex=activeSess.exercises[ei];if(!ex)return;
+  collectInputs();ex.split=!ex.split;
+  if(!ex.split)ex.sets.forEach(x=>{delete x.half;});
+  renderSessExs();
+  toast(ex.split?'Descanso dividido: marca cada lado y descansa la mitad entre ellos':'Descanso normal');
+}
 function saveTmplEdit(){
   if(!activeSess?.isTmplEdit)return;
   collectInputs();
@@ -371,7 +387,7 @@ function renderSetRow(ex,ei,si){
   const btnBorder=s.done?'var(--green)':SET_COLORS[stype];
   const btnColor=s.done?'#000':SET_COLORS[stype];
   const btnLabel=s.done?'✓':(SET_ABBR2[stype]||(si+1));
-  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv?(lv.kg+"x"+lv.reps):"—"}</div><input type="number" ${im} id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${tg?.kg??"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${tg?.reps??"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rpe_${ei}_${si}" value="${s.rpe??""}" placeholder="rpe" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":"○"}</button></div>`;
+  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv&&(lv.kg!=null||lv.reps!=null)?((lv.kg??"–")+"x"+(lv.reps??"–")):"—"}</div><input type="number" ${im} id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${tg?.kg??"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${tg?.reps??"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rpe_${ei}_${si}" value="${s.rpe??""}" placeholder="rpe" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":s.half?" half":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":s.half?"½":"○"}</button></div>`;
 }
 function renderExCard(ex,ei){
   const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
@@ -392,9 +408,10 @@ function renderExCard(ex,ei){
       <span class="drag-handle">⠿</span>
       ${thumbHtml(ex.name,'exthumb sm')}
       <span class="ec-name" data-exn="${esc(ex.name)}" onclick="openExView(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
-      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}<span class="ec-rest" title="Descanso entre series">⏱ ${fmtRest(exRestNow(ex))}</span>
+      <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}
       <button class="ec-menu-btn" onclick="openCtx(${ei})">⋯</button>
     </div>
+    <div class="ec-sub"><span class="ec-rest" title="Descanso entre series">⏱ ${ex.split&&canSplit(ex)&&!activeSess?.isTmplEdit?fmtRest(halfRest(exRestNow(ex)))+' + '+fmtRest(halfRest(exRestNow(ex)))+' <small>(un lado · otro lado)</small>':fmtRest(exRestNow(ex))+' <small>descanso</small>'}</span>${splitBtnHtml(ex,ei)}</div>
     ${ex.adj&&PPCore.MUSCLE_ST[ex.adj.st]?`<div class="ec-adj st-${ex.adj.st}">${esc(ex.adj.txt)}</div>`:''}
     ${progRow}
     <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">rpe</div><div></div></div>
@@ -552,6 +569,14 @@ function toggleDone(ei,si){
   const rp=numVal(rpEl);if(rp!==undefined)s.reps=rp;
   let rpe=numVal(rpeEl);if(rpe!=null&&!PPCore.validRpe(rpe))rpe=null;
   if(rpe!==undefined){if(rpe!==s.rpe&&rpe!=null)s.effortSrc='logged';s.rpe=rpe;}
+  // Descanso dividido: el 1.er toque es el lado A (medio descanso), el 2.º cierra la serie (otro medio)
+  const split=ex.split&&canSplit(ex)&&!activeSess.editing&&!activeSess.isTmplEdit;
+  if(split&&!s.done&&!s.half){
+    s.half=true;vib(30);startRest(halfRest(exRestNow(ex)));hideRirAsk();
+    const b=document.querySelector(`#sr_${ei}_${si} .check-btn`);if(b){b.classList.add('half');b.textContent='½';}
+    toast('Lado A hecho · descansa y haz el lado B');persistActive();return;
+  }
+  const wasHalf=!!s.half;delete s.half;
   s.done=!s.done;
   if(s.done&&!activeSess.editing&&!activeSess.isTmplEdit){
     // Hora de la serie y descanso real desde la anterior (menos ~3 s por repetición de la propia serie)
@@ -560,11 +585,11 @@ function toggleDone(ei,si){
     const gap=prev?(now-prev)/1000:null;
     if(gap!=null&&gap<=20*60)s.restS=Math.max(0,Math.round(gap-3*(s.reps||0)));else delete s.restS;
   }else if(!s.done){delete s.doneAt;delete s.restS;}
-  if(s.done){vib(30);startRest(exRestNow(ex));if((s.type||'normal')!=='warmup'&&!hasRpe(s))askRir(ei,si);else hideRirAsk();}
+  if(s.done){vib(30);startRest(split&&wasHalf?halfRest(exRestNow(ex)):exRestNow(ex));if((s.type||'normal')!=='warmup'&&!hasRpe(s))askRir(ei,si);else hideRirAsk();}
   else hideRirAsk();
   const btn=document.querySelector(`#sr_${ei}_${si} .check-btn`);
   const num=document.getElementById(`sn_${ei}_${si}`);
-  if(btn){btn.classList.toggle('done',s.done);btn.textContent=s.done?'✓':'○';}
+  if(btn){btn.classList.toggle('done',s.done);btn.classList.remove('half');btn.textContent=s.done?'✓':'○';}
   if(num)num.classList.toggle('done',s.done);
   onSetInput(ei,si);
   refreshTargets(ei);

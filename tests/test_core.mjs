@@ -40,7 +40,7 @@ const sec = (n, m) => C.autoSecondary(n, m);
 t('secundarios: empujes y tirones', () => {
   assert.deepEqual(sec('Press inclinado en máquina convergente', 'Pectoral'), ['Tríceps', 'Deltoides anterior']);
   assert.deepEqual(sec('Aperturas en polea baja', 'Pectoral'), []);
-  assert.deepEqual(sec('Remo en Máquina Neutro', 'Espalda'), ['Bíceps', 'Deltoides posterior']);
+  assert.deepEqual(sec('Remo en Máquina Neutro', 'Espalda'), ['Bíceps', 'Deltoides posterior', 'Trapecio']);
   assert.deepEqual(sec('Jalón en polea agarre ancho', 'Espalda'), ['Bíceps']);
   assert.deepEqual(sec('Pullover en polea alta', 'Espalda'), []);
   assert.deepEqual(sec('Press de hombro en máquina', 'Deltoides Anterior'), ['Tríceps', 'Deltoides lateral']);
@@ -51,7 +51,7 @@ t('secundarios: empujes y tirones', () => {
 t('secundarios: pierna', () => {
   assert.deepEqual(sec('Prensa 45º', 'Cuádriceps'), ['Glúteos', 'Aductores']);
   assert.deepEqual(sec('Extensión de cuádriceps', 'Cuádriceps'), []);
-  assert.deepEqual(sec('PM Rumano con mancuernas', 'Isquiotibiales'), ['Glúteos']);
+  assert.deepEqual(sec('PM Rumano con mancuernas', 'Isquiotibiales'), ['Glúteos', 'Lumbar']);
   assert.deepEqual(sec('Curl femoral sentado', 'Isquiotibiales'), []);
   assert.deepEqual(sec('Hip-thrust en máquina', 'Glúteos'), []);
 });

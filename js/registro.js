@@ -148,6 +148,8 @@ function openPreSess(src){
   preSess={tid:t?t.id:null,repeat:t?null:from,prev,day,budget:null,apply:true,sleepH:q.sleepH??auto,sleepAuto:auto!=null,energy:q.energy??null,motivation:q.motivation??null,muscles:{...(q.muscles||{})},mlist:preSessMuscles(from.exercises)};
   document.getElementById('presess-title').textContent=from.name||'Entrenamiento';
   renderPreSess();document.getElementById('ov-presess').classList.add('on');
+  // Sin el sueño de hoy y con el reloj conectado: se lee Health Connect ya, sin tener que ir a Perfil
+  if(!(bt?.sleepMin>0)&&typeof hcPlugin==='function'&&hcPlugin()&&db.profile?.healthConnect)preSessSyncWatch();
 }
 function preSessSubj(p){
   if(!p)return null;
@@ -168,7 +170,14 @@ function renderPreSess(){
   if(!preSess)return;
   const chip=(on,txt,js,cls='')=>`<button class="ps-chip${on?' on':''}${cls}" onclick="${js}">${txt}</button>`;
   document.getElementById('presess-time').innerHTML=[45,60,75,90].map(m=>chip(preSess.budget===m,m+' min',`preSessSet('budget',${m})`)).join('')+chip(preSess.budget==null,'Sin límite',`preSessSet('budget',null)`);
-  const sleep=`<div class="ps-row ps-sleep"><span>Sueño${preSess.sleepAuto&&preSess.sleepH?'<small>del reloj</small>':''}</span><div>${PPCore.SLEEP_OPTS.map((o,i)=>chip(preSess.sleepH===i+1,o,`preSessSet('sleepH',${i+1})`)).join('')}</div></div>`;
+  // Sueño: si el reloj ya lo trae no se pregunta (solo se muestra, con opción de corregirlo)
+  const bw=(db.biometrics||[]).find(b=>b.date===preSess.day),wMin=bw?.sleepMin>0?bw.sleepMin:null;
+  const hcOn=typeof hcPlugin==='function'&&!!hcPlugin()&&!!db.profile?.healthConnect;
+  const sleepChips=`<div>${PPCore.SLEEP_OPTS.map((o,i)=>chip(preSess.sleepH===i+1,o,`preSessSet('sleepH',${i+1})`)).join('')}</div>`;
+  const sleep=preSess.sleepAuto&&wMin&&!preSess.sleepEdit
+    ?`<div class="ps-row ps-sleep ps-sleep-w"><span>Sueño<small>del reloj</small></span><div class="ps-wsleep"><b>⌚ ${Math.floor(wMin/60)} h ${Math.round(wMin%60)} min</b><button class="ps-link" onclick="preSess.sleepEdit=true;renderPreSess()">cambiar</button></div></div>`
+    :`<div class="ps-row ps-sleep"><span>Sueño${preSess.sleepAuto&&preSess.sleepH?'<small>del reloj</small>':''}</span>${sleepChips}</div>`
+     +(hcOn&&!wMin&&preSess.sleepH==null?`<div class="ps-nosleep">${preSessSyncing?'Leyendo el reloj…':`El reloj aún no tiene el sueño de esta noche (Mi Fitness puede tardar en pasarlo a Health Connect). <button class="ps-link" onclick="preSessSyncWatch()">Sincronizar</button>`}</div>`:'');
   const rows=PRE_Q.map(([k,l,em])=>`<div class="ps-row"><span>${l}</span><div>${em.map((e,i)=>chip(preSess[k]===i+1,e,`preSessSet('${k}',${i+1})`)).join('')}</div></div>`).join('');
   const mus=preSess.mlist.length?`<div class="ps-lbl">¿Tienes cansancio muscular? <small>toca: cansado → agujetas → dolor</small></div><div class="ps-chips ps-mus">${preSess.mlist.map(m=>{const st=preSess.muscles[m];return `<button class="ps-chip${st?' st-'+st:''}" data-m="${esc(m)}" onclick="preSessMus(this.dataset.m)">${esc(m)}${st?` · ${PPCore.MUSCLE_ST[st].t}`:''}</button>`;}).join('')}</div>`:'';
   document.getElementById('presess-q').innerHTML=sleep+rows+mus;
@@ -179,6 +188,20 @@ function renderPreSess(){
   const sim=PPCore.muscleAdjust(preSess.prev.map(e=>({name:e.name,muscle:e.muscle,sets:Array.from({length:e.n})})),preSess.muscles);
   const madj=sim.length?`<div class="ps-madj">${sim.map(x=>`<div><b>${esc(x.name)}</b> · ${x.st==='doms'&&x.to<x.from?`${x.from} → ${x.to} series, sin fallo`:x.st==='doms'?'sin ir al fallo':x.st==='fatigue'?'1 repetición más en reserva':'cámbialo o sáltalo'} <span>(${esc(x.m)}: ${PPCore.MUSCLE_ST[x.st].t})</span></div>`).join('')}</div>`:'';
   document.getElementById('presess-ready').innerHTML=(watch?`<div class="ps-watch">${watch}</div>`:'')+madj+(a?`<div class="ps-advice" style="border-color:${a.f===1?'var(--green)':a.f>=.8?'var(--amber)':'var(--red)'}"><b>Readiness ${Math.round(R*100)}</b> · ${a.t}${a.f<1?`<label><input type="checkbox" ${preSess.apply?'checked':''} onchange="preSess.apply=this.checked"> Aplicar</label>`:''}</div>`:'<div class="ps-watch">Responde el check-in para ajustar la carga de hoy.</div>');
+}
+// Sueño del reloj: al abrir la hoja (o al tocar «Sincronizar») se lee Health Connect si aún no está el de hoy,
+// y al llegar se rellena solo (si no lo has marcado tú a mano)
+let preSessSyncing=false;
+function preSessFillWatch(){
+  if(!preSess)return;
+  const bt=(db.biometrics||[]).find(b=>b.date===preSess.day),auto=PPCore.sleepBucket(bt?.sleepMin);
+  if(auto!=null&&(preSess.sleepH==null||preSess.sleepAuto)){preSess.sleepH=auto;preSess.sleepAuto=true;}
+}
+async function preSessSyncWatch(){
+  if(preSessSyncing||typeof hcSync!=='function')return;
+  preSessSyncing=true;if(preSess)renderPreSess();
+  try{await hcSync(false,true);}finally{preSessSyncing=false;}
+  if(preSess){preSessFillWatch();renderPreSess();}
 }
 function preSessSet(k,v){if(!preSess)return;preSess[k]=preSess[k]===v&&k!=='budget'?null:v;if(k==='sleepH')preSess.sleepAuto=false;renderPreSess();}
 function preSessMus(m){

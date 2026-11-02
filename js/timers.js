@@ -113,7 +113,31 @@ function cancelRestNotification(){
 }
 // Botón «Probar alarma» (Perfil → Reloj y recuperación), solo en el APK con alarma nativa
 function testRestAlarm(){const RA=restAlarm();if(RA){RA.test().catch(()=>{});toast('Debería sonar ya, con el volumen de alarma');}}
-function alarmTestHtml(){return restAlarm()?`<button class="rest-btn" style="margin:8px 0 0" onclick="testRestAlarm()">🔔 Probar alarma de descanso</button><div style="font-size:11px;color:var(--t3);margin-top:4px">Suena con el volumen de <b>alarma</b>, también con el móvil en vibración.</div>`:'';}
+// Diagnóstico de la alarma (Perfil → Reloj y recuperación): qué versión corre y qué puede impedir que suene
+function alarmTestHtml(){
+  const nat=!!window.Capacitor?.isNativePlatform?.();
+  if(!nat&&!/; wv\)/.test(navigator.userAgent))return '';
+  setTimeout(fillAlarmDiag,0);
+  return `<div class="al-diag"><div class="al-t">Alarma de descanso</div>${restAlarm()?`<button class="rest-btn" style="margin:6px 0 0" onclick="testRestAlarm()">🔔 Probar alarma</button>`:''}<div id="alarm-diag" class="al-rows"></div></div>`;
+}
+async function fillAlarmDiag(){
+  const el=document.getElementById('alarm-diag');if(!el)return;
+  const row=(ok,txt)=>`<div class="al-row ${ok?'ok':'ko'}">${ok?'✓':'✗'} ${txt}</div>`;
+  const RA=restAlarm(),out=[];
+  out.push(`<div class="al-row">Web ${esc(typeof WEB_V!=='undefined'?WEB_V:'?')}${document.querySelector('meta[name="pp-version"]')?.content!==(typeof WEB_V!=='undefined'?WEB_V:null)?' · <b style="color:var(--amber)">HTML desfasado</b>':''}</div>`);
+  if(!window.Capacitor?.isNativePlatform?.()){out.push(row(false,'La página no está conectada con la app (sin puente nativo): la alarma no puede sonar con la pantalla bloqueada. Cierra la app del todo y vuelve a abrirla.'));el.innerHTML=out.join('');return;}
+  if(!RA){out.push(row(false,'Este APK no trae la alarma nativa: instala el último desde el enlace de descarga.'));el.innerHTML=out.join('');return;}
+  try{
+    const i=await RA.info();
+    out[0]=`<div class="al-row">App ${esc(i.version||'?')} · Web ${esc(WEB_V)}</div>`;
+    out.push(row(i.notifications,'Notificaciones permitidas'));
+    out.push(row(i.exact,'Alarmas exactas permitidas'));
+    out.push(row(i.alarmVolume>0,`Volumen de alarma ${i.alarmVolume}/${i.alarmVolumeMax}`));
+    out.push(row(i.batteryUnrestricted,`Batería sin restricciones${/xiaomi|redmi|poco/i.test(i.manufacturer||'')?' e «Inicio automático» activado (Xiaomi)':''}`));
+    if(!i.batteryUnrestricted||!i.notifications||!i.exact)out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="restAlarm()?.openSettings().catch(()=>{})">Abrir ajustes de la app</button>`);
+  }catch(e){out.push(row(false,'No se pudo leer el estado (APK anterior a la 1.0.15): instala el último.'));}
+  el.innerHTML=out.join('');
+}
 function startRest(secs){
   stopRest();
   initAudio(); // inside the tap gesture → beep at rest end needs no new gesture
@@ -192,7 +216,23 @@ function updateLockRest(){
   const el=document.getElementById('lock-rest');if(!el||!lockOn)return;
   el.textContent=restEndTs!==null?`Descanso ${Math.floor(restLeft/60)}:${String(restLeft%60).padStart(2,'0')}`:'';
 }
+// El botón y la capa se crean aquí si el HTML no los trae (un index.html antiguo en caché no los tenía)
+const LOCK_SVG='<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';
+function ensureLockDom(){
+  const hdr=document.querySelector('#s-sess .sess-hdr');
+  if(hdr&&!document.getElementById('lock-btn')){
+    const b=document.createElement('button');b.className='lock-btn';b.id='lock-btn';b.title='Bloquear pantalla';b.setAttribute('aria-label','Bloquear pantalla');
+    b.onclick=lockScreen;b.innerHTML=`<svg viewBox="0 0 24 24">${LOCK_SVG}</svg>`;
+    hdr.insertBefore(b,hdr.querySelector('.cancel-btn')||null);
+  }
+  if(!document.getElementById('lock-ov')){
+    const d=document.createElement('div');d.id='lock-ov';d.className='lock-ov';d.setAttribute('aria-hidden','true');
+    d.innerHTML=`<div class="lock-mid"><div class="lock-rest" id="lock-rest"></div><button class="lock-ring" id="lock-ring" aria-label="Mantén pulsado para desbloquear"><svg class="lock-prog" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg><svg class="lock-ico" viewBox="0 0 24 24">${LOCK_SVG}</svg></button><div class="lock-hint">Mantén pulsado para desbloquear</div></div>`;
+    document.body.appendChild(d);
+  }
+}
 (function initLock(){
+  ensureLockDom();
   const ov=document.getElementById('lock-ov'),ring=document.getElementById('lock-ring');if(!ov||!ring)return;
   const stop=e=>{e.preventDefault();e.stopPropagation();};
   // La capa no deja pasar nada: ni toques, ni clics, ni teclado, ni menú contextual
