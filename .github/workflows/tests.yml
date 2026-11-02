@@ -72,6 +72,9 @@ jobs:
       - name: Candado con HTML viejo, diagnóstico de la alarma y descanso dividido
         run: python tests/test_alarma_split.py
 
+      - name: Sueño del reloj en la readiness y trapecio/lumbar como secundarios
+        run: python tests/test_sueno_sec.py
+
       - name: Informe semanal en modo prueba
         run: |
           npm install --prefix scripts

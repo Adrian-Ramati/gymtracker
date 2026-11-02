@@ -148,20 +148,27 @@
   const SEC_RULES = [
     ['Pectoral', /apertura|cruce|crossover|pec ?deck|contractora|\bfly|pull ?over/, []],
     ['Pectoral', /press|bench|chest|fondo|\bdip|flexion|push ?up|convergente/, ['Tríceps', 'Deltoides anterior']],
-    ['Espalda', /pull ?over|encogimiento|shrug|hiperextension|hyperextension/, []],
-    ['Espalda', /remo|\brow\b|t-bar|seal/, ['Bíceps', 'Deltoides posterior']],
+    // Trapecio y lumbar: los remos trabajan el trapecio medio; los que se hacen con el torso inclinado y sin
+    // apoyo, los pesos muertos y las sentadillas con barra libre cargan además los erectores (lumbar).
+    ['Espalda', /pull ?over/, []],
+    ['Espalda', /encogimiento|shrug/, ['Trapecio']],
+    ['Espalda', /hiperextension|hyperextension/, ['Lumbar', 'Glúteos']],
+    ['Espalda', /peso muerto|deadlift|rack pull/, ['Glúteos', 'Isquiosurales', 'Lumbar', 'Trapecio']],
+    ['Espalda', /pendlay|yates|remo con barra|remo en t\b|t-bar|remo en punta|meadows|torso inclinado|remo en multipower|remo inclinado|bent ?over/, ['Bíceps', 'Deltoides posterior', 'Trapecio', 'Lumbar']],
+    ['Espalda', /remo|\brow\b|seal/, ['Bíceps', 'Deltoides posterior', 'Trapecio']],
     ['Espalda', /jalon|pulldown|dominad|pull ?up|\bchin|traccion/, ['Bíceps']],
-    ['Espalda', /peso muerto|deadlift|rack pull/, ['Glúteos', 'Isquiosurales']],
     ['Deltoides anterior', /press|militar|overhead|arnold|landmine/, ['Tríceps', 'Deltoides lateral']],
+    ['Deltoides lateral', /remo al menton|upright/, ['Trapecio']],
     ['Deltoides lateral', /press|militar|overhead/, ['Tríceps', 'Deltoides anterior']],
     ['Tríceps', /frances|french|skull|rompecraneo|extension|patada|kickback|overhead|copa|katana|polea/, []],
     ['Tríceps', /press|cerrado|close|fondo|\bdip|\bjm\b|kaz/, ['Pectoral', 'Deltoides anterior']],
     ['Bíceps', /martillo|hammer|inverso|reverse/, ['Antebrazo']],
     ['Cuádriceps', /extension|sissy/, []],
+    ['Cuádriceps', /sentadilla barra|barra (alta|baja)|safety bar|sentadilla (con barra|trasera|frontal)|back squat|front squat|barbell squat/, ['Glúteos', 'Aductores', 'Lumbar']],
     ['Cuádriceps', /sentadilla|squat|prensa|leg press|press de pierna|zancada|lunge|bulgar|split|hack|step|pendul|belt/, ['Glúteos', 'Aductores']],
-    ['Isquiosurales', /peso muerto|rumano|\brdl\b|sldl|rigidas|buenos dias|good ?morning|deadlift|hiperextension|hyperextension/, ['Glúteos']],
+    ['Isquiosurales', /peso muerto|rumano|\brdl\b|sldl|rigidas|buenos dias|good ?morning|deadlift|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Glúteos', 'Lumbar']],
     ['Glúteos', /sentadilla|squat|zancada|lunge|bulgar|split|step|prensa/, ['Cuádriceps']],
-    ['Glúteos', /peso muerto|rumano|\brdl\b|good ?morning|hiperextension|hyperextension/, ['Isquiosurales']],
+    ['Glúteos', /peso muerto|rumano|\brdl\b|good ?morning|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Isquiosurales', 'Lumbar']],
   ];
   C.autoSecondary = (name, muscle) => {
     const m = C.normMuscle(muscle), n = fold(name);

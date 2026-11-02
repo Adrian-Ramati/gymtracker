@@ -6,7 +6,7 @@
 // Versión de la web. index.html lleva la misma en <meta name="pp-version">: si no coinciden, el HTML viene
 // de una copia vieja (caché del navegador, de la app o del service worker) mientras los .js ya son nuevos
 // —p. ej. faltaba el botón del candado—. Se recarga UNA vez saltándose cachés.
-const WEB_V='2026-11-01a';
+const WEB_V='2026-11-02a';
 (function checkHtmlVersion(){
   const hv=document.querySelector('meta[name="pp-version"]')?.content||null;
   let tried=null;try{tried=sessionStorage.getItem('pp-vreload');}catch(e){}
