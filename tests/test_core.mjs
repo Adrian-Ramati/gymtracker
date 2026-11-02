@@ -28,11 +28,11 @@ t('normMuscle une variantes de escritura', () => {
   assert.equal(C.normMuscle('Gemelo/Sóleo'), 'Gemelo/Sóleo');
 });
 t('landmarks: mayúsculas, alias y overrides', () => {
-  assert.deepEqual(C.landmarks({}, 'Deltoides Anterior'), { mev: 2, mav: 8, mrv: 12 });
+  assert.deepEqual(C.landmarks({}, 'Deltoides Anterior'), { mev: 4, mav: 12, mrv: 18 });
   assert.deepEqual(C.landmarks({}, 'Gemelo/Sóleo'), { mev: 8, mav: 14, mrv: 20 });
   assert.deepEqual(C.landmarks({ landmarks: { Pectoral: { mev: 10 } } }, 'Pectoral'), { mev: 10, mav: 16, mrv: 22 });
   assert.equal(C.landmarks({ landmarks: { Pectoral: { mev: 30 } } }, 'Pectoral'), null); // MEV > MAV → inválido
-  assert.equal(C.landmarks({}, 'Antebrazo'), null);
+  assert.deepEqual(C.landmarks({}, 'Antebrazo'), { mev: 2, mav: 8, mrv: 14 }); assert.deepEqual(C.landmarks({}, 'Lumbar'), { mev: 2, mav: 6, mrv: 10 });
 });
 
 // ── Músculos secundarios ──
@@ -40,8 +40,8 @@ const sec = (n, m) => C.autoSecondary(n, m);
 t('secundarios: empujes y tirones', () => {
   assert.deepEqual(sec('Press inclinado en máquina convergente', 'Pectoral'), ['Tríceps', 'Deltoides anterior']);
   assert.deepEqual(sec('Aperturas en polea baja', 'Pectoral'), []);
-  assert.deepEqual(sec('Remo en Máquina Neutro', 'Espalda'), ['Bíceps', 'Deltoides posterior', 'Trapecio']);
-  assert.deepEqual(sec('Jalón en polea agarre ancho', 'Espalda'), ['Bíceps']);
+  assert.deepEqual(sec('Remo en Máquina Neutro', 'Espalda'), ['Bíceps', 'Deltoides posterior', 'Trapecio', 'Antebrazo']);
+  assert.deepEqual(sec('Jalón en polea agarre ancho', 'Espalda'), ['Bíceps', 'Antebrazo']);
   assert.deepEqual(sec('Pullover en polea alta', 'Espalda'), []);
   assert.deepEqual(sec('Press de hombro en máquina', 'Deltoides Anterior'), ['Tríceps', 'Deltoides lateral']);
   assert.deepEqual(sec('Kaz Press', 'Tríceps'), ['Pectoral', 'Deltoides anterior']);
@@ -51,7 +51,7 @@ t('secundarios: empujes y tirones', () => {
 t('secundarios: pierna', () => {
   assert.deepEqual(sec('Prensa 45º', 'Cuádriceps'), ['Glúteos', 'Aductores']);
   assert.deepEqual(sec('Extensión de cuádriceps', 'Cuádriceps'), []);
-  assert.deepEqual(sec('PM Rumano con mancuernas', 'Isquiotibiales'), ['Glúteos', 'Lumbar']);
+  assert.deepEqual(sec('PM Rumano con mancuernas', 'Isquiotibiales'), ['Glúteos', 'Lumbar', 'Antebrazo']);
   assert.deepEqual(sec('Curl femoral sentado', 'Isquiotibiales'), []);
   assert.deepEqual(sec('Hip-thrust en máquina', 'Glúteos'), []);
 });
@@ -60,6 +60,13 @@ t('secundarios: override del usuario y créditos 1 / 0,5', () => {
   assert.deepEqual(C.secondaryFor(prof, 'Press banca', 'Pectoral'), ['Tríceps']);
   assert.deepEqual(C.secondaryFor({ secMap: { 'press banca': [] } }, 'Press banca', 'Pectoral'), []);
   assert.deepEqual(C.credits({}, { name: 'Press banca', muscle: 'Pectoral' }), [{ m: 'Pectoral', w: 1 }, { m: 'Tríceps', w: .5 }, { m: 'Deltoides anterior', w: .5 }]);
+  // isométricos a 0,25 (antebrazo agarrando, lumbar sujetando) salvo donde se mueven (martillo, hiperextensión)
+  assert.deepEqual(C.credits({}, { name: 'Curl con barra', muscle: 'Bíceps' }), [{ m: 'Bíceps', w: 1 }, { m: 'Antebrazo', w: .25 }]);
+  assert.deepEqual(C.credits({}, { name: 'Curl martillo', muscle: 'Bíceps' }), [{ m: 'Bíceps', w: 1 }, { m: 'Antebrazo', w: .5 }]);
+  assert.deepEqual(C.credits({}, { name: 'Hiperextensiones', muscle: 'Isquiosurales' }), [{ m: 'Isquiosurales', w: 1 }, { m: 'Glúteos', w: .5 }, { m: 'Lumbar', w: .5 }]);
+  assert.equal(C.credits({}, { name: 'Peso muerto rumano', muscle: 'Isquiosurales' }).find(c => c.m === 'Lumbar').w, .25);
+  // el peso del secundario también vale cuando lo elige el usuario a mano
+  assert.deepEqual(C.credits({ secMap: { 'press banca': ['Antebrazo'] } }, { name: 'Press banca', muscle: 'Pectoral' }), [{ m: 'Pectoral', w: 1 }, { m: 'Antebrazo', w: .25 }]);
 });
 
 // ── Mesociclos ──
@@ -332,8 +339,8 @@ t('revisión de secundarios: origen, series extra y multiarticulares sin secunda
   assert.equal(A.sesiones, 2); assert.equal(A.ejercicios, 4);
   assert.equal(r['Press banca'].sets, 5); assert.equal(r['Press banca'].sesiones, 2); assert.equal(r['Press banca'].src, 'automático');
   assert.equal(r['Press hombro'].src, 'catálogo'); assert.equal(r['Movimiento raro'].src, 'personalizado');
-  assert.equal(r['Curl barra Z'].src, 'ninguno'); assert.equal(r['Curl barra Z'].revisar, false); // aislamiento: normal
-  assert.equal(A.revisar, 0); assert.equal(A.extra, 5 * 2 * .5 + 2 * .5 + 2 * .5);
+  assert.equal(r['Curl barra Z'].src, 'automático'); assert.equal(r['Curl barra Z'].revisar, false); // antebrazo a 0,25
+  assert.equal(A.revisar, 0); assert.equal(A.extra, 5 * 2 * .5 + 2 * .5 + 2 * .5 + 3 * .25);
   const B = C.secAudit({}, ses, '2026-09-27', '2026-10-26');
   assert.equal(B.revisar, 1); assert.equal(B.rows[0].name, 'Movimiento raro'); assert.equal(B.seriesRevisar, 2); assert.equal(B.sesionesRevisar, 1);
 });

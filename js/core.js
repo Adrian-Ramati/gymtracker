@@ -93,13 +93,21 @@
   };
 
   // ── Volume Landmarks (Vol Mín / Óptimo / Máx, series/semana) ──
+  // Base: tabla de Renaissance Periodization (MEV · MAV · MRV), revisada para el conteo fraccionado de la app
+  // (secundarios a 0,5/0,25, como Pelland et al.: óptimo ~10–20 series, rendimientos decrecientes > 20).
+  // RP piensa en series directas: el deltoides anterior y los glúteos (MEV 0 en RP porque ya reciben los
+  // press y las sentadillas) se suben para no marcar sobrecarga solo por ese trabajo indirecto; bíceps e
+  // isquios llevan el Máx de RP (26 y 20).
   C.DEFAULT_LANDMARKS = {
     'Pectoral': { mev: 8, mav: 16, mrv: 22 }, 'Espalda': { mev: 10, mav: 18, mrv: 25 }, 'Tríceps': { mev: 6, mav: 12, mrv: 18 },
-    'Bíceps': { mev: 8, mav: 14, mrv: 20 }, 'Glúteos': { mev: 4, mav: 12, mrv: 16 }, 'Isquiosurales': { mev: 6, mav: 12, mrv: 16 },
+    'Bíceps': { mev: 8, mav: 14, mrv: 26 }, 'Glúteos': { mev: 6, mav: 14, mrv: 22 }, 'Isquiosurales': { mev: 6, mav: 12, mrv: 20 },
     'Cuádriceps': { mev: 8, mav: 14, mrv: 20 }, 'Gemelo/Sóleo': { mev: 8, mav: 14, mrv: 20 },
-    'Deltoides anterior': { mev: 2, mav: 8, mrv: 12 }, 'Deltoides lateral': { mev: 8, mav: 18, mrv: 26 },
+    'Deltoides anterior': { mev: 4, mav: 12, mrv: 18 }, 'Deltoides lateral': { mev: 8, mav: 18, mrv: 26 },
     'Deltoides posterior': { mev: 6, mav: 14, mrv: 22 },
     'Aductores': { mev: 4, mav: 8, mrv: 12 }, 'Abductores': { mev: 4, mav: 8, mrv: 12 },
+    // Sin tabla de RP para lumbar y antebrazo: valores prudentes (casi todo su volumen es indirecto, a 0,25)
+    'Trapecio': { mev: 4, mav: 12, mrv: 20 }, 'Lumbar': { mev: 2, mav: 6, mrv: 10 },
+    'Antebrazo': { mev: 2, mav: 8, mrv: 14 }, 'Abdomen': { mev: 4, mav: 12, mrv: 20 },
   };
   // Ajustes guardados con nombres antiguos (p. ej. 'Gemelos', 'Hombro posterior') siguen valiendo
   // para su grupo canónico; el nombre canónico manda sobre los antiguos.
@@ -144,6 +152,17 @@
   // Una serie cuenta 1 para el músculo principal y 0,5 para cada secundario: el método "fraccional",
   // el mejor respaldado en Pelland et al. (Sports Medicine, 2026) para predecir hipertrofia.
   C.SEC_W = 0.5;
+  // Excepción: si el secundario solo SUJETA sin moverse (isométrico) cuenta 0,25. Es el caso del antebrazo
+  // agarrando la barra en tracciones, pesos muertos y curls, y de la lumbar (erectores) manteniendo la
+  // espalda recta en remos inclinados, pesos muertos, buenos días y sentadillas con barra. Cuentan 0,5 donde
+  // sí se mueven: antebrazo en curl martillo / invertido (braquiorradial) y lumbar en hiperextensiones.
+  C.SEC_W_ISO = 0.25;
+  C.secWeight = (name, m) => {
+    const n = fold(name), k = C.normMuscle(m);
+    if (k === 'Antebrazo') return /martillo|hammer|inverso|reverse|zottman|muneca|wrist/.test(n) ? C.SEC_W : C.SEC_W_ISO;
+    if (k === 'Lumbar') return /hiperextension|hyperextension|extensiones? (en )?banco inclinado/.test(n) ? C.SEC_W : C.SEC_W_ISO;
+    return C.SEC_W;
+  };
   // [músculo principal, patrón en el nombre, secundarios]. Gana la primera regla que encaje.
   const SEC_RULES = [
     ['Pectoral', /apertura|cruce|crossover|pec ?deck|contractora|\bfly|pull ?over/, []],
@@ -151,24 +170,28 @@
     // Trapecio y lumbar: los remos trabajan el trapecio medio; los que se hacen con el torso inclinado y sin
     // apoyo, los pesos muertos y las sentadillas con barra libre cargan además los erectores (lumbar).
     ['Espalda', /pull ?over/, []],
-    ['Espalda', /encogimiento|shrug/, ['Trapecio']],
+    ['Espalda', /encogimiento|shrug/, ['Trapecio', 'Antebrazo']],
+    ['Trapecio', /encogimiento|shrug/, ['Antebrazo']],
     ['Espalda', /hiperextension|hyperextension/, ['Lumbar', 'Glúteos']],
-    ['Espalda', /peso muerto|deadlift|rack pull/, ['Glúteos', 'Isquiosurales', 'Lumbar', 'Trapecio']],
-    ['Espalda', /pendlay|yates|remo con barra|remo en t\b|t-bar|remo en punta|meadows|torso inclinado|remo en multipower|remo inclinado|bent ?over/, ['Bíceps', 'Deltoides posterior', 'Trapecio', 'Lumbar']],
-    ['Espalda', /remo|\brow\b|seal/, ['Bíceps', 'Deltoides posterior', 'Trapecio']],
-    ['Espalda', /jalon|pulldown|dominad|pull ?up|\bchin|traccion/, ['Bíceps']],
+    ['Espalda', /peso muerto|deadlift|rack pull/, ['Glúteos', 'Isquiosurales', 'Lumbar', 'Trapecio', 'Antebrazo']],
+    ['Espalda', /pendlay|yates|remo con barra|remo en t\b|t-bar|remo en punta|meadows|torso inclinado|remo en multipower|remo inclinado|bent ?over/, ['Bíceps', 'Deltoides posterior', 'Trapecio', 'Lumbar', 'Antebrazo']],
+    ['Espalda', /remo|\brow\b|seal/, ['Bíceps', 'Deltoides posterior', 'Trapecio', 'Antebrazo']],
+    ['Espalda', /jalon|pulldown|dominad|pull ?up|\bchin|traccion/, ['Bíceps', 'Antebrazo']],
     ['Deltoides anterior', /press|militar|overhead|arnold|landmine/, ['Tríceps', 'Deltoides lateral']],
     ['Deltoides lateral', /remo al menton|upright/, ['Trapecio']],
     ['Deltoides lateral', /press|militar|overhead/, ['Tríceps', 'Deltoides anterior']],
     ['Tríceps', /frances|french|skull|rompecraneo|extension|patada|kickback|overhead|copa|katana|polea/, []],
     ['Tríceps', /press|cerrado|close|fondo|\bdip|\bjm\b|kaz/, ['Pectoral', 'Deltoides anterior']],
-    ['Bíceps', /martillo|hammer|inverso|reverse/, ['Antebrazo']],
+    ['Bíceps', /martillo|hammer|inverso|reverse|zottman/, ['Antebrazo']],
+    ['Bíceps', /curl/, ['Antebrazo']],
     ['Cuádriceps', /extension|sissy/, []],
     ['Cuádriceps', /sentadilla barra|barra (alta|baja)|safety bar|sentadilla (con barra|trasera|frontal)|back squat|front squat|barbell squat/, ['Glúteos', 'Aductores', 'Lumbar']],
     ['Cuádriceps', /sentadilla|squat|prensa|leg press|press de pierna|zancada|lunge|bulgar|split|hack|step|pendul|belt/, ['Glúteos', 'Aductores']],
-    ['Isquiosurales', /peso muerto|rumano|\brdl\b|sldl|rigidas|buenos dias|good ?morning|deadlift|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Glúteos', 'Lumbar']],
+    ['Isquiosurales', /peso muerto|rumano|\brdl\b|sldl|rigidas|deadlift/, ['Glúteos', 'Lumbar', 'Antebrazo']],
+    ['Isquiosurales', /buenos dias|good ?morning|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Glúteos', 'Lumbar']],
     ['Glúteos', /sentadilla|squat|zancada|lunge|bulgar|split|step|prensa/, ['Cuádriceps']],
-    ['Glúteos', /peso muerto|rumano|\brdl\b|good ?morning|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Isquiosurales', 'Lumbar']],
+    ['Glúteos', /peso muerto|rumano|\brdl\b/, ['Isquiosurales', 'Lumbar', 'Antebrazo']],
+    ['Glúteos', /good ?morning|buenos dias|hiperextension|hyperextension|extensiones? (en )?banco inclinado/, ['Isquiosurales', 'Lumbar']],
   ];
   C.autoSecondary = (name, muscle) => {
     const m = C.normMuscle(muscle), n = fold(name);
@@ -185,7 +208,7 @@
     const prim = C.normMuscle(ex.muscle);
     // ex.sec explícito (catálogo exercise_muscles) manda sobre las reglas
     const sec = Array.isArray(ex.sec) ? ex.sec.map(C.normMuscle).filter(m => m && m !== prim) : C.secondaryFor(profile, ex.name, ex.muscle);
-    return [{ m: prim, w: 1 }, ...sec.map(m => ({ m, w: C.SEC_W }))];
+    return [{ m: prim, w: 1 }, ...sec.map(m => ({ m, w: C.secWeight(ex.name, m) }))];
   };
 
   // Revisión de secundarios en un rango de fechas: por ejercicio, de dónde salen (catálogo / personalizado / automático / ninguno)
@@ -203,7 +226,7 @@
         const src = Array.isArray(e.sec) ? 'catálogo' : Array.isArray(profile?.secMap?.[k]) ? 'personalizado' : sec.length ? 'automático' : 'ninguno';
         const kind = C.exKind(e), revisar = !sec.length && kind !== 'isolation' && !NO_SEC_OK_M.has(C.normMuscle(e.muscle)) && !/hip[ -]?thrust|puente de gluteo/.test(k);
         const r = R[k] = R[k] || { name: e.name, muscle: C.normMuscle(e.muscle), sets: 0, sesiones: 0, sec, src, kind, revisar };
-        r.sets += n; r.sesiones++; seriesTotal += n; if (sec.length) { seriesCon += n; extra += n * C.SEC_W * sec.length; }
+        r.sets += n; r.sesiones++; seriesTotal += n; if (sec.length) { seriesCon += n; extra += n * C.credits(profile, e).slice(1).reduce((a, c) => a + c.w, 0); }
         if (revisar) flagged.add(s.id != null ? s.id : s.date);
       });
       if (any) nSes++;

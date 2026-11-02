@@ -55,9 +55,9 @@ function renderExView(){
   if(info.cues?.length)h+=sec('Claves',`<ul class="exv-cues">${info.cues.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`);
   if(muscle){
     const secM=PPCore.secondaryFor(db.profile,name,muscle),custom=Array.isArray(db.profile?.secMap?.[k]);
-    const chip=(m,on)=>`<button class="exv-mchip${on?' on':''}" data-m="${esc(m)}" onclick="toggleSecondary(this.dataset.m)">${on?'✓ ':''}${esc(m)}</button>`;
-    const list=exvSecEdit?PPCore.MUSCLES.filter(m=>m!==PPCore.normMuscle(muscle)).map(m=>chip(m,secM.includes(m))).join(''):(secM.map(m=>chip(m,true)).join('')||'<span class="exv-auto">Ninguno</span>');
-    h+=sec('Músculos secundarios · cuentan ½ serie',`<div class="exv-sec2">${list}<button class="exv-mchip edit" onclick="exvSecEdit=!exvSecEdit;renderExView()">${exvSecEdit?'Listo':'✎ Editar'}</button></div>
+    const chip=(m,on,lbl)=>`<button class="exv-mchip${on?' on':''}" data-m="${esc(m)}" onclick="toggleSecondary(this.dataset.m)">${on?'✓ ':''}${esc(lbl||m)}</button>`;
+    const list=exvSecEdit?PPCore.MUSCLES.filter(m=>m!==PPCore.normMuscle(muscle)).map(m=>chip(m,secM.includes(m))).join(''):(secM.map(m=>chip(m,true,m+(PPCore.secWeight(name,m)<.5?' ¼':''))).join('')||'<span class="exv-auto">Ninguno</span>');
+    h+=sec('Músculos secundarios · ½ serie (¼ si solo sujetan: antebrazo, lumbar)',`<div class="exv-sec2">${list}<button class="exv-mchip edit" onclick="exvSecEdit=!exvSecEdit;renderExView()">${exvSecEdit?'Listo':'✎ Editar'}</button></div>
       <div class="exv-auto">${custom?'Personalizados · <a href="#" onclick="resetSecondary();return false">volver a los automáticos</a>':'Asignados automáticamente según el ejercicio'}</div>`);
   }
   let prog=null;try{prog=getProgression(name);}catch(e){}

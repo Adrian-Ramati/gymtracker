@@ -69,12 +69,12 @@ function exMuscleOf(name){
 function muscleActiveData(name){
   if(!name)return[];
   const muscle=exMuscleOf(name);if(!muscle)return[];
-  return PPCore.credits(db.profile,{name,muscle}).slice(0,4).map((x,i)=>({m:x.m,pct:Math.round(x.w*100),c:MUS_COLORS[i],sec:x.w<1}));
+  return PPCore.credits(db.profile,{name,muscle}).slice(0,4).map((x,i)=>({m:x.m,pct:Math.round(x.w*100),c:MUS_COLORS[i],sec:x.w<1,w:x.w}));
 }
 function muscleActiveHtml(name){
   const d=muscleActiveData(name);
   if(!d.length)return '<div class="px-mempty">Sin músculo asignado</div>';
-  return `<div class="px-mus"><div class="px-mrows">${d.map(x=>`<div class="px-mrow"><span>${esc(x.m)}${x.sec?' <small>½</small>':''}</span><i><u style="width:${x.pct}%;background:${x.c}"></u></i></div>`).join('')}</div><div class="hc-body px-fig" id="px-fig"></div></div>`;
+  return `<div class="px-mus"><div class="px-mrows">${d.map(x=>`<div class="px-mrow"><span>${esc(x.m)}${x.sec?` <small>${x.w===.25?'¼':'½'}</small>`:''}</span><i><u style="width:${x.pct}%;background:${x.c}"></u></i></div>`).join('')}</div><div class="hc-body px-fig" id="px-fig"></div></div>`;
 }
 function paintMuscleActive(name){
   const fig=document.getElementById('px-fig');if(!fig)return;
