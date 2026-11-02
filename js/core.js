@@ -159,7 +159,7 @@
   C.SEC_W_ISO = 0.25;
   C.secWeight = (name, m) => {
     const n = fold(name), k = C.normMuscle(m);
-    if (k === 'Antebrazo') return /martillo|hammer|inverso|reverse|zottman|muneca|wrist/.test(n) ? C.SEC_W : C.SEC_W_ISO;
+    if (k === 'Antebrazo') return /martillo|hammer(?! strength)|inverso|reverse|zottman|muneca|wrist/.test(n) ? C.SEC_W : C.SEC_W_ISO; // «Hammer Strength» es una marca de máquinas
     if (k === 'Lumbar') return /hiperextension|hyperextension|extensiones? (en )?banco inclinado/.test(n) ? C.SEC_W : C.SEC_W_ISO;
     return C.SEC_W;
   };
@@ -182,7 +182,7 @@
     ['Deltoides lateral', /press|militar|overhead/, ['Tríceps', 'Deltoides anterior']],
     ['Tríceps', /frances|french|skull|rompecraneo|extension|patada|kickback|overhead|copa|katana|polea/, []],
     ['Tríceps', /press|cerrado|close|fondo|\bdip|\bjm\b|kaz/, ['Pectoral', 'Deltoides anterior']],
-    ['Bíceps', /martillo|hammer|inverso|reverse|zottman/, ['Antebrazo']],
+    ['Bíceps', /martillo|hammer(?! strength)|inverso|reverse|zottman/, ['Antebrazo']],
     ['Bíceps', /curl/, ['Antebrazo']],
     ['Cuádriceps', /extension|sissy/, []],
     ['Cuádriceps', /sentadilla barra|barra (alta|baja)|safety bar|sentadilla (con barra|trasera|frontal)|back squat|front squat|barbell squat/, ['Glúteos', 'Aductores', 'Lumbar']],
