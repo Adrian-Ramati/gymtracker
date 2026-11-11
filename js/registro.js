@@ -35,6 +35,31 @@ function refreshTargets(ei){
   });
 }
 
+// ═══ ESFUERZO DE CADA SERIE: RIR o RPE (Perfil → Ajustes del entreno) ═══
+// Por dentro siempre se guarda RPE (s.rpe, como la base de datos y los cálculos). Lo que eliges es cómo lo
+// ves y lo escribes: la columna, el teclado, la pregunta al terminar la serie y el historial usan lo mismo.
+// RIR = repeticiones que te quedaban = 10 − RPE.
+function effMode(){return db?.profile?.effortMode==='rpe'?'rpe':'rir';}
+function effName(){return effMode()==='rir'?'RIR':'RPE';}
+function effShow(rpe){if(rpe==null||rpe===''||!isFinite(+rpe))return '';const v=effMode()==='rir'?10-(+rpe):+rpe;return Math.round(v*10)/10;}
+function effParse(v){if(v==null||v==='')return v;v=+v;if(!isFinite(v))return null;return effMode()==='rir'?10-v:v;}
+// Lee la casilla (en RIR o RPE) y devuelve RPE · undefined = no hay casilla · null = vacía o fuera de rango
+function effVal(el){const v=numVal(el);if(v==null)return v;const r=effParse(v);return PPCore.validRpe(r)?r:null;}
+function effBad(el){const v=numVal(el);return v!=null&&!PPCore.validRpe(effParse(v));}
+function effTag(rpe){if(rpe==null||rpe===''||!isFinite(+rpe))return '';return effMode()==='rir'?` · RIR ${effShow(rpe)}`:` @${+rpe}`;}
+function setEffMode(m){
+  // Primero se leen las casillas con la escala de antes; luego se repinta todo con la nueva
+  if(activeSess&&typeof collectInputs==='function')collectInputs();
+  db.profile=db.profile||{};db.profile.effortMode=m==='rpe'?'rpe':'rir';saveDB();renderEffMode();
+  if(activeSess&&typeof renderSessExs==='function')renderSessExs();
+  toast(`Esfuerzo en ${effName()}`);
+}
+function renderEffMode(){
+  const el=document.getElementById('eff-mode');if(!el)return;const m=effMode();
+  el.innerHTML=`<div class="rm-row" style="margin:0"><button class="rm-btn${m==='rir'?' on':''}" onclick="setEffMode('rir')">RIR · reps en reserva</button><button class="rm-btn${m==='rpe'?' on':''}" onclick="setEffMode('rpe')">RPE · esfuerzo 1–10</button>
+    <div class="rm-note">${m==='rir'?'Cuántas repeticiones te quedaban: 0 = fallo, 2 = podías hacer 2 más. ':'Del 1 al 10: 10 = fallo, 8 = te quedaban 2. '}La columna de las series, el teclado, la pregunta al terminar cada serie y el historial usan siempre lo mismo.</div></div>`;
+}
+
 // ═══ TECLADO PROPIO ═══
 let npEl=null,npFresh=true;
 function npStepFor(el){
@@ -44,7 +69,7 @@ function npStepFor(el){
   const eq=(ALL_EX.find(e=>e.name===ex?.name)?.equipment||'').toLowerCase();
   return /mancuerna/.test(eq)?2:/kettlebell|rusa/.test(eq)?4:2.5;
 }
-function npLabel(el){return /^rpe_/.test(el.id)?'RPE':/^rp_/.test(el.id)?'Repeticiones':'Peso (kg)';}
+function npLabel(el){return /^rpe_/.test(el.id)?(effMode()==='rir'?'RIR · reps en reserva':'RPE'):/^rp_/.test(el.id)?'Repeticiones':'Peso (kg)';}
 function npOpen(el){
   if(!NUMPAD||!el)return;
   npEl=el;npFresh=true;el.blur();
@@ -67,7 +92,7 @@ function npKey(k){
 function npStep(dir){
   if(!npEl)return;
   const st=npStepFor(npEl),base=parseFloat(npEl.value!==''?npEl.value:npEl.placeholder);
-  const min=/^rpe_/.test(npEl.id)?5:0,max=/^rpe_/.test(npEl.id)?10:9999;
+  const ef=/^rpe_/.test(npEl.id),min=ef?(effMode()==='rir'?0:5):0,max=ef?(effMode()==='rir'?5:10):9999;
   const v=isNaN(base)?(dir>0?st:0):Math.round((base+dir*st)/st)*st;
   npSet(Math.min(max,Math.max(min,Math.round(v*100)/100)));npFresh=true; // tras un paso, teclear empieza de cero
 }
@@ -90,6 +115,12 @@ function askRir(ei,si){
   rirTarget={ei,si};
   const ex=activeSess?.exercises?.[ei],el=document.getElementById('rir-ask');if(!el||!ex)return;
   document.getElementById('rir-ask-ex').textContent=`${ex.name} · serie ${si+1}`;
+  // Misma escala que la columna: RIR (0 = fallo … 4+) o RPE (10 = fallo … ≤6)
+  const rir=effMode()==='rir',q=el.querySelector('.rir-q b'),ch=el.querySelector('.rir-chips');
+  if(q)q.textContent=rir?'¿Cuántas te quedaban? (RIR)':'¿Qué RPE? (10 = fallo)';
+  if(ch)ch.innerHTML=(rir?[[0,'0','fallo'],[1,'1'],[2,'2'],[3,'3'],[4,'4+']]:[[0,'10','fallo'],[1,'9'],[2,'8'],[3,'7'],[4,'≤6']])
+    .map(([r,t,sm])=>`<button onclick="chooseRir(${r})">${t}${sm?`<small>${sm}</small>`:''}</button>`).join('');
+  el.setAttribute('aria-label',rir?'Repeticiones en reserva':'Esfuerzo percibido (RPE)');
   el.classList.add('on');
 }
 function hideRirAsk(){rirTarget=null;document.getElementById('rir-ask')?.classList.remove('on');}
@@ -98,7 +129,7 @@ function chooseRir(r){
   const{ei,si}=rirTarget,s=activeSess.exercises?.[ei]?.sets?.[si];
   if(s){
     s.rpe=10-r;s.effortSrc='logged';
-    const el=document.getElementById(`rpe_${ei}_${si}`);if(el)el.value=s.rpe;
+    const el=document.getElementById(`rpe_${ei}_${si}`);if(el){el.value=effShow(s.rpe);el.classList.remove('bad');}
     updateE1RMRow(ei);persistActive();vib(15);
   }
   hideRirAsk();
@@ -141,7 +172,7 @@ function preSessMuscles(exs){
 function openPreSess(src){
   const t=(src&&typeof src==='object')?null:(db.templates||[]).find(x=>x.id===src);
   const from=t||src;if(!from||!from.exercises)return;
-  const day=selDate||todayStr(),bt=(db.biometrics||[]).find(b=>b.date===day);
+  const day=sessDay(),bt=(db.biometrics||[]).find(b=>b.date===day);
   const q=bt?.subj?.v===2?bt.subj:{},auto=q.sleepH==null?PPCore.sleepBucket(bt?.sleepMin):null;
   // prev: ejercicios con su número de series, para la vista previa de los ajustes por músculo
   const prev=from.exercises.map(e=>({name:e.name,muscle:e.muscle,n:Math.max(1,Array.isArray(e.sets)?e.sets.length:(e.sets||3))}));
@@ -177,7 +208,7 @@ function renderPreSess(){
   const sleep=preSess.sleepAuto&&wMin&&!preSess.sleepEdit
     ?`<div class="ps-row ps-sleep ps-sleep-w"><span>Sueño<small>del reloj</small></span><div class="ps-wsleep"><b>⌚ ${Math.floor(wMin/60)} h ${Math.round(wMin%60)} min</b><button class="ps-link" onclick="preSess.sleepEdit=true;renderPreSess()">cambiar</button></div></div>`
     :`<div class="ps-row ps-sleep"><span>Sueño${preSess.sleepAuto&&preSess.sleepH?'<small>del reloj</small>':''}</span>${sleepChips}</div>`
-     +(hcOn&&!wMin&&preSess.sleepH==null?`<div class="ps-nosleep">${preSessSyncing?'Leyendo el reloj…':`El reloj aún no tiene el sueño de esta noche (Mi Fitness puede tardar en pasarlo a Health Connect). <button class="ps-link" onclick="preSessSyncWatch()">Sincronizar</button>`}</div>`:'');
+     +(hcOn&&!wMin&&preSess.sleepH==null?`<div class="ps-nosleep">${preSessSyncing?'Leyendo el reloj…':`El reloj aún no tiene el sueño de esta noche (Mi Fitness puede tardar en pasarlo a Health Connect).${lastSleepTxt()} <button class="ps-link" onclick="preSessSyncWatch()">Sincronizar</button>`}</div>`:'');
   const rows=PRE_Q.map(([k,l,em])=>`<div class="ps-row"><span>${l}</span><div>${em.map((e,i)=>chip(preSess[k]===i+1,e,`preSessSet('${k}',${i+1})`)).join('')}</div></div>`).join('');
   const mus=preSess.mlist.length?`<div class="ps-lbl">¿Tienes cansancio muscular? <small>toca: cansado → agujetas → dolor</small></div><div class="ps-chips ps-mus">${preSess.mlist.map(m=>{const st=preSess.muscles[m];return `<button class="ps-chip${st?' st-'+st:''}" data-m="${esc(m)}" onclick="preSessMus(this.dataset.m)">${esc(m)}${st?` · ${PPCore.MUSCLE_ST[st].t}`:''}</button>`;}).join('')}</div>`:'';
   document.getElementById('presess-q').innerHTML=sleep+rows+mus;
@@ -192,6 +223,12 @@ function renderPreSess(){
 // Sueño del reloj: al abrir la hoja (o al tocar «Sincronizar») se lee Health Connect si aún no está el de hoy,
 // y al llegar se rellena solo (si no lo has marcado tú a mano)
 let preSessSyncing=false;
+// El último sueño que sí llegó: si es de hace días, el problema está entre el reloj, Mi Fitness y Health Connect
+function lastSleepTxt(){
+  const b=(db.biometrics||[]).filter(x=>x.sleepMin>0).sort((x,y)=>y.date.localeCompare(x.date))[0];
+  if(!b)return ' Todavía no ha llegado ningún sueño: revisa en Health Connect que Mi Fitness tenga permiso para escribir «Sueño».';
+  const[y,m,d]=b.date.split('-');return ` El último que llegó es el del ${+d}/${+m} (${Math.floor(b.sleepMin/60)} h ${b.sleepMin%60} min).`;
+}
 function preSessFillWatch(){
   if(!preSess)return;
   const bt=(db.biometrics||[]).find(b=>b.date===preSess.day),auto=PPCore.sleepBucket(bt?.sleepMin);

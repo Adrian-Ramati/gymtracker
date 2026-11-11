@@ -65,7 +65,7 @@ function renderExView(){
   if(hist.length||prog){
     let hb='';
     if(prog)hb+=`<div class="prog-hint ${prog.action}" style="cursor:default">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`;
-    hb+=hist.map(x=>`<div class="exv-hrow"><span>${fmtDate(x.date)}</span><div>${(x.ex.sets||[]).filter(isWorkSet).map(s=>`<i>${s.kg??'–'}×${s.reps??'–'}${s.rpe!=null&&s.rpe!==''?' @'+s.rpe:''}</i>`).join('')||'<i>—</i>'}</div></div>`).join('');
+    hb+=hist.map(x=>`<div class="exv-hrow"><span>${fmtDate(x.date)}</span><div>${(x.ex.sets||[]).filter(isWorkSet).map(s=>`<i>${s.kg??'–'}×${s.reps??'–'}${effTag(s.rpe)}</i>`).join('')||'<i>—</i>'}</div></div>`).join('');
     if(best)hb+=`<div class="exv-best">🏆 Mejor e1RM: <b>${best} kg</b></div>`;
     h+=sec('Tu historial',hb);
   }

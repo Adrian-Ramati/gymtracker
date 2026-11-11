@@ -33,7 +33,7 @@ with sync_playwright() as p:
     ctx.route('**/*.supabase.co/**', lambda r: r.fulfill(status=200, content_type='application/json', body='[]'))
     ctx.route('**/raw.githubusercontent.com/**', lambda r: r.fulfill(status=200, content_type='image/png', body=ns['IMG']))
     # Simula un index.html viejo en caché: sin candado ni capa de bloqueo ni meta de versión
-    old_html = html.replace(re.search(r'<button class="lock-btn".*?</button>\n', html, re.S).group(0), '')
+    old_html = html.replace(re.search(r'<button class="hdr-btn lock-btn".*?</button>\n', html, re.S).group(0), '')
     old_html = old_html.replace(re.search(r'<!-- Pantalla bloqueada.*?</div>\n</div>\n', old_html, re.S).group(0), '')
     old_html = re.sub(r'<meta name="pp-version"[^>]*>\n', '', old_html)
     assert 'lock-btn' not in old_html and 'lock-ov' not in old_html
@@ -45,7 +45,7 @@ with sync_playwright() as p:
         page.click('#btn-local'); page.wait_for_timeout(800)
         ev(ns['MOCK']); ev(ns['SEED']); page.wait_for_timeout(500)
         ev("()=>{startFromTmpl('t1');preSessGo(true)}"); page.wait_for_timeout(400)
-        check('X2. Con un HTML viejo el candado aparece igual (lo crea el JS)', ev("()=>{const b=document.getElementById('lock-btn');return !!b&&b.offsetParent!==null&&b.nextElementSibling?.classList.contains('cancel-btn')}"))
+        check('X2. Con un HTML viejo el candado aparece igual (lo crea el JS)', ev("()=>{const b=document.getElementById('lock-btn');return !!b&&b.offsetParent!==null&&!!b.closest('#hdr')}"))
         ev("()=>lockScreen()"); page.wait_for_timeout(200)
         check('X3. … y la capa de bloqueo también funciona', ev("()=>document.getElementById('lock-ov').classList.contains('on')&&!!document.getElementById('lock-ring')"))
         ring = ev("()=>{const r=document.getElementById('lock-ring').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
@@ -107,7 +107,7 @@ with sync_playwright() as p:
     d = ev("()=>document.getElementById('alarm-diag')?.innerText||''")
     check('X16. Perfil muestra la versión del APK y de la web', 'App 1.0.15' in d and 'Web ' in d, d)
     check('X17. Avisa del volumen de alarma a 0 y de la batería (Xiaomi: Inicio automático)', '✗ Volumen de alarma 0/7' in d and '✗ Batería sin restricciones' in d and 'Inicio automático' in d, d)
-    page.click('#alarm-diag button'); page.wait_for_timeout(100)
+    page.click('#alarm-diag button:has-text("Abrir ajustes")'); page.wait_for_timeout(100)
     check('X18. Botón para abrir los ajustes de la app', ev("()=>__ra.slice(-1)[0][0]") == 'settings')
     ev("()=>{window.Capacitor={isNativePlatform:()=>false,Plugins:{}};renderHealthCard()}"); page.wait_for_timeout(300)
     check('X19. En la web normal (no la app) no sale el diagnóstico', not ev("()=>!!document.getElementById('alarm-diag')"))

@@ -28,9 +28,12 @@ public class RestTimerService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private PowerManager.WakeLock wakeLock;
     private long endTs = 0;
+    // Al llegar a cero suena y el servicio sigue vivo 4 s más (con la CPU despierta) para que el pitido
+    // termine: si se paraba en el acto, el sistema congelaba la app con el sonido a medias o sin empezar.
     private final Runnable fire = () -> {
+        RestAlarmReceiver.log(this, "servicio a cero");
         RestAlarmReceiver.ringOnce(this, endTs, "Descanso terminado", "A por la siguiente serie");
-        stopSelfClean();
+        handler.postDelayed(this::stopSelfClean, 4000);
     };
 
     static void start(Context ctx, long endTs) {
@@ -48,8 +51,15 @@ public class RestTimerService extends Service {
         if (e <= System.currentTimeMillis()) { stopSelfClean(); return START_NOT_STICKY; }
         endTs = e;
         Notification n = buildNotification(endTs);
-        if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
-        else startForeground(NOTIF_ID, n);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            else startForeground(NOTIF_ID, n);
+            RestAlarmReceiver.log(this, "cuenta atrás en marcha");
+        } catch (Exception ex) {
+            RestAlarmReceiver.log(this, "error servicio: " + ex.getClass().getSimpleName());
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         // CPU despierta solo durante el descanso (como mucho 6 min) para que la cuenta atrás no se pare
         try {
             if (wakeLock == null) {
@@ -57,9 +67,9 @@ public class RestTimerService extends Service {
                 wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "peak:rest");
                 wakeLock.setReferenceCounted(false);
             }
-            wakeLock.acquire(Math.min(6 * 60_000L, endTs - System.currentTimeMillis() + 15_000L));
+            wakeLock.acquire(Math.min(6 * 60_000L, endTs - System.currentTimeMillis() + 20_000L));
         } catch (Exception ignored) { }
-        handler.removeCallbacks(fire);
+        handler.removeCallbacksAndMessages(null);
         handler.postDelayed(fire, Math.max(0, endTs - System.currentTimeMillis()));
         return START_NOT_STICKY;
     }
@@ -95,7 +105,7 @@ public class RestTimerService extends Service {
     }
 
     private void stopSelfClean() {
-        handler.removeCallbacks(fire);
+        handler.removeCallbacksAndMessages(null);
         try { if (wakeLock != null && wakeLock.isHeld()) wakeLock.release(); } catch (Exception ignored) { }
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true);
         stopSelf();

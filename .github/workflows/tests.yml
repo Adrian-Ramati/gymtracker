@@ -75,6 +75,9 @@ jobs:
       - name: Sueño del reloj en la readiness y trapecio/lumbar como secundarios
         run: python tests/test_sueno_sec.py
 
+      - name: Candado arriba, reordenar, RIR/RPE, día del entreno, −30 s y registro de la alarma
+        run: python tests/test_noviembre.py
+
       - name: Informe semanal en modo prueba
         run: |
           npm install --prefix scripts

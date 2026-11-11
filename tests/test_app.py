@@ -240,7 +240,7 @@ def run():
         ev(RESET); ev("()=>navHome()"); page.wait_for_timeout(300)
         r = ev("()=>{document.querySelector('.content').scrollTo(0,99999);const c=[...document.querySelectorAll('#s-home .hcard')].pop().getBoundingClientRect(),n=document.getElementById('bnav').getBoundingClientRect();return{cb:c.bottom,nt:n.top}}")
         check('R12. La última tarjeta de la portada queda por encima de la barra', r['cb'] <= r['nt'] + 1, r)
-        ev("()=>{db.templates=[{id:'t1',name:'Rutina A',rest:90,exercises:[{name:'Press banca',muscle:'Pectoral',sets:3}]}];selDate='2026-10-02';showScr('train',null);renderDayPanel();startFromTmpl('t1');preSessGo(true);}")
+        ev("()=>{db.templates=[{id:'t1',name:'Rutina A',rest:90,exercises:[{name:'Press banca',muscle:'Pectoral',sets:3}]}];showScr('train',null);selectDate('2026-10-02');startFromTmpl('t1');preSessGo(true);}")
         st = ev("()=>({n:activeSess.exercises.length,d:activeSess.date,i:document.getElementById('sess-date').value})")
         check('R13. Iniciar desde rutina usa el día seleccionado', st == {'n': 1, 'd': '2026-10-02', 'i': '2026-10-02'}, st)
         ev(RESET)
