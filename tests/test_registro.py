@@ -25,7 +25,7 @@ def open_app(p, **ctxkw):
     page = ctx.new_page(); errors = []; page.on('pageerror', lambda e: errors.append(str(e)))
     page.goto('file://' + os.path.join(ROOT, 'index.html')); page.wait_for_timeout(1200)
     page.click('#btn-local'); page.wait_for_timeout(800)
-    page.evaluate(ns['MOCK']); page.evaluate(ns['SEED']); page.wait_for_timeout(600)
+    page.evaluate(ns['MOCK']); page.evaluate(ns['SEED']); page.evaluate("()=>{db.profile.effortMode='rpe'}"); page.wait_for_timeout(600)  # estas pruebas son en modo RPE; el RIR va en test_noviembre
     return ctx, page, errors
 
 with sync_playwright() as p:

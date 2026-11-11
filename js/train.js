@@ -1,9 +1,14 @@
 // train.js — Calendario, rutinas, detalle/edición de sesiones, entrenamiento activo, progresión y selector de ejercicios.
 // ═══ CALENDAR ═══
-function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);}
-function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);renderCal();renderDayPanel();}
+function initCal(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);selDatePicked=false;}
+// Día del entreno: el que hayas elegido en el calendario o, si no has elegido ninguno, HOY. Antes era siempre el
+// día seleccionado, y como la app se queda abierta en segundo plano, al día siguiente seguía siendo «ayer»:
+// la sesión se guardaba con la fecha de ayer y la readiness buscaba el sueño de ayer.
+let selDatePicked=false;
+function sessDay(){if(!selDatePicked&&selDate!==todayStr())selDate=todayStr();return selDatePicked&&selDate?selDate:todayStr();}
+function goToday(){const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();selDate=isoDate(now);selDatePicked=false;renderCal();renderDayPanel();}
 function moveMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;}renderCal();}
-function selectDate(ds){selDate=ds;renderCal();renderDayPanel();}
+function selectDate(ds){selDate=ds;selDatePicked=ds!==todayStr();renderCal();renderDayPanel();}
 function renderDayPanel(){
   const panel=document.getElementById('day-panel');
   if(!selDate){panel.innerHTML='';return;}
@@ -241,10 +246,10 @@ function openSessionDetail(id){
         <span>${esc(ex.name)}${isPR?' <span style="color:var(--amber);font-size:11px">🏆 PR</span>':''}</span>
         <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;background:${mc[0]};color:${mc[1]};font-family:var(--mono)">${esc(ex.muscle)}</span>
       </div>
-      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;margin-bottom:4px"><span style="font-size:10px;color:var(--t3);width:60px;font-family:var(--mono)">Serie</span><span style="font-size:10px;color:var(--t3);font-family:var(--mono)">Peso / Reps / RPE</span></div>`;
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;margin-bottom:4px"><span style="font-size:10px;color:var(--t3);width:60px;font-family:var(--mono)">Serie</span><span style="font-size:10px;color:var(--t3);font-family:var(--mono)">Peso / Reps / ${effName()}</span></div>`;
     (ex.sets||[]).filter(s=>s.kg||s.reps).forEach((s,si)=>{
       const rm=calcE1RM(s.kg,s.reps,s.rpe);
-      html+=`<div class="detail-set-row"><div class="detail-set-num">${si+1}</div><div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${s.rpe?' @'+s.rpe:''}${rm?` <span style="color:var(--blue);font-size:10px">e1RM ${rm}</span>`:''}${s.restS!=null?` <span style="color:var(--t3);font-size:10px">⏱ ${Math.floor(s.restS/60)}:${String(s.restS%60).padStart(2,'0')}</span>`:''}${s.hr?` <span style="color:var(--red);font-size:10px">❤ ${s.hr.avg}/${s.hr.max}</span>`:''}</div></div>`;
+      html+=`<div class="detail-set-row"><div class="detail-set-num">${si+1}</div><div class="detail-set-info">${s.kg||'—'} kg × ${s.reps||'—'} reps${effTag(s.rpe)}${rm?` <span style="color:var(--blue);font-size:10px">e1RM ${rm}</span>`:''}${s.restS!=null?` <span style="color:var(--t3);font-size:10px">⏱ ${Math.floor(s.restS/60)}:${String(s.restS%60).padStart(2,'0')}</span>`:''}${s.hr?` <span style="color:var(--red);font-size:10px">❤ ${s.hr.avg}/${s.hr.max}</span>`:''}</div></div>`;
     });
     if(ex.notes)html+=`<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic">${esc(ex.notes)}</div>`;
     html+='</div>';
@@ -283,7 +288,7 @@ async function deleteSession(id){
 // Con mesociclo activo, las series de cada ejercicio se ajustan a la semana (más series o descarga)
 // Antes de empezar: tiempo disponible y check-in de recuperación (js/registro.js) → startFromTmplNow
 function startFromTmpl(tid){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;if(sessBusy())return;openPreSess(tid);}
-function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,selDate||todayStr());
+function startFromTmplNow(tid,opt={}){const t=(db.templates||[]).find(t=>t.id===tid);if(!t)return;const ns=PPCore.mesoSets(db.profile,db.templates,t,sessDay());
   const f=opt.loadFactor||1;
   let exs=t.exercises.map((ex,i)=>({name:ex.name,muscle:ex.muscle,notes:'',sets:Array.from({length:Math.max(1,Math.round((ns[i]||ex.sets||3)*f))},()=>({kg:null,reps:null,rpe:null,done:false}))}));
   const madj=opt.muscles?PPCore.muscleAdjust(exs,opt.muscles):[]; // cansancio / agujetas / dolor por músculo
@@ -322,7 +327,7 @@ function sessBusy(){if(!sessCanLeave())return false;toast('Ya hay un entrenamien
 function startSess(name,exercises,rest,date){
   if(sessBusy())return;
   prefetchGifs(exercises.map(e=>e.name));
-  activeSess={name,exercises,rest:rest||90,date:date||selDate||todayStr()};
+  activeSess={name,exercises,rest:rest||90,date:date||sessDay()};
   // Wall-clock anchor: setInterval is throttled/suspended when the screen locks,
   // so elapsed time is DERIVED from sessStartTs, never accumulated tick by tick.
   sessStartTs=Date.now();
@@ -387,7 +392,7 @@ function renderSetRow(ex,ei,si){
   const btnBorder=s.done?'var(--green)':SET_COLORS[stype];
   const btnColor=s.done?'#000':SET_COLORS[stype];
   const btnLabel=s.done?'✓':(SET_ABBR2[stype]||(si+1));
-  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv&&(lv.kg!=null||lv.reps!=null)?((lv.kg??"–")+"x"+(lv.reps??"–")):"—"}</div><input type="number" ${im} id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${tg?.kg??"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${tg?.reps??"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rpe_${ei}_${si}" value="${s.rpe??""}" placeholder="rpe" min="5" max="10" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":s.half?" half":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":s.half?"½":"○"}</button></div>`;
+  return `<div class="set-row" id="sr_${ei}_${si}" style="background:${rowBg};border-radius:6px"><button class="set-num" id="sn_${ei}_${si}" onclick="openSetType(${ei},${si})" style="background:${btnBg};border:1px solid ${btnBorder};border-radius:6px;cursor:pointer;color:${btnColor};width:22px;height:22px;display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--mono)">${btnLabel}</button><div class="prev-cell" onclick="fillFromPrev(${ei},${si})" title="Rellenar">${lv&&(lv.kg!=null||lv.reps!=null)?((lv.kg??"–")+"x"+(lv.reps??"–")):"—"}</div><input type="number" ${im} id="kg_${ei}_${si}" value="${s.kg??""}" placeholder="${tg?.kg??"kg"}" min="0" step="0.5" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rp_${ei}_${si}" value="${s.reps??""}" placeholder="${tg?.reps??"reps"}" min="1" max="60" step="1" oninput="onSetInput(${ei},${si})"><input type="number" ${im} id="rpe_${ei}_${si}" value="${effShow(s.rpe)}" placeholder="${effMode()}" min="${effMode()==='rir'?0:5}" max="${effMode()==='rir'?5:10}" step="0.5" oninput="onSetInput(${ei},${si})"><button class="check-btn${s.done?" done":s.half?" half":""}" onclick="toggleDone(${ei},${si})">${s.done?"✓":s.half?"½":"○"}</button></div>`;
 }
 function renderExCard(ex,ei){
   const mc=MC[ex.muscle]||['#1e1e1e','#9ca3af'];
@@ -403,9 +408,9 @@ function renderExCard(ex,ei){
   const dlw=(activeSess&&!activeSess.isTmplEdit)?mesoNow(activeSess.date):null;
   const prog=(activeSess&&!activeSess.isTmplEdit&&!activeSess.editing&&!dlw?.deload)?getProgression(ex.name):null;
   const progRow=dlw?.deload?deloadHintHtml(ex):prog?`<div class="prog-hint ${prog.action}" onclick="applyProgression(${ei})" title="Toca para rellenar las series vacías">${prog.action==='hold'?'→':'↑'} ${esc(prog.msg)}</div>`:'';
-  return `<div class="ec" id="ec_${ei}" draggable="true" ondragstart="dStart(event,${ei})" ondragover="dOver(event,${ei})" ondrop="dDrop(event,${ei})" ondragend="dEnd()">
+  return `<div class="ec" id="ec_${ei}">
     <div class="ec-head">
-      <span class="drag-handle">⠿</span>
+      <span class="drag-handle" onpointerdown="rdDown(event,${ei})" title="Mantén y arrastra para cambiar el orden" aria-label="Mover ejercicio">⠿</span>
       ${thumbHtml(ex.name,'exthumb sm')}
       <span class="ec-name" data-exn="${esc(ex.name)}" onclick="openExView(this.dataset.exn)" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${esc(ex.name)}</span>
       <span class="ec-tag" style="background:${mc[0]};color:${mc[1]}">${esc(ex.muscle)}</span>${ex.optional?'<span class="ec-opt" title="Fuera del tiempo disponible: hazlo si te sobra tiempo">Opcional</span>':''}
@@ -414,7 +419,7 @@ function renderExCard(ex,ei){
     <div class="ec-sub"><span class="ec-rest" title="Descanso entre series">⏱ ${ex.split&&canSplit(ex)&&!activeSess?.isTmplEdit?fmtRest(halfRest(exRestNow(ex)))+' + '+fmtRest(halfRest(exRestNow(ex)))+' <small>(un lado · otro lado)</small>':fmtRest(exRestNow(ex))+' <small>descanso</small>'}</span>${splitBtnHtml(ex,ei)}</div>
     ${ex.adj&&PPCore.MUSCLE_ST[ex.adj.st]?`<div class="ec-adj st-${ex.adj.st}">${esc(ex.adj.txt)}</div>`:''}
     ${progRow}
-    <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">rpe</div><div></div></div>
+    <div class="sets-head"><div></div><div class="sh-col">ant.</div><div class="sh-col">kg</div><div class="sh-col">reps</div><div class="sh-col">${effMode()}</div><div></div></div>
     <div id="sets_${ei}">${sets}</div>
     <div class="ec-footer">
       <button class="add-set-btn" onclick="addSet(${ei})">+ Serie</button>
@@ -493,11 +498,11 @@ function getProgression(exName){
   if(minER>=12)
     return{action:'weight',kg:r1(topKg+inc),reps:lo||8,msg:`Sube a ${r1(topKg+inc)} kg — ${Math.round(minER*10)/10} reps efectivas (≥12)`};
   if(maxRpe>=9.5)
-    return{action:'hold',kg:topKg,reps:minReps,msg:`Mantén ${topKg} kg — RPE ${maxRpe} la última sesión`};
+    return{action:'hold',kg:topKg,reps:minReps,msg:`Mantén ${topKg} kg — ${effMode()==='rir'?'RIR '+effShow(maxRpe):'RPE '+maxRpe} la última sesión`};
   if(hi&&work.every(s=>s.reps>=hi)&&maxRpe<=8)
-    return{action:'weight',kg:r1(topKg+inc),reps:lo||hi,msg:`Sube a ${r1(topKg+inc)} kg × ${lo||hi} — tope del rango a RPE ≤8`};
+    return{action:'weight',kg:r1(topKg+inc),reps:lo||hi,msg:`Sube a ${r1(topKg+inc)} kg × ${lo||hi} — tope del rango a ${effMode()==='rir'?'RIR ≥2':'RPE ≤8'}`};
   if(!hi&&rpes.length&&maxRpe<=7.5)
-    return{action:'weight',kg:r1(topKg+inc),reps:minReps,msg:`Sube a ${r1(topKg+inc)} kg — RPE ${maxRpe} la última sesión`};
+    return{action:'weight',kg:r1(topKg+inc),reps:minReps,msg:`Sube a ${r1(topKg+inc)} kg — ${effMode()==='rir'?'RIR '+effShow(maxRpe):'RPE '+maxRpe} la última sesión`};
   if(maxRpe<=8.5&&(!hi||minReps<hi)){
     const target=hi?Math.min(minReps+1,hi):minReps+1;
     return{action:'reps',kg:topKg,reps:target,msg:`Busca ${target} reps con ${topKg} kg${hi?` (rango ${lo}–${hi})`:''}`};
@@ -540,8 +545,8 @@ function onSetInput(ei,si){
   const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
   const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
   const rpeEl=document.getElementById(`rpe_${ei}_${si}`);
-  let rpe=numVal(rpeEl);
-  if(rpe!=null&&!PPCore.validRpe(rpe)){rpeEl?.classList.add('bad');if(!rpeEl?.dataset.warned){toast('El RPE va de 1 a 10');if(rpeEl)rpeEl.dataset.warned='1';}rpe=null;}else rpeEl?.classList.remove('bad');
+  const rpe=effVal(rpeEl);
+  if(effBad(rpeEl)){rpeEl?.classList.add('bad');if(!rpeEl?.dataset.warned){toast(effMode()==='rir'?'El RIR va de 0 a 9':'El RPE va de 1 a 10');if(rpeEl)rpeEl.dataset.warned='1';}}else rpeEl?.classList.remove('bad');
   if(rpe!==undefined){if(rpe!==s.rpe){if(rpe==null)delete s.effortSrc;else s.effortSrc='logged';}s.rpe=rpe;}
   updateE1RMRow(ei);
   persistActive();
@@ -567,7 +572,7 @@ function toggleDone(ei,si){
   // Explicit read: what's in the input is the truth (empty = null, 0 = 0)
   const kg=numVal(kgEl);if(kg!==undefined)s.kg=kg;
   const rp=numVal(rpEl);if(rp!==undefined)s.reps=rp;
-  let rpe=numVal(rpeEl);if(rpe!=null&&!PPCore.validRpe(rpe))rpe=null;
+  const rpe=effVal(rpeEl);
   if(rpe!==undefined){if(rpe!==s.rpe&&rpe!=null)s.effortSrc='logged';s.rpe=rpe;}
   // Descanso dividido: el 1.er toque es el lado A (medio descanso), el 2.º cierra la serie (otro medio)
   const split=ex.split&&canSplit(ex)&&!activeSess.editing&&!activeSess.isTmplEdit;
@@ -628,7 +633,7 @@ function collectInputs(){
     ex.sets.forEach((s,si)=>{
       const kg=numVal(document.getElementById(`kg_${ei}_${si}`));if(kg!==undefined)s.kg=kg;
       const rp=numVal(document.getElementById(`rp_${ei}_${si}`));if(rp!==undefined)s.reps=rp;
-      const rpe=numVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined)s.rpe=rpe;
+      const rpe=effVal(document.getElementById(`rpe_${ei}_${si}`));if(rpe!==undefined)s.rpe=rpe;
     });
     const notesEl=document.querySelector(`#ec_${ei} .notes-inp`);
     if(notesEl)ex.notes=notesEl.value;
@@ -661,10 +666,45 @@ async function finishSession(){
 }
 
 // ═══ DRAG & DROP ═══
-function dStart(e,i){dragSrcIdx=i;setTimeout(()=>document.getElementById('ec_'+i)?.classList.add('dragging'),0);}
-function dOver(e,i){e.preventDefault();document.querySelectorAll('.ec').forEach(c=>c.classList.remove('drag-over'));if(i!==dragSrcIdx)document.getElementById('ec_'+i)?.classList.add('drag-over');}
-function dDrop(e,i){e.preventDefault();if(!activeSess||dragSrcIdx===null||dragSrcIdx===i)return;collectInputs();const exs=activeSess.exercises;const[moved]=exs.splice(dragSrcIdx,1);exs.splice(i,0,moved);dragSrcIdx=null;renderSessExs();}
-function dEnd(){document.querySelectorAll('.ec').forEach(c=>{c.classList.remove('dragging');c.classList.remove('drag-over');});dragSrcIdx=null;}
+// ═══ CAMBIAR EL ORDEN DE LOS EJERCICIOS ═══
+// Con el asa ⠿ y eventos de puntero (dedo o ratón). Antes era arrastrar-y-soltar HTML5 sobre toda la
+// tarjeta: en el móvil a veces no llegaba el «dragend» y la tarjeta se quedaba sombreada y sin responder.
+// Ahora, pase lo que pase (soltar, cancelar, salir de la app), las tarjetas siempre se limpian.
+let rd=null;
+function rdDown(e,i){
+  if(!activeSess||rd)return;
+  e.preventDefault();e.stopPropagation();
+  const card=document.getElementById('ec_'+i);if(!card)return;
+  collectInputs();
+  const h=e.currentTarget;try{h.setPointerCapture(e.pointerId);}catch(_){}
+  rd={i,over:i,y:e.clientY,h,id:e.pointerId,list:card.parentElement,raf:0};
+  card.classList.add('dragging');vib(15);
+  h.addEventListener('pointermove',rdMove);
+  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>h.addEventListener(t,rdUp));
+  const sc=document.querySelector('.content');
+  const loop=()=>{if(!rd)return;const r=sc?.getBoundingClientRect();if(r){const edge=70;
+      if(rd.y<r.top+edge)sc.scrollBy(0,-Math.ceil((r.top+edge-rd.y)/6));else if(rd.y>r.bottom-edge)sc.scrollBy(0,Math.ceil((rd.y-(r.bottom-edge))/6));}
+    rdMark();rd.raf=requestAnimationFrame(loop);};
+  rd.raf=requestAnimationFrame(loop);
+}
+function rdMove(e){if(!rd||e.pointerId!==rd.id)return;e.preventDefault();rd.y=e.clientY;rdMark();}
+function rdMark(){
+  if(!rd)return;
+  const cards=[...rd.list.querySelectorAll(':scope > .ec')];let over=rd.over;
+  cards.forEach((c,k)=>{const r=c.getBoundingClientRect();if(rd.y>=r.top&&rd.y<=r.bottom)over=+c.id.split('_')[1];});
+  rd.over=over;
+  cards.forEach(c=>c.classList.toggle('drag-over',+c.id.split('_')[1]===over&&over!==rd.i));
+}
+function rdUp(){
+  if(!rd)return;const{i,over,h,raf}=rd;rd=null;cancelAnimationFrame(raf);
+  h.removeEventListener('pointermove',rdMove);['pointerup','pointercancel','lostpointercapture'].forEach(t=>h.removeEventListener(t,rdUp));
+  dragReset();
+  if(activeSess&&over!==i&&over!=null){const exs=activeSess.exercises;const[moved]=exs.splice(i,1);exs.splice(over,0,moved);renderSessExs();if(typeof persistActive==='function')persistActive();}
+}
+function dragReset(){document.querySelectorAll('.ec.dragging,.ec.drag-over').forEach(c=>c.classList.remove('dragging','drag-over'));}
+// Red de seguridad: nunca queda una tarjeta sombreada
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&rd)rdUp();else dragReset();});
+window.addEventListener('blur',()=>{if(rd)rdUp();});
 
 // ═══ CONTEXT MENU ═══
 function openCtx(ei){

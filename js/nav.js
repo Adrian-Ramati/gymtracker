@@ -8,12 +8,19 @@ function navTo(n){const c=curScr();if(c!==n){navStack.push(c);}showScr(n,null);d
 // Durante un entrenamiento, ‹ vuelve al inicio sin cortar la sesión (sigue el cronómetro y la barra "Continuar")
 function sessCanLeave(){return !!(activeSess&&!activeSess.isTmplEdit);}
 function navBack(){const c=curScr();if(c==='sess'&&sessCanLeave()){navHome();toast('El entrenamiento sigue en marcha');return;}if(c==='sess'||c==='tmpledit'){return;}let p=navStack.pop()||'home';if(p===c)p='home';if(p==='sess'||p==='tmpledit')p='home';showScr(p,null);}
-function navHome(){navStack=[];showScr('home',null);document.querySelector('.content').scrollTo(0,0);}
+function navHome(){navStack=[];if(typeof selDatePicked!=='undefined'){selDatePicked=false;selDate=todayStr();}showScr('home',null);document.querySelector('.content').scrollTo(0,0);}
+// La app se queda abierta en segundo plano: al volver otro día, «hoy» es hoy (salvo un día elegido a mano)
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||typeof selDatePicked==='undefined'||selDatePicked||selDate===todayStr())return;
+  selDate=todayStr();try{const c=curScr();if(c==='home')renderHome();else if(c==='train'){renderCal();renderDayPanel();}}catch(e){}
+});
 function updateHdr(n){
   const home=n==='home',sessy=n==='sess'||n==='tmpledit';
   const noBack=home||n==='tmpledit'||(n==='sess'&&!sessCanLeave());
   const _hb=document.getElementById('hdr-back');_hb.style.visibility=noBack?'hidden':'visible';_hb.style.pointerEvents=noBack?'none':'all';
   document.getElementById('hdr-gear').style.display=(home)?'grid':'none';
+  // Candado: en la barra de arriba solo durante un entreno en marcha
+  const lk=document.getElementById('lock-btn');if(lk)lk.style.display=(n==='sess'&&activeSess&&!activeSess.isTmplEdit)?'grid':'none';
   document.getElementById('hdr-logo').style.display=home?'block':'none';
   const t=document.getElementById('hdr-title');t.textContent=SCR_TITLES[n]||'Peak Physique';t.classList.toggle('sub',!home);
   document.getElementById('hdr').classList.toggle('home',home);
@@ -160,6 +167,7 @@ function renderVolBars(by){
 }
 // ─── PERFIL (rutinas · biblioteca · datos) ───────────────────────────
 function renderPerfil(){
+  if(typeof renderEffMode==='function')renderEffMode();
   document.getElementById('perfil-name').textContent=db.profile?.username||'';
   const t=db.templates||[];
   document.getElementById('perfil-routines').innerHTML=t.map(x=>`<div class="rt-row"><div class="n">${esc(x.name)}<small>${x.exercises.length} ejercicios · ${tmplSetCount(x)} series · ⏱ ${x.rest||90}s</small></div><button class="go" onclick="startFromTmpl('${x.id}')">▶</button><button onclick="openEditTmpl('${x.id}')">Editar</button><button onclick="duplicateTmpl('${x.id}');renderPerfil()">⧉</button><button onclick="deleteTmpl('${x.id}').then(renderPerfil)" style="color:var(--red)">✕</button></div>`).join('')

@@ -111,8 +111,8 @@ function setGif(id){
 // ─── Ajustes (descansos, gifs, landmarks) → Supabase profiles.settings (best-effort)
 // settingsAt: cuándo se cambió algo por última vez. Al abrir la app gana la copia más reciente (local o
 // Supabase); antes ganaba siempre Supabase y, si la subida había fallado, los cambios se perdían.
-const SETTINGS_KEYS=['restDays','gifMap','landmarks','secMap','mesoLog'];
-function settingsObj(p){p=p||{};return {restDays:p.restDays||[],gifMap:p.gifMap||{},landmarks:p.landmarks||{},secMap:p.secMap||{},mesoLog:p.mesoLog||[]};}
+const SETTINGS_KEYS=['restDays','gifMap','landmarks','secMap','mesoLog','effortMode'];
+function settingsObj(p){p=p||{};return {restDays:p.restDays||[],gifMap:p.gifMap||{},landmarks:p.landmarks||{},secMap:p.secMap||{},mesoLog:p.mesoLog||[],effortMode:p.effortMode||null};}
 function stampSettings(){
   if(!db.profile)db.profile={};
   const sig=JSON.stringify(settingsObj(db.profile));

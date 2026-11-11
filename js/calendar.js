@@ -40,7 +40,7 @@ function renderCal(){
 // ─── Dashboard semanal ───────────────────────────────────────────────
 let dashOff=0,dashWeekChart=null;
 // Sirve a Semana y Volumen
-function dashMove(d){dashOff=Math.min(0,dashOff+d);const c=curScr();if(c==='train'){renderWeekScr();const days=weekRange(dashOff);const[y,m]=days[0].split('-');calYear=+y;calMonth=+m-1;selDate=days[0];renderCal();renderDayPanel();}else renderVolScr();}
+function dashMove(d){dashOff=Math.min(0,dashOff+d);const c=curScr();if(c==='train'){renderWeekScr();const days=weekRange(dashOff);const[y,m]=days[0].split('-');calYear=+y;calMonth=+m-1;selDate=days[0];selDatePicked=days[0]!==todayStr();renderCal();renderDayPanel();}else renderVolScr();}
 function weekRange(off){const mon=mondayOf(todayStr());mon.setDate(mon.getDate()+off*7);const days=[];for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);days.push(isoDate(x));}return days;}
 function weekStats(days){
   const set=new Set(days);const ss=(db.sessions||[]).filter(s=>set.has(s.date));

@@ -112,6 +112,8 @@ function cancelRestNotification(){
   }catch(e){}
 }
 // Botón «Probar alarma» (Perfil → Reloj y recuperación), solo en el APK con alarma nativa
+// Prueba real: programa la alarma como un descanso de 15 s; da tiempo a apagar la pantalla
+async function testRestAlarmLocked(){const RA=restAlarm();if(!RA)return;try{await RA.schedule({at:Date.now()+15000,title:'Prueba de alarma',body:'Si lo oyes con la pantalla apagada, funciona'});toast('Apaga la pantalla: sonará en 15 s');}catch(e){toast('No se pudo programar: '+(e?.message||e));}}
 function testRestAlarm(){const RA=restAlarm();if(RA){RA.test().catch(()=>{});toast('Debería sonar ya, con el volumen de alarma');}}
 // Diagnóstico de la alarma (Perfil → Reloj y recuperación): qué versión corre y qué puede impedir que suene
 function alarmTestHtml(){
@@ -134,6 +136,9 @@ async function fillAlarmDiag(){
     out.push(row(i.exact,'Alarmas exactas permitidas'));
     out.push(row(i.alarmVolume>0,`Volumen de alarma ${i.alarmVolume}/${i.alarmVolumeMax}`));
     out.push(row(i.batteryUnrestricted,`Batería sin restricciones${/xiaomi|redmi|poco/i.test(i.manufacturer||'')?' e «Inicio automático» activado (Xiaomi)':''}`));
+    const lg=String(i.log||'').split(';').filter(Boolean).slice(-8).map(x=>{const[t,...e]=x.split('|');const d=new Date(+t);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')} ${esc(e.join('|'))}`;});
+    out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="testRestAlarmLocked()">⏱ Probar en 15 s con la pantalla apagada</button>`);
+    if(lg.length)out.push(`<details class="al-log"><summary>Últimos avisos</summary>${lg.map(l=>`<div>${l}</div>`).join('')}</details>`);
     if(!i.batteryUnrestricted||!i.notifications||!i.exact)out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="restAlarm()?.openSettings().catch(()=>{})">Abrir ajustes de la app</button>`);
   }catch(e){out.push(row(false,'No se pudo leer el estado (APK anterior a la 1.0.15): instala el último.'));}
   el.innerHTML=out.join('');
@@ -166,7 +171,8 @@ function tickRest(){
   }
 }
 function updateRestUI(){const m=Math.floor(restLeft/60),s=restLeft%60;const el=document.getElementById('rest-time');if(el)el.textContent=m+':'+(s<10?'0':'')+s;if(lockOn)updateLockRest();}
-function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;tickRest();if(restEndTs!==null)scheduleRestNotification(restEndTs);}
+// ±30 s. Si al restar ya no queda descanso, se acaba sin pitar (lo has cortado tú)
+function restAdd(s){if(restEndTs===null)return;restEndTs+=s*1000;if(restEndTs-Date.now()<1000){stopRest();toast('Descanso terminado');return;}tickRest();if(restEndTs!==null)scheduleRestNotification(restEndTs);}
 function endRest(keepAlarm){clearInterval(restIv);restIv=null;restEndTs=null;if(lockOn)setTimeout(updateLockRest,0);const p=document.getElementById('rest-pill');if(p)p.style.display='none';if(keepAlarm)restNativeArmed=false;else cancelRestNotification();}
 function stopRest(){endRest(false);}
 // On wake/foreground, immediately resync both timers with the wall clock
@@ -174,9 +180,11 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
     if(activeSess&&!activeSess.isTmplEdit){updateTimer();acquireWakeLock();}
     if(restEndTs!==null)tickRest();
-  }else if(restEndTs!==null){
+  }else if(restEndTs!==null&&!(restNativeArmed&&restAlarm())){
     // Going to background with a rest pending: re-post the schedule. The message
     // event also refreshes the SW's lifetime right when we start depending on it.
+    // (Con la alarma nativa ya programada no se repite: arrancar la cuenta atrás desde segundo plano
+    // lo prohíbe Android y solo servía para estorbar.)
     scheduleRestNotification(restEndTs);
   }
 });
@@ -219,11 +227,13 @@ function updateLockRest(){
 // El botón y la capa se crean aquí si el HTML no los trae (un index.html antiguo en caché no los tenía)
 const LOCK_SVG='<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';
 function ensureLockDom(){
-  const hdr=document.querySelector('#s-sess .sess-hdr');
-  if(hdr&&!document.getElementById('lock-btn')){
-    const b=document.createElement('button');b.className='lock-btn';b.id='lock-btn';b.title='Bloquear pantalla';b.setAttribute('aria-label','Bloquear pantalla');
-    b.onclick=lockScreen;b.innerHTML=`<svg viewBox="0 0 24 24">${LOCK_SVG}</svg>`;
-    hdr.insertBefore(b,hdr.querySelector('.cancel-btn')||null);
+  const hdr=document.getElementById('hdr');
+  let b=document.getElementById('lock-btn');
+  if(b&&!b.closest('#hdr'))b.remove(),b=null; // HTML viejo: estaba en la cabecera del entreno
+  if(hdr&&!b){
+    b=document.createElement('button');b.className='hdr-btn lock-btn';b.id='lock-btn';b.title='Bloquear pantalla';b.setAttribute('aria-label','Bloquear pantalla');
+    b.style.display='none';b.onclick=lockScreen;b.innerHTML=`<svg viewBox="0 0 24 24">${LOCK_SVG}</svg>`;
+    hdr.insertBefore(b,document.getElementById('logout-btn')||null);
   }
   if(!document.getElementById('lock-ov')){
     const d=document.createElement('div');d.id='lock-ov';d.className='lock-ov';d.setAttribute('aria-hidden','true');

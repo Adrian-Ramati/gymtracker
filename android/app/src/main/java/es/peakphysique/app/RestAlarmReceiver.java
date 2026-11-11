@@ -24,9 +24,23 @@ public class RestAlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
         final PendingResult pr = goAsync();
+        log(ctx, "respaldo");
         ringOnce(ctx, intent.getLongExtra("endTs", 0), intent.getStringExtra("title"), intent.getStringExtra("body"));
         try { RestTimerService.stop(ctx); } catch (Exception ignored) { }
-        new Handler(Looper.getMainLooper()).postDelayed(pr::finish, 3000);
+        new Handler(Looper.getMainLooper()).postDelayed(pr::finish, 4000);
+    }
+
+    /** Registro de lo que pasa con cada descanso (se ve en Perfil): ayuda a saber dónde se pierde la alarma. */
+    static synchronized void log(Context ctx, String ev) {
+        try {
+            android.content.SharedPreferences sp = ctx.getSharedPreferences("rest-alarm", Context.MODE_PRIVATE);
+            String prev = sp.getString("log", "");
+            String line = System.currentTimeMillis() + "|" + ev.replace("\n", " ").replace(";", ",");
+            String all = prev.isEmpty() ? line : prev + ";" + line;
+            String[] parts = all.split(";");
+            if (parts.length > 14) all = String.join(";", java.util.Arrays.copyOfRange(parts, parts.length - 14, parts.length));
+            sp.edit().putString("log", all).apply();
+        } catch (Exception ignored) { }
     }
 
     /** Suena una sola vez por descanso: lo pueden disparar el servicio y la alarma de respaldo. */
@@ -34,8 +48,10 @@ public class RestAlarmReceiver extends BroadcastReceiver {
         android.content.SharedPreferences sp = ctx.getSharedPreferences("rest-alarm", Context.MODE_PRIVATE);
         long key = endTs > 0 ? endTs : System.currentTimeMillis();
         long last = sp.getLong("rung", 0);
-        if (endTs > 0 && Math.abs(last - key) < 1500) return;
+        if (endTs > 0 && Math.abs(last - key) < 1500) { log(ctx, "ya sonó"); return; }
         sp.edit().putLong("rung", key).apply();
+        long late = endTs > 0 ? System.currentTimeMillis() - endTs : 0;
+        log(ctx, "suena" + (late > 1500 ? " (" + (late / 1000) + " s tarde)" : ""));
         ring(ctx, title, body);
     }
 
@@ -48,7 +64,7 @@ public class RestAlarmReceiver extends BroadcastReceiver {
             h.postDelayed(() -> tg.startTone(ToneGenerator.TONE_PROP_BEEP2, 400), 600);
             h.postDelayed(() -> tg.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500), 1200);
             h.postDelayed(tg::release, 2400);
-        } catch (Exception ignored) { }
+        } catch (Exception e) { log(ctx, "error sonido: " + e.getMessage()); }
         // 2 · Vibración
         try {
             Vibrator v = (Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);

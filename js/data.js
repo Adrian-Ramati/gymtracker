@@ -146,7 +146,7 @@ async function loadDBFromSupabase(){
       // Si la local es más nueva (la subida falló o no llegó), se queda y se vuelve a subir.
       const localNewer=prevProf&&(prevProf.settingsAt||0)>(st.settingsAt||0);
       const src=localNewer?prevProf:st;
-      if(src.restDays)db.profile.restDays=src.restDays;if(src.gifMap)db.profile.gifMap=src.gifMap;if(src.landmarks)db.profile.landmarks=src.landmarks;if(src.secMap)db.profile.secMap=src.secMap;if(Array.isArray(src.mesoLog))db.profile.mesoLog=src.mesoLog;
+      if(src.restDays)db.profile.restDays=src.restDays;if(src.gifMap)db.profile.gifMap=src.gifMap;if(src.landmarks)db.profile.landmarks=src.landmarks;if(src.secMap)db.profile.secMap=src.secMap;if(Array.isArray(src.mesoLog))db.profile.mesoLog=src.mesoLog;if(src.effortMode)db.profile.effortMode=src.effortMode;
       db.profile.settingsAt=src.settingsAt||0;db.profile.settingsSig=JSON.stringify(settingsObj(db.profile));
       if(localNewer)setTimeout(saveSettingsRemote,0);
       if(pRes.data.templates&&pRes.data.templates.length) db.templates=pRes.data.templates;

@@ -50,13 +50,16 @@ public class RestAlarmPlugin extends Plugin {
         JSObject ret = new JSObject();
         // 1 · Cuenta atrás en primer plano: evita que el sistema congele la app con la pantalla bloqueada
         boolean fgs = false;
-        try { RestTimerService.start(ctx, when); fgs = true; } catch (Exception ignored) { }
+        RestAlarmReceiver.log(ctx, "programado a " + Math.round((when - System.currentTimeMillis()) / 1000.0) + " s");
+        try { RestTimerService.start(ctx, when); fgs = true; }
+        catch (Exception e) { RestAlarmReceiver.log(ctx, "no arranca la cuenta atrás: " + e.getClass().getSimpleName()); }
         ret.put("service", fgs);
         // 2 · Respaldo: alarma «de reloj» (la que más respetan Doze y las capas de ahorro de los fabricantes)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
                 am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
                 ret.put("exact", false);
+                RestAlarmReceiver.log(ctx, "respaldo NO exacto (sin permiso de alarmas exactas)");
             } else {
                 Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
                 PendingIntent show = open == null ? pi : PendingIntent.getActivity(ctx, 2, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -74,6 +77,7 @@ public class RestAlarmPlugin extends Plugin {
         Context ctx = getContext();
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         am.cancel(pending(ctx, null, null));
+        RestAlarmReceiver.log(ctx, "cancelado");
         try { RestTimerService.stop(ctx); } catch (Exception ignored) { }
         RestAlarmReceiver.dismiss(ctx);
         call.resolve();
@@ -95,6 +99,7 @@ public class RestAlarmPlugin extends Plugin {
         r.put("alarmVolumeMax", au.getStreamMaxVolume(AudioManager.STREAM_ALARM));
         r.put("manufacturer", Build.MANUFACTURER);
         r.put("sdk", Build.VERSION.SDK_INT);
+        r.put("log", ctx.getSharedPreferences("rest-alarm", Context.MODE_PRIVATE).getString("log", ""));
         call.resolve(r);
     }
 
