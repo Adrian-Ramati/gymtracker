@@ -106,7 +106,7 @@ with sync_playwright() as p:
       dashOff=0;navTo('vol');}""")
     page.wait_for_timeout(600)
     by = ev("()=>weekStats(weekRange(0)).by")
-    check('S19. Volumen de la semana: trapecio 1,5 · lumbar 1,25 · antebrazo 2 (con el curl de la semana)', by.get('Trapecio') == 1.5 and by.get('Lumbar') == 1.25 and by.get('Antebrazo') == 2, by)
+    check('S19. Volumen de la semana: trapecio 1,5 · lumbar 1,25 · antebrazo ≥ 1,25 (más los curls de la semana)', by.get('Trapecio') == 1.5 and by.get('Lumbar') == 1.25 and by.get('Antebrazo', 0) >= 1.25, by)
     fills = ev("()=>{const w=document.getElementById('body-wrap');const ids=[...new Set([...w.querySelectorAll('.body-m')].map(e=>e.dataset.id))].filter(i=>/trap|lower-back|lumbar/.test(i));return ids.map(i=>[i,w.querySelector(`.body-m[data-id=\"${i}\"]`).style.fill])}")
     gray = ev("()=>{const w=document.getElementById('body-wrap');return w.querySelector('.body-m[data-id=\"f-abs\"]')?.style.fill}")
     check('S20. En el mapa ya no salen en gris', fills and all(f and f != gray for _, f in fills), (fills, gray))

@@ -41,6 +41,19 @@ function beep(){
     });
   }catch(e){}
 }
+// Aviso de «quedan 20 s»: tres golpes de palos de madera, como la claqueta de los últimos segundos de un
+// asalto de UFC. Ruido muy corto + dos resonancias de madera que se apagan en ~15 ms.
+const REST_WARN_S=20;
+function clack(){
+  try{
+    if(!audioCtx||audioCtx.state!=='running')return;
+    const t0=audioCtx.currentTime,sr=audioCtx.sampleRate,n=Math.floor(sr*0.09);
+    const buf=audioCtx.createBuffer(1,n,sr),d=buf.getChannelData(0);
+    for(let i=0;i<n;i++){const t=i/sr;d[i]=(Math.random()*2-1)*Math.exp(-t/0.0025)*0.55+(Math.sin(2*Math.PI*1900*t)+0.7*Math.sin(2*Math.PI*3100*t)+0.35*Math.sin(2*Math.PI*820*t))*Math.exp(-t/0.014)*0.6;}
+    let pk=0;for(let i=0;i<n;i++)pk=Math.max(pk,Math.abs(d[i]));for(let i=0;i<n;i++)d[i]=d[i]/pk*0.9;
+    [0,0.22,0.44].forEach(dt=>{const s=audioCtx.createBufferSource();s.buffer=buf;s.connect(audioCtx.destination);s.start(t0+dt);});
+  }catch(e){}
+}
 // ═══ REST NOTIFICATIONS (screen off / app in background) ═══
 // The in-page timer can't fire while Android suspends the tab, so the rest end
 // is also scheduled in the service worker, which shows a system notification
@@ -78,7 +91,7 @@ async function scheduleRestNotification(endTs){
   if(RA){
     try{
       if(LN){const p=await LN.checkPermissions();if(p.display!=='granted')await LN.requestPermissions();}
-      await RA.schedule({at:endTs,title:'Descanso terminado',body:'A por la siguiente serie 💪'});
+      await RA.schedule({at:endTs,title:'Descanso terminado',body:'A por la siguiente serie 💪',warn:REST_WARN_S});
       restNativeArmed=true;
     }catch(e){restNativeArmed=false;}
     return;
@@ -113,7 +126,9 @@ function cancelRestNotification(){
 }
 // Botón «Probar alarma» (Perfil → Reloj y recuperación), solo en el APK con alarma nativa
 // Prueba real: programa la alarma como un descanso de 15 s; da tiempo a apagar la pantalla
-async function testRestAlarmLocked(){const RA=restAlarm();if(!RA)return;try{await RA.schedule({at:Date.now()+15000,title:'Prueba de alarma',body:'Si lo oyes con la pantalla apagada, funciona'});toast('Apaga la pantalla: sonará en 15 s');}catch(e){toast('No se pudo programar: '+(e?.message||e));}}
+// 25 s: a los 5 s suenan los palos (aviso de 20 s) y a los 25 s, el final
+async function testRestAlarmLocked(){const RA=restAlarm();if(!RA)return;try{await RA.schedule({at:Date.now()+25000,title:'Prueba de alarma',body:'Si lo oyes con la pantalla apagada, funciona',warn:REST_WARN_S});toast('Apaga la pantalla: palos a los 5 s y alarma a los 25 s');}catch(e){toast('No se pudo programar: '+(e?.message||e));}}
+function testRestWarn(){const RA=restAlarm();if(RA?.testWarn){RA.testWarn().catch(()=>{});}else{initAudio();setTimeout(clack,50);}}
 function testRestAlarm(){const RA=restAlarm();if(RA){RA.test().catch(()=>{});toast('Debería sonar ya, con el volumen de alarma');}}
 // Diagnóstico de la alarma (Perfil → Reloj y recuperación): qué versión corre y qué puede impedir que suene
 function alarmTestHtml(){
@@ -137,14 +152,15 @@ async function fillAlarmDiag(){
     out.push(row(i.alarmVolume>0,`Volumen de alarma ${i.alarmVolume}/${i.alarmVolumeMax}`));
     out.push(row(i.batteryUnrestricted,`Batería sin restricciones${/xiaomi|redmi|poco/i.test(i.manufacturer||'')?' e «Inicio automático» activado (Xiaomi)':''}`));
     const lg=String(i.log||'').split(';').filter(Boolean).slice(-8).map(x=>{const[t,...e]=x.split('|');const d=new Date(+t);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')} ${esc(e.join('|'))}`;});
-    out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="testRestAlarmLocked()">⏱ Probar en 15 s con la pantalla apagada</button>`);
+    out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="testRestAlarmLocked()">⏱ Probar en 25 s con la pantalla apagada</button><button class="rest-btn" style="margin:6px 0 0" onclick="testRestWarn()">🥢 Oír el aviso de 20 s</button>`);
     if(lg.length)out.push(`<details class="al-log"><summary>Últimos avisos</summary>${lg.map(l=>`<div>${l}</div>`).join('')}</details>`);
     if(!i.batteryUnrestricted||!i.notifications||!i.exact)out.push(`<button class="rest-btn" style="margin:6px 0 0" onclick="restAlarm()?.openSettings().catch(()=>{})">Abrir ajustes de la app</button>`);
   }catch(e){out.push(row(false,'No se pudo leer el estado (APK anterior a la 1.0.15): instala el último.'));}
   el.innerHTML=out.join('');
 }
+let restWarnArmed=false;
 function startRest(secs){
-  stopRest();
+  stopRest();restWarnArmed=false;
   initAudio(); // inside the tap gesture → beep at rest end needs no new gesture
   // Anchor to an absolute end time: when the phone screen is off between sets
   // (the normal case in a gym), intervals freeze — on wake, tickRest() recomputes
@@ -159,6 +175,13 @@ function tickRest(){
   if(restEndTs===null)return;
   restLeft=Math.max(0,Math.round((restEndTs-Date.now())/1000));
   updateRestUI();
+  // Aviso a falta de 20 s (palos). Solo si el descanso pasó por encima de 20 s (no en descansos cortos ni tras
+  // restar hasta dejarlo por debajo) y no si llegamos tarde (app dormida). Con la alarma nativa ya lo hace ella.
+  if(restLeft>REST_WARN_S)restWarnArmed=true;
+  else if(restWarnArmed&&restLeft>0){
+    restWarnArmed=false;
+    if(restLeft>=REST_WARN_S-4&&!(restNativeArmed&&restAlarm())){clack();vib([60,160,60,160,60]);}
+  }
   if(restLeft<=0){
     // Con alarma nativa programada, que suene ella (no se cancela: si la app la cancelase justo antes
     // de dispararse, no sonaría nada). Sin ella, pitido y vibración desde la página.
@@ -222,7 +245,10 @@ function unlockScreen(){
 }
 function updateLockRest(){
   const el=document.getElementById('lock-rest');if(!el||!lockOn)return;
-  el.textContent=restEndTs!==null?`Descanso ${Math.floor(restLeft/60)}:${String(restLeft%60).padStart(2,'0')}`:'';
+  // Tiempo en grande para verlo de lejos (el móvil apoyado en el banco); en ámbar los últimos 20 s
+  if(restEndTs===null){el.innerHTML='';el.classList.remove('warn');return;}
+  el.innerHTML=`<small>Descanso</small><b>${Math.floor(restLeft/60)}:${String(restLeft%60).padStart(2,'0')}</b>`;
+  el.classList.toggle('warn',restLeft<=REST_WARN_S);
 }
 // El botón y la capa se crean aquí si el HTML no los trae (un index.html antiguo en caché no los tenía)
 const LOCK_SVG='<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';

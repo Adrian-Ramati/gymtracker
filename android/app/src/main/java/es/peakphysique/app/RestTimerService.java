@@ -28,6 +28,12 @@ public class RestTimerService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private PowerManager.WakeLock wakeLock;
     private long endTs = 0;
+    private long warnTs = 0;
+    // Aviso de «quedan 20 s» (palos de madera, como en la UFC)
+    private final Runnable warn = () -> {
+        RestAlarmReceiver.log(this, "aviso 20 s");
+        Clapper.play(this);
+    };
     // Al llegar a cero suena y el servicio sigue vivo 4 s más (con la CPU despierta) para que el pitido
     // termine: si se paraba en el acto, el sistema congelaba la app con el sonido a medias o sin empezar.
     private final Runnable fire = () -> {
@@ -36,8 +42,9 @@ public class RestTimerService extends Service {
         handler.postDelayed(this::stopSelfClean, 4000);
     };
 
-    static void start(Context ctx, long endTs) {
-        Intent i = new Intent(ctx, RestTimerService.class).putExtra("endTs", endTs);
+    static void start(Context ctx, long endTs) { start(ctx, endTs, 0); }
+    static void start(Context ctx, long endTs, long warnTs) {
+        Intent i = new Intent(ctx, RestTimerService.class).putExtra("endTs", endTs).putExtra("warnTs", warnTs);
         if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
     }
 
@@ -50,6 +57,7 @@ public class RestTimerService extends Service {
         long e = intent != null ? intent.getLongExtra("endTs", 0) : 0;
         if (e <= System.currentTimeMillis()) { stopSelfClean(); return START_NOT_STICKY; }
         endTs = e;
+        warnTs = intent.getLongExtra("warnTs", 0);
         Notification n = buildNotification(endTs);
         try {
             if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -71,6 +79,8 @@ public class RestTimerService extends Service {
         } catch (Exception ignored) { }
         handler.removeCallbacksAndMessages(null);
         handler.postDelayed(fire, Math.max(0, endTs - System.currentTimeMillis()));
+        long w = warnTs - System.currentTimeMillis();
+        if (warnTs > 0 && w > 500) handler.postDelayed(warn, w);   // si ya quedan menos de 20 s, no se avisa
         return START_NOT_STICKY;
     }
 

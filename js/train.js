@@ -548,6 +548,8 @@ function onSetInput(ei,si){
   const rpe=effVal(rpeEl);
   if(effBad(rpeEl)){rpeEl?.classList.add('bad');if(!rpeEl?.dataset.warned){toast(effMode()==='rir'?'El RIR va de 0 a 9':'El RPE va de 1 a 10');if(rpeEl)rpeEl.dataset.warned='1';}}else rpeEl?.classList.remove('bad');
   if(rpe!==undefined){if(rpe!==s.rpe){if(rpe==null)delete s.effortSrc;else s.effortSrc='logged';}s.rpe=rpe;}
+  // Si escribes el RIR/RPE en la casilla de esa serie, la pregunta flotante sobra: se quita sola
+  if(rpe!=null&&typeof rirTarget!=='undefined'&&rirTarget&&rirTarget.ei===ei&&rirTarget.si===si)hideRirAsk();
   updateE1RMRow(ei);
   persistActive();
 }
