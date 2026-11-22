@@ -82,7 +82,7 @@ with sync_playwright() as p:
     page.mouse.click(*kg); page.keyboard.type('99'); page.wait_for_timeout(200)
     check('D17. Ni se puede escribir en las series', ev("()=>document.getElementById('kg_1_0').value") == '' and ev("()=>document.activeElement?.id") != 'kg_1_0')
     ev("()=>startRest(95)"); page.wait_for_timeout(1100)
-    check('D18. Con la pantalla bloqueada se ve el descanso', ev("()=>document.getElementById('lock-rest').textContent").startswith('Descanso 1:3'))
+    check('D18. Con la pantalla bloqueada se ve el descanso', ev("()=>document.querySelector('#lock-rest b')?.textContent||''").startswith('1:3'))
     ring = ev("()=>{const r=document.getElementById('lock-ring').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]}")
     page.mouse.click(*ring); page.wait_for_timeout(300)
     check('D19. Un toque corto en el candado NO desbloquea', ev("()=>lockOn"))

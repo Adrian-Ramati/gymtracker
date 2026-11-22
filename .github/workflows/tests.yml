@@ -78,6 +78,9 @@ jobs:
       - name: Candado arriba, reordenar, RIR/RPE, día del entreno, −30 s y registro de la alarma
         run: python tests/test_noviembre.py
 
+      - name: Temporizador −30s·tiempo·+30s, tiempo grande al bloquear, aviso de 20 s y hoja RIR/RPE
+        run: python tests/test_timer_palos.py
+
       - name: Informe semanal en modo prueba
         run: |
           npm install --prefix scripts
