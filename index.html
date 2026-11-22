@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="pp-version" content="2026-11-11a">
+<meta name="pp-version" content="2026-11-22a">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#070b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -653,10 +653,10 @@
   </div>
 </div>
 <div id="rest-pill" style="display:none;position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--blue);border-radius:999px;padding:8px 16px;z-index:90;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
-  <span style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--blue)" id="rest-time">1:30</span>
-  <button onclick="restAdd(-30)" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t2);font-size:11px;padding:2px 8px;cursor:pointer">−30s</button>
-  <button onclick="restAdd(30)" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t2);font-size:11px;padding:2px 8px;cursor:pointer">+30s</button>
-  <button onclick="stopRest()" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0">×</button>
+  <button class="rp-adj" onclick="restAdd(-30)" aria-label="Restar 30 segundos">−30s</button>
+  <span class="rp-time" id="rest-time">1:30</span>
+  <button class="rp-adj" onclick="restAdd(30)" aria-label="Sumar 30 segundos">+30s</button>
+  <button class="rp-x" onclick="stopRest()" aria-label="Terminar descanso">×</button>
 </div>
 <div id="rir-ask" class="rir-ask" role="dialog" aria-label="Repeticiones en reserva">
   <div class="rir-q"><b>¿Cuántas te quedaban?</b><span id="rir-ask-ex"></span><button onclick="hideRirAsk()" aria-label="Cerrar">×</button></div>

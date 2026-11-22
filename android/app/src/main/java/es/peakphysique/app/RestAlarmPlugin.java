@@ -51,7 +51,10 @@ public class RestAlarmPlugin extends Plugin {
         // 1 · Cuenta atrás en primer plano: evita que el sistema congele la app con la pantalla bloqueada
         boolean fgs = false;
         RestAlarmReceiver.log(ctx, "programado a " + Math.round((when - System.currentTimeMillis()) / 1000.0) + " s");
-        try { RestTimerService.start(ctx, when); fgs = true; }
+        // Aviso previo (s antes del final): palos de madera. 0 = sin aviso
+        int warnS = call.getInt("warn", 0);
+        long warnAt = warnS > 0 ? when - warnS * 1000L : 0;
+        try { RestTimerService.start(ctx, when, warnAt); fgs = true; }
         catch (Exception e) { RestAlarmReceiver.log(ctx, "no arranca la cuenta atrás: " + e.getClass().getSimpleName()); }
         ret.put("service", fgs);
         // 2 · Respaldo: alarma «de reloj» (la que más respetan Doze y las capas de ahorro de los fabricantes)
@@ -113,6 +116,13 @@ public class RestAlarmPlugin extends Plugin {
             ctx.startActivity(i);
             call.resolve();
         } catch (Exception e) { call.reject(e.getMessage()); }
+    }
+
+    /** Prueba del aviso de 20 s (palos) desde Perfil. */
+    @PluginMethod
+    public void testWarn(PluginCall call) {
+        Clapper.play(getContext());
+        call.resolve();
     }
 
     /** Prueba desde Ajustes: suena ya mismo, para comprobar el volumen. */

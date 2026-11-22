@@ -697,7 +697,10 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
 .lock-ov{position:fixed;inset:0;z-index:9999;display:none;background:rgba(3,6,12,.74);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .lock-ov.on{display:grid;place-items:center}
 .lock-mid{display:flex;flex-direction:column;align-items:center;gap:14px}
-.lock-rest{font:600 22px var(--mono);color:#fff;min-height:28px;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.lock-rest{display:flex;flex-direction:column;align-items:center;color:#fff;min-height:28px;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+.lock-rest small{font:600 14px var(--font);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.lock-rest b{font:700 min(30vw,140px)/1 var(--mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.lock-rest.warn b{color:#fbbf24}
 .lock-ring{position:relative;width:96px;height:96px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.06);display:grid;place-items:center;cursor:pointer;padding:0;touch-action:none;box-shadow:0 0 0 6px rgba(255,255,255,.06),0 10px 30px rgba(0,0,0,.5)}
 .lock-ico{width:40px;height:40px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lock-prog{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);transform:rotate(-90deg);pointer-events:none}
@@ -726,3 +729,8 @@ body::before{content:"";position:fixed;inset:-30px;z-index:0;pointer-events:none
 .ps-nosleep{font-size:11px;color:var(--t3);margin:-2px 0 8px;line-height:1.4}
 .al-log{margin-top:6px;font:11px var(--mono);color:var(--t2)}.al-log summary{cursor:pointer;color:var(--t1);font-family:var(--font)}.al-log div{padding:1px 0}
 .eff-lbl{font-size:12px;color:var(--t2);margin:2px 0 8px}
+/* ── Temporizador flotante: −30s · tiempo · +30s ── */
+#rest-pill{padding:6px 8px!important;gap:6px!important}
+.rp-time{font:700 20px var(--mono);color:var(--blue);min-width:62px;text-align:center;font-variant-numeric:tabular-nums}
+.rp-adj{min-width:56px;height:40px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:999px;color:var(--t1);font:600 13px var(--font);cursor:pointer}
+.rp-x{width:36px;height:40px;background:none;border:none;color:var(--t3);font-size:20px;cursor:pointer;padding:0}
